@@ -8,9 +8,10 @@ This reusable GitHub Actions workflow automates the building and publishing of *
 
 The workflow supports:
 
-- Multi-version builds (`6` or `7.x`)
+- Multi-version builds (`6` or `7`)
 - Multi-OS builds (`Ubuntu 22`, `CentOS 7`, `RockyLinux 8`)
 - Python3 configuration for `Ubuntu 22` with version `6`
+- Dynamic configuration generation using version from `git describe`
 - Base image caching
 - Automatic tagging strategy
 - CI repository fallback mechanism
@@ -176,7 +177,7 @@ The `greengage-reusable-build.yml` workflow accepts the following inputs:
 
 ### Example for Automated Builds
 
-For automated builds triggered by `push` or `tag` events, you can configure workflows like this:
+For automated builds triggered by `pull_request`, or `tag` events, you can configure workflows like this in the target repository (e.g., `GreengageDB/greengage`):
 
 ```yaml
 name: Greengage Auto Build
@@ -214,7 +215,7 @@ jobs:
 
 ### 1. Repository Setup
 
-- Checks out the main repository (`GreengageDB/greengage`) with the specified branch (`ref`) or default branch if `ref` is empty
+- Checks out the main repository (e.g., `GreengageDB/greengage`) with the specified branch (`ref`) or default branch if `ref` is empty
 - Creates CI directory structure
 - Checks out the CI repository (`GreengageDB/greengage-ci`) or falls back to local `ci/` directory
 
@@ -236,11 +237,16 @@ jobs:
 
 ### 4. Tag Management
 
+- Always generates a tag based on short SHA
+- For pull requests: Adds a tag based on safe branch name
+- For tagged releases: Adds a tag based on version from `git describe`
+
 ```mermaid
 graph TD
-    A[Git Tag] --> B{Is Tag Build?}
-    B -->|Yes| C[Use raw tag]
-    B -->|No| D[Append timestamp]
+    A[Event] --> B{Type}
+    B -->|Push/Workflow_dispatch| C[Short SHA]
+    B -->|Pull Request| D[Short SHA + Safe Branch Name]
+    B -->|Tag| E[Short SHA + Version Tag]
 ```
 
 ### 5. Final Image Build
@@ -255,20 +261,25 @@ graph TD
 
 - Uses multi-layer caching:
   1. Base image layer
-  2. Previous release image
-- For tagged releases:
-  - Additional `:latest` tag is pushed
-  - No timestamp suffix added
+  2. Previous image with short SHA
 - Includes build arguments:
   - `PYTHON3`: Set to `python3` for `Ubuntu 22` with version `6`, otherwise empty
   - `REPO`, `TARGET_OS`, `TARGET_OS_VERSION`
+  - `BUILD_VERSION`: Version from `git describe` for dynamic configuration
+- Tags and pushes:
+  - Short SHA tag for all events
+  - Safe branch name tag for pull requests
+  - Version tag for tagged releases
 
 ## Image Tagging Strategy
 
-| Git Reference | Tag Format | Example |
-|---------------|------------|---------|
-| Tag           | `X.Y.Z` | `7.3.0` |
-| Non-tag       | `X.Y.Z-YYYYMMDDHHMM` | `6.28.0-202506101230` |
+| Event | Tag Format | Example |
+|-------|------------|---------|
+| Push/Workflow_dispatch | `<short_sha>` | `abc1234` |
+| Pull Request | `<short_sha>`, `<safe_branch_name>` | `abc1234`, `feature_test_branch` |
+| Tag | `<short_sha>`, `<version>` | `abc1234`, `v7.3.0` |
+
+- Version (`BUILD_VERSION`) from `git describe --tags --abbrev=0` is included in the image configuration (e.g., `v7.3.0`).
 
 ## Requirements
 
@@ -297,7 +308,7 @@ The workflow implements smart fallbacks:
 
 1. Remote CI repository (`GreengageDB/greengage-ci`) unavailable → Uses local `ci/` directory
 2. Previous images missing → Builds without cache
-3. Invalid tags → Automatically generates timestamp-based tags
+3. Missing git tags → Uses empty `BUILD_VERSION`
 
 ## Contributing
 

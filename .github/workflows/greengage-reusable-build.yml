@@ -1,6 +1,6 @@
 name: Greengage Reusable Docker Build Workflow
 env:
-  CI_REPO: magf/greengage-ci
+  CI_REPO: GreengageDB/greengage-ci
   CI_PATH: .ci
 on:
   workflow_call:
@@ -75,38 +75,43 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine image tags
+        id: set_tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g')
+          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
+            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
+          fi
       - name: Build and push base image
         run: |
           BASE_IMAGE_TAG=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}-base:${{ inputs.target_os }}${{ inputs.target_os_version }}
           docker pull $BASE_IMAGE_TAG || true
           docker build --tag $BASE_IMAGE_TAG --push --cache-from $BASE_IMAGE_TAG - < ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }}
-      - name: Determine final image tag
-        id: set_tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null | tr '/' '_')
-          echo "release_tag=$TAG" >> $GITHUB_OUTPUT
-          if [[ ! "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              TAG=$TAG-$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
-            elif [[ "${{ github.event_name }}" == "push" ]]; then
-              TAG=$TAG-$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')-$(git rev-parse --short HEAD)
-            fi
-          fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
       - name: Build and push final image
         run: |
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          RELEASE_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.release_tag }}
-          FINAL_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.tag }}
-          docker pull $RELEASE_IMAGE_TAG || true
-          docker build --push --tag $FINAL_IMAGE_TAG \
+          SHA_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.sha_tag }}
+          docker pull $SHA_IMAGE_TAG || true
+          docker build --tag $SHA_IMAGE_TAG --push \
             --build-arg PYTHON3=${{ inputs.python3 }} \
             --build-arg REPO=${{ github.repository }} \
             --build-arg TARGET_OS=${{ inputs.target_os }} \
             --build-arg TARGET_OS_VERSION=${{ inputs.target_os_version }} \
-            --cache-from $RELEASE_IMAGE_TAG \
+            --build-arg BUILD_VERSION=${{ steps.set_tag.outputs.build_version }} \
+            --cache-from $SHA_IMAGE_TAG \
             .
-          if [ "$RELEASE_IMAGE_TAG" == "$FINAL_IMAGE_TAG" ]; then
-            docker tag $FINAL_IMAGE_TAG $IMAGE:latest
-            docker push $IMAGE:latest
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ steps.set_tag.outputs.branch_tag }}" != "" ]]; then
+            BRANCH_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.branch_tag }}
+            docker tag $SHA_IMAGE_TAG $BRANCH_IMAGE_TAG
+            docker push $BRANCH_IMAGE_TAG
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/ && "${{ steps.set_tag.outputs.version_tag }}" != "" ]]; then
+            VERSION_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.version_tag }}
+            docker tag $SHA_IMAGE_TAG $VERSION_IMAGE_TAG
+            docker push $VERSION_IMAGE_TAG
           fi
