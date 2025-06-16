@@ -86,7 +86,11 @@ jobs:
           TAG=$(git describe --tags --abbrev=0 2>/dev/null | tr '/' '_')
           echo "release_tag=$TAG" >> $GITHUB_OUTPUT
           if [[ ! "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            TAG=$TAG-$(date '+%Y%m%d%H%M')
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              TAG=$TAG-$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
+            elif [[ "${{ github.event_name }}" == "push" ]]; then
+              TAG=$TAG-$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')-$(git rev-parse --short HEAD)
+            fi
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
       - name: Build and push final image
