@@ -4,16 +4,18 @@
 
 ## Overview
 
-This reusable GitHub Actions workflow, maintained by **GreenData**, automates the building and publishing of **Greengage Database (GGDB)** Docker images to GitHub Container Registry (GHCR). It is part of the `GreengageDB/greengage-ci` repository, a fork of `GreengageDB/greengage-ci`. The workflow supports:
+This reusable GitHub Actions workflow automates the building and publishing of **Greengage Database (GGDB)** Docker images to GitHub Container Registry (GHCR). It is part of the `GreengageDB/greengage` repository.
 
-- Multi-version builds (GGDB 6` or `7.x`)
+The workflow supports:
+
+- Multi-version builds (`6` or `7.x`)
 - Multi-OS builds (`Ubuntu 22`, `CentOS 7`, `RockyLinux 8`)
 - Python3 configuration for `Ubuntu 22` with version `6`
 - Base image caching
 - Automatic tagging strategy
 - CI repository fallback mechanism
 
-The `greengage-build-manual.yml` workflow allows manual triggering with a user-friendly interface to select the target branch and OS, ensuring compatibility and streamlined builds.
+The `greengage-build-manual.yml` (part of `GreengageDB/greengage`) workflow allows manual triggering with a user-friendly interface to select the target branch and OS, ensuring compatibility and streamlined builds.
 The `greengage-build-manual.yml` shoul be placed in target repositor at `.github/workflows/greengage-build-manual.yml`.
 
 ## Usage
@@ -299,7 +301,7 @@ The workflow implements smart fallbacks:
 
 ## Contributing
 
-This workflow is maintained by **GreenData** in the `GreengageDB/greengage-ci` repository. For issues or contributions, please open a pull request or issue at:
+For issues or contributions, please open a pull request or issue at:
 
 - [GreengageDB/greengage-ci](https://github.com/GreengageDB/greengage-ci)
 
