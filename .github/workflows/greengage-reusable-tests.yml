@@ -54,11 +54,11 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      # Set up Docker Compose using docker/setup-compose
+      # Set up Docker Compose using docker/setup-compose-action
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
-        with:
-          version: '2' # Use Compose v2 for compatibility with 'docker compose'
+        # with:
+        #   version: '2' # Use Compose v2 for compatibility with 'docker compose'
 
       # Login to GitHub Container Registry
       - name: Login to GitHub Container Registry
