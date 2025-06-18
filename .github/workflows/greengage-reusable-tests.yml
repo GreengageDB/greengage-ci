@@ -40,7 +40,7 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    # Define minimum permissions
+    # Define permissions
     permissions:
       contents: read
       packages: read
@@ -57,8 +57,6 @@ jobs:
       # Set up Docker Compose using docker/setup-compose-action
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
-        # with:
-        #   version: '2' # Use Compose v2 for compatibility with 'docker compose'
 
       # Login to GitHub Container Registry
       - name: Login to GitHub Container Registry
@@ -68,6 +66,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
+      # Determine image tags
       - name: Determine image tags
         id: set_tag
         run: |
@@ -87,3 +86,53 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ steps.set_tag.outputs.build_version }}
         run: bash ci/scripts/run_behave_tests.bash
+
+      # Install Allure CLI
+      - name: Install Allure CLI
+        if: always()
+        run: |
+          # Download Allure .deb package
+          curl -o allure_2.34.0-1_all.deb -L https://github.com/allure-framework/allure2/releases/download/2.34.0/allure_2.34.0-1_all.deb
+          # Update package index
+          sudo apt-get update
+          # Install Allure and dependencies
+          sudo apt-get install -y ./allure_2.34.0-1_all.deb
+          # Remove .deb file
+          rm allure_2.34.0-1_all.deb
+          # Verify installation
+          allure --version
+
+      # Generate Allure report
+      - name: Generate Allure report
+        if: always()
+        run: |
+          # Generate report
+          [ -d allure-results ] && allure generate allure-results -o allure-report --clean || echo "No allure-results to generate report"
+
+      # Package test results and logs
+      - name: Package test results and logs
+        if: always()
+        env:
+          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+        run: |
+          # Create artifacts directory
+          mkdir -p artifacts
+          # Copy Allure results and logs if they exist
+          for dir in allure-results logs_cdw logs_sdw1 allure-report; do
+            [ -d "$dir" ] && cp -r "$dir" artifacts/ || echo "No $dir found"
+          done
+          # Create tar.gz archive with unique name
+          tar -czf ${{ env.ARTIFACT_NAME }}.tar.gz -C artifacts .
+          # List contents for debugging
+          tar -tzf ${{ env.ARTIFACT_NAME }}.tar.gz
+
+      # Upload test artifacts
+      - name: Upload test artifacts
+        if: always()
+        env:
+          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}.tar.gz
+          retention-days: 7
