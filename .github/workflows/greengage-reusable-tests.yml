@@ -1,0 +1,89 @@
+name: Greengage Reusable Tests Workflow
+
+# Environment variables
+env:
+  CI_REPO: GreengageDB/greengage-ci
+  CI_PATH: .ci
+  COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_COMPOSE: "docker compose"
+
+# Trigger for reusable workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 22, 7, 8)'
+        required: true
+        type: string
+      python3:
+        description: 'Python3 build argument (ignored)'
+        required: false
+        type: string
+        default: ''
+      ref:
+        description: 'Branch or ref to checkout'
+        required: false
+        type: string
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    # Define minimum permissions
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      # Checkout repository with specified ref or default
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      # Set up Docker Compose using docker/setup-compose
+      - name: Set up Docker Compose
+        uses: docker/setup-compose@v1
+        with:
+          version: '2' # Use Compose v2 for compatibility with 'docker compose'
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Determine image tags
+        id: set_tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g')
+          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
+            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      # Run Behave tests
+      - name: Run Behave tests
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ steps.set_tag.outputs.build_version }}
+        run: bash ci/scripts/run_behave_tests.bash
