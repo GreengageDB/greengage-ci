@@ -32,6 +32,18 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
+      run_behave_gpstop:
+        description: 'Run gpstop Behave feature'
+        type: boolean
+        default: true
+      run_behave_gpstart:
+        description: 'Run gpstart Behave feature'
+        type: boolean
+        default: true
+      run_behave_gpcheck:
+        description: 'Run gpcheck Behave feature'
+        type: boolean
+        default: true
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
