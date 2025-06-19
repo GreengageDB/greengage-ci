@@ -1,4 +1,4 @@
-name: Greengage Reusable Tests Workflow
+name: Greengage Reusable Behave Tests
 
 # Environment variables
 env:
