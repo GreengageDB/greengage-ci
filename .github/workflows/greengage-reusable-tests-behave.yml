@@ -32,15 +32,15 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
-      run_behave_gpstop:
+      run_gpstop:
         description: 'Run gpstop Behave feature'
         type: boolean
         default: true
-      run_behave_gpstart:
+      run_gpstart:
         description: 'Run gpstart Behave feature'
         type: boolean
         default: true
-      run_behave_gpcheck:
+      run_gpcheck:
         description: 'Run gpcheck Behave feature'
         type: boolean
         default: true
@@ -50,12 +50,13 @@ on:
         required: true
 
 jobs:
-  tests:
+  setup:
     runs-on: ubuntu-latest
-    # Define permissions
     permissions:
       contents: read
       packages: read
+    outputs:
+      build_version: ${{ steps.set_tag.outputs.build_version }}
     steps:
       # Checkout repository with specified ref or default
       - name: Checkout Greengage repo
@@ -93,12 +94,211 @@ jobs:
             echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
           fi
 
-      # Run Behave tests
-      - name: Run Behave tests
+      # Create allure-results directory
+      - name: Create allure-results directory
+        run: |
+          rm -rf allure-results
+          mkdir -p allure-results -m 777
+
+      # Generate SSH keys
+      - name: Generate SSH keys
+        run: |
+          mkdir -p ssh_keys
+          if [ ! -e "ssh_keys/id_rsa" ]; then
+            ssh-keygen -P "" -f ssh_keys/id_rsa
+          fi
+
+  gpstop:
+    if: inputs.run_gpstop
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Run gpstop Behave feature
         continue-on-error: true
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ steps.set_tag.outputs.build_version }}
-        run: bash ci/scripts/run_behave_tests.bash
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+          FEATURE: gpstop
+          CLUSTER: ~concourse_cluster
+          PROJECT: gpstop_demo
+        run: |
+          # Initialize containers
+          bash ci/scripts/init_containers.sh $PROJECT
+
+          # Run Behave tests
+          timeout 600 $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            -e FEATURE="$FEATURE" -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
+              -f behave_utils.ci.formatter:CustomFormatter \
+              -o non-existed-output \
+              -f allure_behave.formatter:AllureFormatter \
+              -o /tmp/allure-results/$FEATURE" \
+            cdw gpdb_src/ci/scripts/behave_gpdb.bash
+          status=$?
+
+          # Clean up containers
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env down -v --timeout 300
+
+          # Exit with status
+          exit $status
+
+      - name: Copy allure-results
+        if: always()
+        run: |
+          mkdir -p allure-results
+          cp -r /tmp/allure-results/gpstop allure-results/ || echo "No gpstop allure-results found"
+
+  gpstart:
+    if: inputs.run_gpstart
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Run gpstart Behave feature
+        continue-on-error: true
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+          FEATURE: gpstart
+          CLUSTER: ~concourse_cluster
+          PROJECT: gpstart_demo
+        run: |
+          # Initialize containers
+          bash ci/scripts/init_containers.sh $PROJECT
+
+          # Run Behave tests
+          timeout 600 $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            -e FEATURE="$FEATURE" -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
+              -f behave_utils.ci.formatter:CustomFormatter \
+              -o non-existed-output \
+              -f allure_behave.formatter:AllureFormatter \
+              -o /tmp/allure-results/$FEATURE" \
+            cdw gpdb_src/ci/scripts/behave_gpdb.bash
+          status=$?
+
+          # Clean up containers
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env down -v --timeout 300
+
+          # Exit with status
+          exit $status
+
+      - name: Copy allure-results
+        if: always()
+        run: |
+          mkdir -p allure-results
+          cp -r /tmp/allure-results/gpstart allure-results/ || echo "No gpstart allure-results found"
+
+  gpcheck:
+    if: inputs.run_gpcheck
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Run gpcheck Behave feature
+        continue-on-error: true
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+          FEATURE: gpcheck
+          CLUSTER: ~concourse_cluster
+          PROJECT: gpcheck_demo
+        run: |
+          # Initialize containers
+          bash ci/scripts/init_containers.sh $PROJECT
+
+          # Run Behave tests
+          timeout 600 $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            -e FEATURE="$FEATURE" -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
+              -f behave_utils.ci.formatter:CustomFormatter \
+              -o non-existed-output \
+              -f allure_behave.formatter:AllureFormatter \
+              -o /tmp/allure-results/$FEATURE" \
+            cdw gpdb_src/ci/scripts/behave_gpdb.bash
+          status=$?
+
+          # Clean up containers
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env down -v --timeout 300
+
+          # Exit with status
+          exit $status
+
+      - name: Copy allure-results
+        if: always()
+        run: |
+          mkdir -p allure-results
+          cp -r /tmp/allure-results/gpcheck allure-results/ || echo "No gpcheck allure-results found"
+
+  collect-results:
+    needs: [gpstop, gpstart, gpcheck]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
 
       # Install Allure CLI
       - name: Install Allure CLI
@@ -126,7 +326,7 @@ jobs:
       - name: Package test results and logs
         if: always()
         env:
-          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         run: |
           # Create artifacts directory
           mkdir -p artifacts
@@ -143,7 +343,7 @@ jobs:
       - name: Upload test artifacts
         if: always()
         env:
-          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
