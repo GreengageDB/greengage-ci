@@ -135,6 +135,9 @@ jobs:
             bash -c "ssh-keygen -A && /usr/sbin/sshd && bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash 2>&1 | tee /tmp/regression_logs/test_${{ matrix.optimizer }}.log"
           status=$?
 
+          # Debug: exit code
+          echo "Exit code: '$status'"
+
           # Copy logs from volume
           mkdir -p regression_logs
           docker cp ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer }}:/tmp/regression_logs regression_logs/${{ matrix.optimizer }}
@@ -153,44 +156,6 @@ jobs:
           name: regression-${{ matrix.optimizer }}-results
           path: regression_logs/${{ matrix.optimizer }}
           retention-days: 7
-
-  collect-results:
-    runs-on: ubuntu-latest
-    needs: regression
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      # Checkout repository with shallow clone
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ inputs.ref || github.ref }}
-          submodules: recursive
-
-      # Download artifacts from regression jobs
-      - name: Download regression artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          pattern: regression-*-results
-          merge-multiple: true
-
-      # Package test results and logs
-      - name: Package test results and logs
-        if: always()
-        env:
-          ARTIFACT_NAME: regression_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
-        run: |
-          # Create artifacts directory
-          mkdir -p artifacts/final
-          # Copy logs
-          [ -d artifacts/regression_logs ] && cp -r artifacts/regression_logs artifacts/final/ || true
-          # Create tar.gz archive
-          tar -d "${GITHUB}}" tar.gz -C artifacts/final .
-          # List contents for debugging
-          tar -tzf ${tar.gz .tar.gz
 
       # # Install Allure CLI
       # - name: Install Allure CLI
