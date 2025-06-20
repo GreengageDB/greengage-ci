@@ -82,20 +82,6 @@ jobs:
             echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
           fi
 
-      # Create allure-results directory
-      - name: Create allure-results directory
-        run: |
-          rm -rf allure-results
-          mkdir -p allure-results -m 777
-
-      # Generate SSH keys
-      - name: Generate SSH keys
-        run: |
-          mkdir -p ssh_keys
-          if [ ! -e "ssh_keys/id_rsa" ]; then
-            ssh-keygen -P "" -f ssh_keys/id_rsa
-          fi
-
   behave:
     runs-on: ubuntu-latest
     needs: setup
@@ -144,6 +130,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
+      # Create allure-results directory
+      - name: Create allure-results directory
+        run: |
+          rm -rf allure-results
+          mkdir -p allure-results -m 777
+
+      # Generate SSH keys
+      - name: Generate SSH keys
+        run: |
+          mkdir -p ssh_keys
+          if [ ! -e "ssh_keys/id_rsa" ]; then
+            ssh-keygen -P "" -f ssh_keys/id_rsa
+          fi
+
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
@@ -161,23 +161,9 @@ jobs:
               -f behave_utils.ci.formatter:CustomFormatter \
               -o non-existed-output \
               -f allure_behave.formatter:AllureFormatter \
-              -o /tmp/allure-results/$FEATURE" \
+              -o /tmp/allure-results" \
             cdw gpdb_src/ci/scripts/behave_gpdb.bash
           status=$?
-
-          # Copy allure-results
-          mkdir -p allure-results
-          cp -r /tmp/allure-results/$FEATURE allure-results/ || echo "No $FEATURE allure-results found"
-
-          # Copy logs
-          mkdir -p logs_cdw logs_sdw1
-          cp -r /tmp/logs_cdw logs_cdw/ || echo "No cdw logs found"
-          cp -r /tmp/logs_sdw1 logs_sdw1/ || echo "No sdw1 logs found"
-
-          # Debug: List copied files
-          ls -lR allure-results/ logs_cdw/ logs_sdw1/
-
-          exit $status
 
       # Upload feature artifacts
       - name: Upload feature artifacts
@@ -186,7 +172,7 @@ jobs:
         with:
           name: behave-${{ matrix.feature }}-results
           path: |
-            allure-results/${{ matrix.feature }}
+            allure-results
             logs_cdw
             logs_sdw1
           retention-days: 7
