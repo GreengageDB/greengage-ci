@@ -110,7 +110,7 @@ jobs:
 
       # Run Regression tests
       - name: Regression test with optimizer=${{ matrix.optimizer }}
-        continue-on-error: true
+        # continue-on-error: true
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ steps.set_tag.outputs.build_version }}
         run: |

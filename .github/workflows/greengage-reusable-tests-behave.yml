@@ -126,7 +126,7 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
-          fetch-depth: 0
+          # fetch-depth: 0
 
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
@@ -139,7 +139,7 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Run Behave feature ${{ matrix.feature }}
-        continue-on-error: true
+        # continue-on-error: true
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
           FEATURE: ${{ matrix.feature }}
@@ -198,7 +198,7 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
-          fetch-depth: 0
+          # fetch-depth: 0
 
       # Download artifacts from behave jobs
       - name: Download feature artifacts
