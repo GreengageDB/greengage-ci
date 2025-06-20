@@ -118,6 +118,7 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+          build-mount-path: '/var/lib/docker/'
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
