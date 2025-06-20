@@ -88,7 +88,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        feature: [gpstop, gpstart, gpcheck]
+        feature:
+          - analyzedb
+          - gpactivatestandby
+          - gpaddmirrors
+          - gp_bash_functions
+          - gpcheckcat
+          - gpcheckperf
+          - gpconfig
+          - gpinitstandby
+          - gpinitsystem
+          - gplogfilter
+          - gpmovemirrors
+          - gppkg
+          - gprecoverseg
+          - gprecoverseg_newhost
+          - gpreload
+          - gpstart
+          - gpstate
+          - gpstop
+          - minirepro
+          - replication_slots
     permissions:
       contents: read
       packages: read
@@ -152,18 +172,45 @@ jobs:
           CLUSTER: ~concourse_cluster
           PROJECT: ${{ matrix.feature }}_demo
         run: |
-          # Initialize containers
-          bash ci/scripts/init_containers.sh $PROJECT
+          # # Initialize containers
+          # bash ci/scripts/init_containers.sh $PROJECT
+          set -ex -o pipefail
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env up -d
+          services=$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')
+
+          # Prepare ALL containers first
+          for service in $services
+          do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $service bash -c "mkdir -p /data/gpdata && chmod -R 777 /data &&
+                source gpdb_src/concourse/scripts/common.bash && install_gpdb &&
+                ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash" &
+          done
+          wait
+
+          # Add host keys to known_hosts after containers setup
+          for service in $services
+          do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $service bash -c "ssh-keyscan ${services/$service/} >> /home/gpadmin/.ssh/known_hosts" &
+          done
+          wait
 
           # Run Behave tests
+          set +e
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
-            -e FEATURE="$FEATURE" -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
+            -e FEATURE="$FEATURE"
+            -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
               -f behave_utils.ci.formatter:CustomFormatter \
               -o non-existed-output \
               -f allure_behave.formatter:AllureFormatter \
               -o /tmp/allure-results" \
             cdw gpdb_src/ci/scripts/behave_gpdb.bash
           status=$?
+
+          # Debug: exit code
+          echo "Exit code: '$status'"
+          exit ${status:-1} # erro if not known
 
       # Upload feature artifacts
       - name: Upload feature artifacts

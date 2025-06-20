@@ -146,7 +146,7 @@ jobs:
           # Debug: List copied logs
           ls -lR regression_logs/
 
-          exit $status
+          exit ${status:-1} # erro if not known
 
       # Upload regression artifacts
       - name: Upload regression artifacts
