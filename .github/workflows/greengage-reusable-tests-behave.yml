@@ -199,7 +199,7 @@ jobs:
           # Run Behave tests
           set +e
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
-            -e FEATURE="$FEATURE"
+            -e FEATURE="$FEATURE" \
             -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
               -f behave_utils.ci.formatter:CustomFormatter \
               -o non-existed-output \
