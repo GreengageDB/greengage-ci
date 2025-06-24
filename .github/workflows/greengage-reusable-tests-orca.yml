@@ -82,7 +82,7 @@ jobs:
             echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
           fi
 
-  regression:
+  orca:
     runs-on: ubuntu-latest
     needs: setup
     permissions:
