@@ -132,7 +132,7 @@ jobs:
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             $IMAGE \
-            bash -c "ssh-keygen -A && /usr/sbin/sshd && bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash 2>&1 | tee /tmp/regression_logs/test_${{ matrix.optimizer }}.log"
+            bash -c "set -o pipefail ; ssh-keygen -A && /usr/sbin/sshd && bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash 2>&1 | tee /tmp/regression_logs/test_${{ matrix.optimizer }}.log"
           status=$?
 
           # Debug: exit code
