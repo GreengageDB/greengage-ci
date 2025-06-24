@@ -1,0 +1,187 @@
+name: Greengage Reusable Regression Tests on Google Cloud
+
+# Environment variables
+env:
+  CI_REPO: GreengageDB/greengage-ci
+  CI_PATH: .ci
+  COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_COMPOSE: "docker compose"
+
+# Trigger for reusable workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 22, 7, 8)'
+        required: true
+        type: string
+      python3:
+        description: 'Python3 build argument (ignored)'
+        required: false
+        type: string
+        default: ''
+      ref:
+        description: 'Branch or ref to checkout'
+        required: false
+        type: string
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  setup:
+  # Use self-hosted runner with label 'greengage' or 'regression'
+    runs-on: [self-hosted, greengage]
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      build_version: ${{ steps.set_tag.outputs.build_version }}
+    steps:
+      # Checkout repository with full history for git describe
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      # Determine image tags
+      - name: Determine image tags
+        id: set_tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g')
+          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
+            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  regression:
+  # Use self-hosted runner with label 'greengage' or 'regression'
+    runs-on: [self-hosted, greengage]
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        optimizer: [on, off]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      # Checkout repository with shallow clone
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+
+      # Run Regression tests
+      - name: Regression test with optimizer=${{ matrix.optimizer }}
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+        run: |
+          # Run tests and save logs to a volume
+          docker run --name ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer }} \
+            -v regression_logs_${{ matrix.optimizer }}:/tmp/regression_logs \
+            -e TEST_OS=${{ inputs.target_os }} \
+            -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer }}' installcheck-world" \
+            --sysctl 'kernel.sem=500 1024000 200 4096' \
+            $IMAGE \
+            bash -c "ssh-keygen -A && /usr/sbin/sshd && bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash 2>&1 | tee /tmp/regression_logs/test_${{ matrix.optimizer }}.log"
+          status=$?
+
+          # Debug: exit code
+          echo "Exit code: '$status'"
+
+          # Copy logs from volume
+          mkdir -p regression_logs
+          docker cp ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer }}:/tmp/regression_logs regression_logs/${{ matrix.optimizer }}
+          docker rm ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer }}
+
+          # Debug: List copied logs
+          ls -lR regression_logs/
+
+          exit ${status:-1} # erro if not known
+
+      # Upload regression artifacts
+      - name: Upload regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-${{ matrix.optimizer }}-results
+          path: regression_logs/${{ matrix.optimizer }}
+          retention-days: 7
+
+      # # Install Allure CLI
+      # - name: Install Allure CLI
+      #   if: always()
+      #   run: |
+      #     # Download Allure .deb package
+      #     curl -o allure_2.34.0-1_all.deb -L https://github.com/allure-framework/allure2/releases/download/2.34.0/allure_2.34.0-1_all.deb
+      #     # Update package index
+      #     sudo apt-get update
+      #     # Install Allure and dependencies
+      #     sudo apt-get install -y ./allure_2.34.0-1_all.deb
+      #     # Remove .deb file
+      #     rm allure_2.34.0-1_all.deb
+      #     # Verify installation
+      #     allure --version
+
+      # # Generate Allure report
+      # - name: Generate Allure report
+      #   if: always()
+      #   run: |
+      #     # Generate report
+      #     [ -d allure-results ] && allure generate allure-results -o allure-report --clean || echo "No allure-results to generate report"
+
+      # # Package test results and logs
+      # - name: Package test results and logs
+      #   if: always()
+      #   env:
+      #     ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+      #   run: |
+      #     # Create artifacts directory
+      #     mkdir -p artifacts
+      #     # Copy Allure results and logs if they exist
+      #     for dir in allure-results logs_cdw logs_sdw1 allure-report; do
+      #       [ -d "$dir" ] && cp -r "$dir" artifacts/ || echo "No $dir found"
+      #     done
+      #     # Create tar.gz archive with unique name
+      #     tar -czf ${{ env.ARTIFACT_NAME }}.tar.gz -C artifacts .
+      #     # List contents for debugging
+      #     tar -tzf ${{ env.ARTIFACT_NAME }}.tar.gz
+
+      # # Upload test artifacts
+      # - name: Upload test artifacts
+      #   if: always()
+      #   env:
+      #     ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ steps.set_tag.outputs.build_version }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ env.ARTIFACT_NAME }}
+      #     path: ${{ env.ARTIFACT_NAME }}.tar.gz
+      #     retention-days: 7

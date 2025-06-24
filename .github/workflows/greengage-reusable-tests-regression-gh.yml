@@ -1,4 +1,4 @@
-name: Greengage Reusable Regression Tests
+name: Greengage Reusable Regression Tests on GitHub
 
 # Environment variables
 env:
