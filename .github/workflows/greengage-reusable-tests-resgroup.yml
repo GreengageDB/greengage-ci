@@ -55,25 +55,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      # Clone remote CI to local
-      - name: Create CI directory
-        run: mkdir -p ${{ env.CI_PATH }}
-      - name: Checkout remote CI repo
-        id: checkout_remote_ci
-        uses: actions/checkout@v4
-        continue-on-error: true
-        with:
-          repository: ${{ env.CI_REPO }}
-          path: ${{ env.CI_PATH }}
-      - name: Fallback to ci directory if remote fails
-        if: steps.checkout_remote_ci.outcome != 'success'
-        run: |
-          if [ -d "ci" ]; then
-            ln -s $(pwd)/ci ${{ env.CI_PATH }}
-          else
-            echo "Error: Neither remote CI repo (${{ env.CI_REPO }}) nor local ci directory found, cannot proceed."
-            exit 1
-
       # Set up Docker Compose using docker/setup-compose-action
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
@@ -137,6 +118,24 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
           # fetch-depth: 0
+
+      - name: Create CI directory
+        run: mkdir -p ${{ env.CI_PATH }}
+      - name: Checkout remote CI repo
+        id: checkout_remote_ci
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: ${{ env.CI_REPO }}
+          path: ${{ env.CI_PATH }}
+      - name: Fallback to ci directory if remote fails
+        if: steps.checkout_remote_ci.outcome != 'success'
+        run: |
+          if [ -d "ci" ]; then
+            ln -s $(pwd)/ci ${{ env.CI_PATH }}
+          else
+            echo "Error: Neither remote CI repo (${{ env.CI_REPO }}) nor local ci directory found, cannot proceed."
+            exit 1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
