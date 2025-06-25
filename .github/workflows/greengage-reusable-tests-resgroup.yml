@@ -83,7 +83,7 @@ jobs:
           fi
 
   resgroup:
-    runs-on: ubuntu-latest
+    runs-on: oraclelinux-8
     needs: setup
     permissions:
       contents: read
