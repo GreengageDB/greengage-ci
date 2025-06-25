@@ -55,6 +55,25 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      # Clone remote CI to local
+      - name: Create CI directory
+        run: mkdir -p ${{ env.CI_PATH }}
+      - name: Checkout remote CI repo
+        id: checkout_remote_ci
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: ${{ env.CI_REPO }}
+          path: ${{ env.CI_PATH }}
+      - name: Fallback to ci directory if remote fails
+        if: steps.checkout_remote_ci.outcome != 'success'
+        run: |
+          if [ -d "ci" ]; then
+            ln -s $(pwd)/ci ${{ env.CI_PATH }}
+          else
+            echo "Error: Neither remote CI repo (${{ env.CI_REPO }}) nor local ci directory found, cannot proceed."
+            exit 1
+
       # Set up Docker Compose using docker/setup-compose-action
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
@@ -148,7 +167,7 @@ jobs:
           ## Initialize containers START
           set -ex -o pipefail
           # Detect&Down all working Docker composes
-          ci/scripts/docker_compose_down.sh
+          .ci/scripts/docker_compose_down.sh
           # Start containers using existing volumes from ci/docker-compose.yaml
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env up -d
           services=${SERVICES:-$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')}
@@ -258,7 +277,7 @@ jobs:
           EOF
 
           # Detect&Down all working Docker composes
-          ci/scripts/docker_compose_down.sh
+          .ci/scripts/docker_compose_down.sh
 
           # Ensure logs directories are readable
           sudo chown $USER:$USER -R ./
