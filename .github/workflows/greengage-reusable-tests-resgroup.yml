@@ -148,12 +148,8 @@ jobs:
         run: |
           ## Initialize containers START
           set -ex -o pipefail
-          # Create external volume for logs
-          docker volume create resgroup_logs
-          
-          # Mount volume to /logs
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env \
-            -v resgroup_logs:/logs up -d
+          # Start containers using existing volumes from ci/docker-compose.yaml
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env up -d
           services=${SERVICES:-$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')}
 
           # Prepare ALL containers first
@@ -236,7 +232,7 @@ jobs:
 
           exitcode=$?
 
-          # Copy logs from cdw
+          # Copy logs from cdw to /logs/cdw
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T cdw bash -ex <<EOF
             cd /home/gpadmin
             cp -r gpAdminLogs /logs/cdw/gpAdminLogs
@@ -247,7 +243,7 @@ jobs:
             cp -r gpdb_src/src/test/isolation2/regression.diffs /logs/cdw/regression.diffs || true
           EOF
 
-          # Copy logs from sdw1
+          # Copy logs from sdw1 to /logs/sdw1
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T sdw1 bash -ex <<EOF
             cd /home/gpadmin
             cp -r gpAdminLogs /logs/sdw1/gpAdminLogs
@@ -260,8 +256,8 @@ jobs:
             cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast_mirror3
           EOF
 
-          # Ensure log volume is readable
-          sudo chmod -R a+r /var/lib/docker/volumes/resgroup_logs/_data
+          # Ensure logs directories are readable
+          sudo chmod -R a+r ./logs_cdw ./logs_sdw1
 
           # Debug: Exit code
           echo "Exit code: $exitcode"
@@ -271,6 +267,8 @@ jobs:
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: /var/lib/docker/volumes/resgroup_logs/_data/*
+          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}-${{ matrix.optimizer }}
+          path: |
+            ./logs_cdw/*
+            ./logs_sdw1/*
           retention-days: 7
