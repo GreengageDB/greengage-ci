@@ -267,11 +267,18 @@ jobs:
           echo "Exit code: $exitcode"
           exit ${exitcode:-1}
 
+      # Sanitize log file names
+      - name: Sanitize log file names
+        if: always()
+        run: |
+          find ./logs_cdw ./logs_sdw1 -type f -name '*:*' -exec bash -c 'mv "$1" "${1//:/_}"' _ {} \;
+          find ./logs_cdw ./logs_sdw1 -type f -name '*:*' || true  # Debug
+
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}-${{ matrix.optimizer }}
+          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: |
             ./logs_cdw/*
             ./logs_sdw1/*
