@@ -139,7 +139,6 @@ jobs:
           if [ ! -e "ssh_keys/id_rsa" ]; then
             ssh-keygen -P "" -f ssh_keys/id_rsa
           fi
-
       - name: Run Resource groups tests
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
@@ -148,6 +147,8 @@ jobs:
         run: |
           ## Initialize containers START
           set -ex -o pipefail
+          # Detect&Down all working Docker composes
+          ci/scripts/docker_compose_down.sh
           # Start containers using existing volumes from ci/docker-compose.yaml
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env up -d
           services=${SERVICES:-$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')}
@@ -255,6 +256,9 @@ jobs:
             cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/pg_log /logs/sdw1/pg_log_dbfast_mirror2
             cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast_mirror3
           EOF
+
+          # Detect&Down all working Docker composes
+          ci/scripts/docker_compose_down.sh
 
           # Ensure logs directories are readable
           sudo chown $USER:$USER -R ./
