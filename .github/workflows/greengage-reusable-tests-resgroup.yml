@@ -1,0 +1,276 @@
+name: Greengage Reusable Resource Groups Tests
+
+# Environment variables
+env:
+  CI_REPO: GreengageDB/greengage-ci
+  CI_PATH: .ci
+  COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_COMPOSE: "docker compose"
+
+# Trigger for reusable workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 22, 7, 8)'
+        required: true
+        type: string
+      python3:
+        description: 'Python3 build argument (ignored)'
+        required: false
+        type: string
+        default: ''
+      ref:
+        description: 'Branch or ref to checkout'
+        required: false
+        type: string
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      build_version: ${{ steps.set_tag.outputs.build_version }}
+    steps:
+      # Checkout repository with specified ref or default
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      # Set up Docker Compose using docker/setup-compose-action
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      # Determine image tags
+      - name: Determine image tags
+        id: set_tag
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g')
+          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
+            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  resgroup:
+    runs-on: ubuntu-latest
+    needs: setup
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Move /var/lib/docker/
+        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          temp-reserve-mb: 32
+          swap-size-mb: 32
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          build-mount-path: '/var/lib/docker/'
+
+      - name: Restore /var/lib/docker/
+        run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
+
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+          submodules: recursive
+          # fetch-depth: 0
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      # Create allure-results directory
+      - name: Create allure-results directory
+        run: |
+          rm -rf allure-results
+          mkdir -p allure-results -m 777
+
+      # Generate SSH keys
+      - name: Generate SSH keys
+        run: |
+          mkdir -p ssh_keys
+          if [ ! -e "ssh_keys/id_rsa" ]; then
+            ssh-keygen -P "" -f ssh_keys/id_rsa
+          fi
+
+      - name: Run Resource groups tests
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+          PROJECT: resgroup
+          SERVICES: "cdw sdw1"
+        run: |
+          ## Initialize containers START
+          set -ex -o pipefail
+          # Create external volume for logs
+          docker volume create resgroup_logs
+          
+          # Mount volume to /logs
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env \
+            -v resgroup_logs:/logs up -d
+          services=${SERVICES:-$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')}
+
+          # Prepare ALL containers first
+          for service in $services
+          do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $service bash -c "mkdir -p /data/gpdata && chmod -R 777 /data &&
+                source gpdb_src/concourse/scripts/common.bash && install_gpdb &&
+                ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash &&
+                mkdir -p /logs/$service" &
+          done
+          wait
+
+          # Add host keys to known_hosts after containers setup
+          for service in $services
+          do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $service bash -c "ssh-keyscan ${services/$service/} >> /home/gpadmin/.ssh/known_hosts" &
+          done
+          wait
+          ## Initialize containers END
+
+          ## Grant access rights to group controllers
+          for service in $services
+          do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $service bash -c "
+              chmod -R 777 /sys/fs/cgroup/{memory,cpu,cpuset} &&
+              mkdir /sys/fs/cgroup/{memory,cpu,cpuset}/gpdb &&
+              chmod -R 777 /sys/fs/cgroup/{memory,cpu,cpuset}/gpdb &&
+              chown -R gpadmin:gpadmin /sys/fs/cgroup/{memory,cpu,cpuset}/gpdb
+              "
+          done
+
+          ## Create cluster
+          # Extract HOSTS_LIST from SERVICES (remove first word)
+          HOSTS_LIST="${SERVICES#* }"
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T cdw \
+            bash -c "source gpdb_src/concourse/scripts/common.bash && HOSTS_LIST='$HOSTS_LIST' make_cluster"
+
+          ## Run Resource groups tests
+          # Disable exit on error to allow log collection
+          set +e
+          # Run tests
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -Tu gpadmin cdw bash -ex <<EOF
+            source /usr/local/greengage-db-devel/greengage_path.sh
+            source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
+            export LDFLAGS="-L\${GPHOME}/lib"
+            export CPPFLAGS="-I\${GPHOME}/include"
+            export USER=gpadmin
+
+            cd /home/gpadmin/gpdb_src
+            ./configure --prefix=/usr/local/greengage-db-devel \
+                --without-zlib --without-rt --without-libcurl \
+                --without-libedit-preferred --without-docdir --without-readline \
+                --disable-gpcloud --disable-gpfdist --disable-orca \
+                ${CONFIGURE_FLAGS}
+
+            make -C /home/gpadmin/gpdb_src/src/test/regress
+            ssh sdw1 mkdir -p /home/gpadmin/gpdb_src/src/test/{regress,isolation2} </dev/null
+            scp /home/gpadmin/gpdb_src/src/test/regress/regress.so \
+                gpadmin@sdw1:/home/gpadmin/gpdb_src/src/test/regress/
+
+            make PGOPTIONS="-c optimizer=off" installcheck-resgroup || (
+                errcode=\$?
+                find src/test/isolation2 -name regression.diffs \
+                | while read diff; do
+                    cat <<EOF1
+
+            ======================================================================
+            DIFF FILE: \$diff
+            ----------------------------------------------------------------------
+
+            EOF1
+                    cat \$diff
+                  done
+                exit \$errcode
+            )
+          EOF
+
+          exitcode=$?
+
+          # Copy logs from cdw
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T cdw bash -ex <<EOF
+            cd /home/gpadmin
+            cp -r gpAdminLogs /logs/cdw/gpAdminLogs
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs /logs/cdw/gpAux
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/pg_log /logs/cdw/pg_log
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/standby/pg_log /logs/cdw/pg_log_standby
+            cp -r gpdb_src/src/test/isolation2/results/resgroup /logs/cdw/results_resgroup
+            cp -r gpdb_src/src/test/isolation2/regression.diffs /logs/cdw/regression.diffs || true
+          EOF
+
+          # Copy logs from sdw1
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T sdw1 bash -ex <<EOF
+            cd /home/gpadmin
+            cp -r gpAdminLogs /logs/sdw1/gpAdminLogs
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs /logs/sdw1/gpAux
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/pg_log /logs/sdw1/pg_log_dbfast1
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/pg_log /logs/sdw1/pg_log_dbfast2
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast3
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/pg_log /logs/sdw1/pg_log_dbfast_mirror1
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/pg_log /logs/sdw1/pg_log_dbfast_mirror2
+            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast_mirror3
+          EOF
+
+          # Ensure log volume is readable
+          sudo chmod -R a+r /var/lib/docker/volumes/resgroup_logs/_data
+
+          # Debug: Exit code
+          echo "Exit code: $exitcode"
+          exit ${exitcode:-1}
+
+      - name: Upload resgroup artifacts
+        if: always()  # Run even if previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
+          path: /var/lib/docker/volumes/resgroup_logs/_data/*
+          retention-days: 7
