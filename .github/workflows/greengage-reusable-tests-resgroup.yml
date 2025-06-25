@@ -219,11 +219,11 @@ jobs:
                 | while read diff; do
                     cat <<EOF1
 
-            ======================================================================
-            DIFF FILE: \$diff
-            ----------------------------------------------------------------------
+          ======================================================================
+          DIFF FILE: \$diff
+          ----------------------------------------------------------------------
 
-            EOF1
+          EOF1
                     cat \$diff
                   done
                 exit \$errcode
@@ -257,7 +257,7 @@ jobs:
           EOF
 
           # Ensure logs directories are readable
-          sudo chmod -R a+r ./logs_cdw ./logs_sdw1
+          sudo chown $USER:$USER -R ./
 
           # Debug: Exit code
           echo "Exit code: $exitcode"
