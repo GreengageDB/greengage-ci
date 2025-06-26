@@ -2,10 +2,13 @@ name: Greengage Reusable Resource Groups Tests
 
 # Environment variables
 env:
-  CI_REPO: GreengageDB/greengage-ci
   CI_PATH: .ci
+  CI_REPO: GreengageDB/greengage-ci
   COMPOSE_HTTP_TIMEOUT: 400
-  DOCKER_COMPOSE: "docker compose"
+  COMPOSE_FILE: "/tmp/${{github.run_id}}/docker-compose.yaml"
+  COMPOSE_BIN: "docker compose"
+  SSH_KEYS: "/tmp/${{github.run_id}}/ssh_keys"
+  LOG_DIR: "/tmp/${{github.run_id}}/logs"
 
 # Trigger for reusable workflow
 on:
@@ -162,9 +165,9 @@ jobs:
       # Generate SSH keys
       - name: Generate SSH keys
         run: |
-          mkdir -p ssh_keys
-          if [ ! -e "ssh_keys/id_rsa" ]; then
-            ssh-keygen -P "" -f ssh_keys/id_rsa
+          mkdir -p $SSH_KEYS
+          if [ ! -e "$SSH_KEYS/id_rsa" ]; then
+            ssh-keygen -P "" -f $SSH_KEYS/id_rsa
           fi
       - name: Run Resource groups tests
         env:
@@ -175,26 +178,32 @@ jobs:
           ## Initialize containers START
           set -ex -o pipefail
           # Detect&Down all working Docker composes
-          .ci/scripts/docker_compose_down.sh
-          # Start containers using existing volumes from ci/docker-compose.yaml
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml --env-file ci/.env up -d
-          services=${SERVICES:-$($DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml config --services | tr '\n' ' ')}
+          $CI_PATH/scripts/docker_compose_down.sh
+          # Create docker-compose
+          echo 'services:' > $COMPOSE_FILE
+          for service in $SERVICES ; do
+            envsubst < templates/service.yml.tpl >> $COMPOSE_FILE
+          done
+
+          # Start docker compose with created file
+          $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE --env-file ci/.env up -d
+          services=${SERVICES:-$($COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE config --services | tr '\n' ' ')}
 
           # Prepare ALL containers first
           for service in $services
           do
-            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T \
               $service bash -c "mkdir -p /data/gpdata && chmod -R 777 /data &&
                 source gpdb_src/concourse/scripts/common.bash && install_gpdb &&
                 ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash &&
-                mkdir -p /logs/$service" &
+                mkdir -p $LOG_DIR/$service" &
           done
           wait
 
           # Add host keys to known_hosts after containers setup
           for service in $services
           do
-            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T \
               $service bash -c "ssh-keyscan ${services/$service/} >> /home/gpadmin/.ssh/known_hosts" &
           done
           wait
@@ -203,7 +212,7 @@ jobs:
           ## Grant access rights to group controllers
           for service in $services
           do
-            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+            $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T \
               $service bash -c "
               chmod -R 777 /sys/fs/cgroup/{memory,cpu,cpuset} &&
               mkdir /sys/fs/cgroup/{memory,cpu,cpuset}/gpdb &&
@@ -215,14 +224,14 @@ jobs:
           ## Create cluster
           # Extract HOSTS_LIST from SERVICES (remove first word)
           HOSTS_LIST="${SERVICES#* }"
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T cdw \
+          $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T cdw \
             bash -c "source gpdb_src/concourse/scripts/common.bash && HOSTS_LIST='$HOSTS_LIST' make_cluster"
 
           ## Run Resource groups tests
           # Disable exit on error to allow log collection
           set +e
           # Run tests
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -Tu gpadmin cdw bash -ex <<EOF
+          $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -Tu gpadmin cdw bash -ex <<EOF
             source /usr/local/greengage-db-devel/greengage_path.sh
             source gpdb_src/gpAux/gpdemo/gpdemo-env.sh
             export LDFLAGS="-L\${GPHOME}/lib"
@@ -278,15 +287,15 @@ jobs:
 
           # Copy logs from services to mounted external volumes
           for service in $SERVICES ; do
-            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T $service bash -ex <<EOF
+            $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T $service bash -ex <<EOF
             cd /home/gpadmin
-            mkdir -p /logs/$service
-            rsync -av --files-from=<(find ${LOG_PATHS[@]} -type d 2>/dev/null) ./ /logs/$service 
+            ls -la ${LOG_PATHS[@]} > $LOG_DIR/$service-dirs.list
+            rsync -av --files-from=<(find ${LOG_PATHS[@]} -type d 2>/dev/null) ./ $LOG_DIR/$service 
           EOF
           done
 
           # Detect&Down all working Docker composes
-          .ci/scripts/docker_compose_down.sh
+          $CI_PATH/scripts/docker_compose_down.sh
 
           # Ensure logs directories are readable
           sudo chown $USER:$USER -R ./
@@ -299,15 +308,13 @@ jobs:
       - name: Sanitize log file names
         if: always()
         run: |
-          find ./logs_cdw ./logs_sdw1 -type f -name '*:*' -exec bash -c 'mv "$1" "${1//:/_}"' _ {} \;
-          find ./logs_cdw ./logs_sdw1 -type f -name '*:*' || true  # Debug
+          find $LOG_DIR -type f -name '*:*' -exec bash -c 'mv "$1" "${1//:/_}"' _ {} \;
+          find $LOG_DIR -type f -name '*:*' || true  # Debug
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
           name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: |
-            ./logs_cdw/*
-            ./logs_sdw1/*
+          path: $LOG_DIR
           retention-days: 7
