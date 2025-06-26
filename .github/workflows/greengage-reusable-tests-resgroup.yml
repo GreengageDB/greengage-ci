@@ -11,6 +11,7 @@ env:
   LOG_DIR: "logs"
   PROJECT: resgroup
   SERVICES: "cdw sdw1"
+  SSH_COMMAND: "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
 # Trigger for reusable workflow
 on:
@@ -254,7 +255,9 @@ jobs:
                 ${CONFIGURE_FLAGS}
 
             make -C /home/gpadmin/gpdb_src/src/test/regress
-            ssh sdw1 mkdir -p /home/gpadmin/gpdb_src/src/test/{regress,isolation2} </dev/null
+            ls -la ~/.ssh/
+            cat ~/.ssh/authorized_keys
+            $SSH_COMMAND sdw1 mkdir -p /home/gpadmin/gpdb_src/src/test/{regress,isolation2} </dev/null
             scp /home/gpadmin/gpdb_src/src/test/regress/regress.so \
                 gpadmin@sdw1:/home/gpadmin/gpdb_src/src/test/regress/
 
