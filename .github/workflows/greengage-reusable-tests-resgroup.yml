@@ -181,9 +181,13 @@ jobs:
           $CI_PATH/scripts/docker_compose_down.sh
           # Create docker-compose
           echo 'services:' > $COMPOSE_FILE
+          echo "Debug COMPOSE_FILE $COMPOSE_FILE"
           for service in $SERVICES ; do
             envsubst < templates/service.yml.tpl >> $COMPOSE_FILE
+            echo "Debug service $service"
           done
+          echo "Debug cat $COMPOSE_FILE"
+          cat $COMPOSE_FILE
 
           # Start docker compose with created file
           $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE --env-file ci/.env up -d
