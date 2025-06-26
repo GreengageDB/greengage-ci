@@ -251,29 +251,30 @@ jobs:
 
           exitcode=$?
 
-          # Copy logs from cdw to /logs/cdw
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T cdw bash -ex <<EOF
-            cd /home/gpadmin
-            cp -r gpAdminLogs /logs/cdw/gpAdminLogs
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs /logs/cdw/gpAux
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/pg_log /logs/cdw/pg_log
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/standby/pg_log /logs/cdw/pg_log_standby
-            cp -r gpdb_src/src/test/isolation2/results/resgroup /logs/cdw/results_resgroup
-            cp -r gpdb_src/src/test/isolation2/regression.diffs /logs/cdw/regression.diffs || true
-          EOF
+          # Define unified log paths and destinations
+          LOG_PATHS=(
+            "gpAdminLogs"
+            "gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs"
+            "gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/standby/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/pg_log"
+            "gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/pg_log"
+            "gpdb_src/src/test/isolation2/results/resgroup"
+            "gpdb_src/src/test/isolation2/regression.diffs"
+          )
 
-          # Copy logs from sdw1 to /logs/sdw1
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T sdw1 bash -ex <<EOF
+          # Copy logs from services to mounted external volumes
+          for service in $SERVICES ; do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T $service bash -ex <<EOF
             cd /home/gpadmin
-            cp -r gpAdminLogs /logs/sdw1/gpAdminLogs
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs /logs/sdw1/gpAux
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/pg_log /logs/sdw1/pg_log_dbfast1
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/pg_log /logs/sdw1/pg_log_dbfast2
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast3
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/pg_log /logs/sdw1/pg_log_dbfast_mirror1
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/pg_log /logs/sdw1/pg_log_dbfast_mirror2
-            cp -r gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/pg_log /logs/sdw1/pg_log_dbfast_mirror3
+            mkdir -p /logs/$service
+            rsync -av --files-from=<(find ${LOG_PATHS[@]} -type d 2>/dev/null) ./ /logs/$service 
           EOF
+          done
 
           # Detect&Down all working Docker composes
           .ci/scripts/docker_compose_down.sh
