@@ -111,6 +111,15 @@ jobs:
       # - name: Set up Docker Compose
       #   uses: docker/setup-compose-action@v1
 
+      - name: Check CGroups Version
+        run: |
+          cgroups_version=$(docker info --format '{{.CgroupVersion}}')
+          echo  -en "CGroups v$cgroups_version detected "
+          if [ $cgroups_version -ne 1 ] ; then
+            echo  "but v1 required. Exiting"; exit 1
+          else
+            echo  "as expected. Go on"
+          fi
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
         with:
