@@ -9,6 +9,8 @@ env:
   COMPOSE_BIN: "docker compose"
   SSH_KEYS: "/tmp/${{github.run_id}}/ssh_keys"
   LOG_DIR: "/tmp/${{github.run_id}}/logs"
+  PROJECT: resgroup
+  SERVICES: "cdw sdw1"
 
 # Trigger for reusable workflow
 on:
@@ -169,17 +171,11 @@ jobs:
           if [ ! -e "$SSH_KEYS/id_rsa" ]; then
             ssh-keygen -P "" -f $SSH_KEYS/id_rsa
           fi
-      - name: Run Resource groups tests
+
+      - name: Generate docker compose file
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
-          PROJECT: resgroup
-          SERVICES: "cdw sdw1"
         run: |
-          ## Initialize containers START
-          set -ex -o pipefail
-          # Detect&Down all working Docker composes
-          $CI_PATH/scripts/docker_compose_down.sh
-          # Create docker-compose
           echo 'services:' > $COMPOSE_FILE
           echo "Debug COMPOSE_FILE $COMPOSE_FILE"
           for service in $SERVICES ; do
@@ -189,12 +185,20 @@ jobs:
           echo "Debug cat $COMPOSE_FILE"
           cat $COMPOSE_FILE
 
+      - name: Run Resource groups tests
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+        run: |
+          ## Initialize containers START
+          set -ex -o pipefail
+          # Detect&Down all working Docker composes
+          $CI_PATH/scripts/docker_compose_down.sh
+
           # Start docker compose with created file
           $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE --env-file ci/.env up -d
-          services=${SERVICES:-$($COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE config --services | tr '\n' ' ')}
 
           # Prepare ALL containers first
-          for service in $services
+          for service in $SERVICES
           do
             $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T \
               $service bash -c "mkdir -p /data/gpdata && chmod -R 777 /data &&
