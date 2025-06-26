@@ -124,6 +124,7 @@ jobs:
           EOF
           lima curl -fsSL https://get.docker.com -o get-docker.sh
           lima sudo sh get-docker.sh
+
       - name: Configure the host to use dockerd in the guest VM
         run: |
           set -eux
@@ -132,7 +133,18 @@ jobs:
           echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
           docker info
           docker version
+
       - name: Resource groups test
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
         run: ./ci/scripts/run_resgroup_test.bash
+
+      - name: Upload resgroup artifacts
+        if: always()  # Run even if previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
+          path: |
+            ./logs_cdw
+            ./logs_sdw1
+          retention-days: 7
