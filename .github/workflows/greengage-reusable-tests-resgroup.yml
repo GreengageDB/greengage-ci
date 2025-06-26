@@ -7,8 +7,8 @@ env:
   COMPOSE_HTTP_TIMEOUT: 400
   COMPOSE_FILE: "/tmp/${{github.run_id}}/docker-compose.yaml"
   COMPOSE_BIN: "docker compose"
-  SSH_KEYS: "/tmp/${{github.run_id}}/ssh_keys"
-  LOG_DIR: "/tmp/${{github.run_id}}/logs"
+  SSH_KEYS: "ssh_keys"
+  LOG_DIR: "logs"
   PROJECT: resgroup
   SERVICES: "cdw sdw1"
 
@@ -204,7 +204,7 @@ jobs:
               $service bash -c "mkdir -p /data/gpdata && chmod -R 777 /data &&
                 source gpdb_src/concourse/scripts/common.bash && install_gpdb &&
                 ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash &&
-                mkdir -p $LOG_DIR/$service" &
+                mkdir -p /$LOG_DIR" &
           done
           wait
 
@@ -297,8 +297,8 @@ jobs:
           for service in $SERVICES ; do
             $COMPOSE_BIN -p $PROJECT -f $COMPOSE_FILE exec -T $service bash -ex <<EOF
             cd /home/gpadmin
-            ls -la ${LOG_PATHS[@]} > $LOG_DIR/$service-dirs.list
-            rsync -av --files-from=<(find ${LOG_PATHS[@]} -type d 2>/dev/null) ./ $LOG_DIR/$service 
+            ls -la ${LOG_PATHS[@]} > /$LOG_DIR/$service-dirs.list
+            rsync -av --files-from=<(find ${LOG_PATHS[@]} -type d 2>/dev/null) ./ /$LOG_DIR
           EOF
           done
 
