@@ -71,6 +71,10 @@ jobs:
 
   resgroup:
     runs-on: ubuntu-latest
+    needs: setup
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       # Checkout repository with specified ref or default
