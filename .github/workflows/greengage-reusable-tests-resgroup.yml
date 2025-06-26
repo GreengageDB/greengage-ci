@@ -5,7 +5,7 @@ env:
   CI_PATH: .ci
   CI_REPO: GreengageDB/greengage-ci
   COMPOSE_HTTP_TIMEOUT: 400
-  COMPOSE_FILE: "/tmp/${{github.run_id}}/docker-compose.yaml"
+  COMPOSE_FILE: "/tmp/docker-compose-${{github.run_id}}.yaml"
   COMPOSE_BIN: "docker compose"
   SSH_KEYS: "ssh_keys"
   LOG_DIR: "logs"
