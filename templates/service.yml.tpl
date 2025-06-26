@@ -1,6 +1,6 @@
-  $service:
+  $SERVICE:
     image: $IMAGE
-    hostname: $service
+    hostname: $SERVICE
     privileged: true
     working_dir: /home/gpadmin
     volumes:

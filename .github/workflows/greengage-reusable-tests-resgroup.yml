@@ -179,8 +179,8 @@ jobs:
           echo 'services:' > $COMPOSE_FILE
           echo "Debug COMPOSE_FILE $COMPOSE_FILE"
           for service in $SERVICES ; do
-            envsubst < $CI_PATH/templates/service.yml.tpl >> $COMPOSE_FILE
-            echo "Debug service $service"
+            SERVICE=$service envsubst < $CI_PATH/templates/service.yml.tpl >> $COMPOSE_FILE
+            echo "Debug service=$service SERVICE=$SERVICE"
           done
           echo "Debug cat $COMPOSE_FILE"
           cat $COMPOSE_FILE
