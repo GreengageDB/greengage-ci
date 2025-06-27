@@ -44,6 +44,7 @@ jobs:
           repository: ${{ github.repository }}
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
+
       # Checkout specific branch or tag if ref is provided
       - name: Checkout specified ref
         if: ${{ inputs.ref != '' }}
@@ -61,6 +62,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
+
       # Generate tags based on commit SHA, branch, or tag
       - name: Determine image tags
         id: set_tag
@@ -78,17 +80,20 @@ jobs:
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
             echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
           fi
+
       # Retag and push image based on event type
       - name: Upload
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           SHA_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.sha_tag }}
+
           # For pull requests, tag with branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" && "${{ steps.set_tag.outputs.branch_tag }}" != "" ]]; then
             BRANCH_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.branch_tag }}
             docker tag $SHA_IMAGE_TAG $BRANCH_IMAGE_TAG
             docker push $BRANCH_IMAGE_TAG
+
           # For tagged pushes, tag with version and push
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ && "${{ steps.set_tag.outputs.version_tag }}" != "" ]]; then
             VERSION_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.version_tag }}
