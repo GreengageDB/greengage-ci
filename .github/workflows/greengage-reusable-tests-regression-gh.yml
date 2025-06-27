@@ -21,8 +21,9 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22, 7, 8)'
-        required: true
+        required: false
         type: string
+        default: ''
       python3:
         description: 'Python3 build argument (ignored)'
         required: false
