@@ -82,8 +82,4 @@ jobs:
             BRANCH_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.branch_tag }}
             docker tag $SHA_IMAGE_TAG $BRANCH_IMAGE_TAG
             docker push $BRANCH_IMAGE_TAG
-          elif [[ "${{ github.ref }}" =~ ^refs/tags/ && "${{ steps.set_tag.outputs.version_tag }}" != "" ]]; then
-            VERSION_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.version_tag }}
-            docker tag $SHA_IMAGE_TAG $VERSION_IMAGE_TAG
-            docker push $VERSION_IMAGE_TAG
           fi
