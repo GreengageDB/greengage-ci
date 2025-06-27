@@ -77,9 +77,3 @@ jobs:
           SHA_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.sha_tag }}
 
           docker build --tag $SHA_IMAGE_TAG --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
-
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ steps.set_tag.outputs.branch_tag }}" != "" ]]; then
-            BRANCH_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.branch_tag }}
-            docker tag $SHA_IMAGE_TAG $BRANCH_IMAGE_TAG
-            docker push $BRANCH_IMAGE_TAG
-          fi
