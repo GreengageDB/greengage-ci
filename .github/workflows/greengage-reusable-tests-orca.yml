@@ -112,7 +112,7 @@ jobs:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
         run: |
           docker run \
-            -v orca_logs:/home/gpadmin/gpdb_src/gpAux/ext \
+            -v gpAux:/home/gpadmin/gpdb_src/gpAux \
             $IMAGE bash -c "gpdb_src/concourse/scripts/unit_tests_gporca.bash"
 
       # Upload ORCA artifacts
@@ -121,5 +121,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: orca_logs
+          path: gpAux/ext
           retention-days: 7
