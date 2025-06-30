@@ -33,7 +33,7 @@ on:
         type: string
       sha_image_tag:
         description: 'Docker image name with SHA tag'
-        required: true
+        required: false
         type: string
     secrets:
       ghcr_token:
