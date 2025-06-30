@@ -2,8 +2,6 @@ name: Greengage Reusable ORCA Tests
 
 # Environment variables
 env:
-  CI_REPO: GreengageDB/greengage-ci
-  CI_PATH: .ci
   COMPOSE_HTTP_TIMEOUT: 400
   DOCKER_COMPOSE: "docker compose"
 
@@ -33,61 +31,18 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
+      sha_image_tag:
+        description: 'Docker image name with SHA tag'
+        required: true
+        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    outputs:
-      build_version: ${{ steps.set_tag.outputs.build_version }}
-    steps:
-      # Checkout repository with full history for git describe
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ inputs.ref || github.ref }}
-          submodules: recursive
-          fetch-depth: 0
-
-      # Set up Docker Compose
-      - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v1
-
-      # Login to GitHub Container Registry
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ghcr_token }}
-
-      # Determine image tags
-      - name: Determine image tags
-        id: set_tag
-        run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g')
-          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
-            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
-          fi
-
   orca:
-    env:
-      ARTIFACT_NAME: orca_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
     runs-on: ubuntu-latest
-    needs: setup
     permissions:
       contents: read
       packages: read
@@ -100,16 +55,24 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
 
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
       # Run ORCA Linter
       - name: ORCA Linter
         run: |
           docker build -t orca-linter:test -f ci/Dockerfile.linter .
           docker run      orca-linter:test
 
-      # Run ORCA Unit test
+      # Run ORCA Unit test using the passed image tag
       - name: ORCA Unit test
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
+          IMAGE: ${{ inputs.sha_image_tag }}
         run: |
           docker run \
             -v gpAux:/home/gpadmin/gpdb_src/gpAux \
@@ -120,6 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: gpAux/ext
           retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found

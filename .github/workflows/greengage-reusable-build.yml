@@ -29,12 +29,18 @@ on:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
+    outputs:
+      sha_image_tag:
+        description: 'The constructed image name with SHA tag'
+        value: ${{ jobs.build.outputs.sha_image_tag }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       packages: write  # Required to push to GHCR
+    outputs:
+      sha_image_tag: ${{ steps.build_and_push.outputs.sha_image_tag }}
     steps:
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
@@ -65,11 +71,16 @@ jobs:
 
       # Build and push Docker intermediate image with commit SHA tag
       - name: Build and push
+        id: build_and_push
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           # Determine tag as commit short SHA
-          SHA_IMAGE_TAG=$IMAGE:$(git rev-parse --short HEAD)
+          SHA=$(git rev-parse --short HEAD)
+          SHA_IMAGE_TAG=$IMAGE:$SHA
 
           # Build from Dockerfile specific to target OS and push
           docker build --tag $SHA_IMAGE_TAG --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
+
+          # Set output for use in other jobs
+          echo "sha_image_tag=$SHA_IMAGE_TAG" >> $GITHUB_OUTPUT

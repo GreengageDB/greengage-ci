@@ -25,6 +25,10 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
+      sha_image_tag:
+        description: 'Docker image name with SHA tag'
+        required: true
+        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -63,40 +67,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Generate tags based on commit SHA, branch, or tag
-      - name: Determine image tags
-        id: set_tag
+      - name: Tag and push Docker image
+        env:
+          SHA_IMAGE_TAG: ${{ inputs.sha_image_tag }}
         run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
-          # Use latest tag or 'unknown' if none found
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
-          # For pull requests, create a safe branch-based tag
+          # Extract IMAGE from SHA_IMAGE_TAG
+          IMAGE=${SHA_IMAGE_TAG%%:*}
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV  # Make IMAGE available to subsequent steps
+
+          # For pull requests, tag with safe branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
-            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
-          # For tagged pushes, use the tag as the version
+            SAFE_BRANCH=$(echo "${{ github.head_ref }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/^-*//; s/-*$//; s/--*/-/g' | cut -c1-128)
+            NEW_TAG="${IMAGE}:${SAFE_BRANCH:-unknown}"
+            docker tag "$SHA_IMAGE_TAG" "$NEW_TAG"
+            docker push "$NEW_TAG"
+          # For tagged pushes, tag with git tag and push
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
-          fi
-
-      # Retag and push image based on event type
-      - name: Upload
-        run: |
-          # Construct image name with version and OS
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          SHA_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.sha_tag }}
-
-          # For pull requests, tag with branch name and push
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ steps.set_tag.outputs.branch_tag }}" != "" ]]; then
-            BRANCH_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.branch_tag }}
-            docker tag $SHA_IMAGE_TAG $BRANCH_IMAGE_TAG
-            docker push $BRANCH_IMAGE_TAG
-
-          # For tagged pushes, tag with version and push
-          elif [[ "${{ github.ref }}" =~ ^refs/tags/ && "${{ steps.set_tag.outputs.version_tag }}" != "" ]]; then
-            VERSION_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.version_tag }}
-            docker tag $SHA_IMAGE_TAG $VERSION_IMAGE_TAG
-            docker push $VERSION_IMAGE_TAG
+            GIT_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
+            NEW_TAG="${IMAGE}:${GIT_TAG}"
+            docker tag "$SHA_IMAGE_TAG" "$NEW_TAG"
+            docker push "$NEW_TAG"
+          else
+            echo "Not a pull request or tagged push, skipping tagging"
           fi
