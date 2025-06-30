@@ -45,7 +45,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
 
-      # Checkout specific branch or tag if ref is provided
+      # Checkout specific branch or tag if ref is provided for manual runs compatibility
       - name: Checkout specified ref
         if: ${{ inputs.ref != '' }}
         uses: actions/checkout@v4
@@ -63,33 +63,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Generate tags based on commit SHA, branch, or tag
-      - name: Determine image tags
-        id: set_tag
-        run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "sha_tag=$SHORT_SHA" >> $GITHUB_OUTPUT
-
-          # Use latest tag or 'unknown' if none found
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-          echo "build_version=$VERSION" >> $GITHUB_OUTPUT
-
-          # For pull requests, create a safe branch-based tag
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            SAFE_BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g')
-            echo "branch_tag=$SAFE_BRANCH" >> $GITHUB_OUTPUT
-
-          # For tagged pushes, use the tag as the version
-          elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            echo "version_tag=$VERSION" >> $GITHUB_OUTPUT
-          fi
-
       # Build and push Docker intermediate image with commit SHA tag
       - name: Build and push
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          SHA_IMAGE_TAG=$IMAGE:${{ steps.set_tag.outputs.sha_tag }}
+          # Determine tag as commit short SHA
+          SHA_IMAGE_TAG=$IMAGE:$(git rev-parse --short HEAD)
 
           # Build from Dockerfile specific to target OS and push
           docker build --tag $SHA_IMAGE_TAG --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
