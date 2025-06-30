@@ -31,10 +31,6 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
-      sha_image_tag:
-        description: 'Docker image name with SHA tag'
-        required: false
-        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -81,7 +77,7 @@ jobs:
       # Run Regression tests
       - name: Regression test with optimizer=${{ matrix.optimizer }}
         env:
-          IMAGE: ${{ inputs.sha_image_tag }}
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer}}
         run: |
           # Run tests and save logs to a volume

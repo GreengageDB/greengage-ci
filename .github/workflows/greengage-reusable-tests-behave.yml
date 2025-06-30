@@ -31,10 +31,6 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
-      sha_image_tag:
-        description: 'Docker image name with SHA tag'
-        required: false
-        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -124,7 +120,7 @@ jobs:
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
-          IMAGE: ${{ inputs.sha_image_tag }} # Uses in docker-compose.yaml
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           FEATURE: ${{ matrix.feature }}
           CLUSTER: ~concourse_cluster
           PROJECT: ${{ matrix.feature }}_demo

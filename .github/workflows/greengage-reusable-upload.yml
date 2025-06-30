@@ -25,10 +25,6 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
-      sha_image_tag:
-        description: 'Docker image name with SHA tag'
-        required: false
-        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -69,24 +65,17 @@ jobs:
 
       - name: Tag and push Docker image
         env:
-          SHA_IMAGE_TAG: ${{ inputs.sha_image_tag }}
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
-          # Extract IMAGE from SHA_IMAGE_TAG
-          IMAGE=${SHA_IMAGE_TAG%%:*}
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV  # Make IMAGE available to subsequent steps
-
           # For pull requests, tag with safe branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            SAFE_BRANCH=$(echo "${{ github.head_ref }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/^-*//; s/-*$//; s/--*/-/g' | cut -c1-128)
-            NEW_TAG="${IMAGE}:${SAFE_BRANCH:-unknown}"
-            docker tag "$SHA_IMAGE_TAG" "$NEW_TAG"
-            docker push "$NEW_TAG"
+            TAG=${$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g'):-unknown}
           # For tagged pushes, tag with git tag and push
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            GIT_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            NEW_TAG="${IMAGE}:${GIT_TAG}"
-            docker tag "$SHA_IMAGE_TAG" "$NEW_TAG"
-            docker push "$NEW_TAG"
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
           else
             echo "Not a pull request or tagged push, skipping tagging"
+            exit 1
           fi
+            docker tag $IMAGE:${{ github.sha }} $IMAGE:$TAG
+            docker push $IMAGE:$TAG

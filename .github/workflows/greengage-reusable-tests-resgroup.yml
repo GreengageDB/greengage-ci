@@ -28,10 +28,6 @@ on:
         description: 'Branch or ref to checkout'
         required: false
         type: string
-      sha_image_tag:
-        description: 'Docker image name with SHA tag'
-        required: false
-        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -104,7 +100,7 @@ jobs:
 
       - name: Resource groups test
         env:
-          IMAGE: ${{ inputs.sha_image_tag }}
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: ./ci/scripts/run_resgroup_test.bash
 
       - name: Upload resgroup artifacts

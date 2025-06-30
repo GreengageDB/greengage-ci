@@ -29,10 +29,6 @@ on:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
-    outputs:
-      sha_image_tag:
-        description: 'The constructed image name with SHA tag'
-        value: ${{ jobs.build.outputs.sha_image_tag }}
 
 jobs:
   build:
@@ -74,13 +70,7 @@ jobs:
         id: build_and_push
         run: |
           # Construct image name with version and OS
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          # Determine tag as commit short SHA
-          SHA=$(git rev-parse --short HEAD)
-          SHA_IMAGE_TAG=$IMAGE:$SHA
+          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
 
           # Build from Dockerfile specific to target OS and push
-          docker build --tag $SHA_IMAGE_TAG --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
-
-          # Set output for use in other jobs
-          echo "sha_image_tag=$SHA_IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build --tag $IMAGE --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
