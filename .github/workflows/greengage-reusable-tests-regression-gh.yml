@@ -152,9 +152,11 @@ jobs:
       # Upload regression artifacts
       - name: Upload regression artifacts
         if: always()
+        env:
+          ARTIFACT_NAME: regression_${{ matrix.optimizer }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         uses: actions/upload-artifact@v4
         with:
-          name: regression-${{ matrix.optimizer }}-results
+          name: ${{ env.ARTIFACT_NAME }}
           path: regression_logs/${{ matrix.optimizer }}
           retention-days: 7
 

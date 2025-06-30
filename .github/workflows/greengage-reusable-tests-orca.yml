@@ -84,6 +84,8 @@ jobs:
           fi
 
   orca:
+    env:
+      ARTIFACT_NAME: orca_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
     runs-on: ubuntu-latest
     needs: setup
     permissions:
@@ -118,6 +120,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: orca_logs
+          name: ${{ env.ARTIFACT_NAME }}
           path: orca_logs
           retention-days: 7

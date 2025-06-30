@@ -142,9 +142,11 @@ jobs:
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
+        env:
+          ARTIFACT_NAME: resgroup_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup-logs-${{ inputs.target_os }}${{ inputs.target_os_version }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: |
             ./logs_cdw
             ./logs_sdw1

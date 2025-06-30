@@ -216,9 +216,11 @@ jobs:
       # Upload feature artifacts
       - name: Upload feature artifacts
         if: always()
+        env:
+          ARTIFACT_NAME: behave_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         uses: actions/upload-artifact@v4
         with:
-          name: behave-${{ matrix.feature }}-results
+          name: ${{ env.ARTIFACT_NAME }}
           path: |
             allure-results
             logs_cdw
@@ -226,7 +228,9 @@ jobs:
           retention-days: 7
 
   collect-results:
-    needs: behave
+    env:
+      ARTIFACT_NAME: behave_all_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
+    needs: [behave,setup]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -276,8 +280,6 @@ jobs:
       # Package test results and logs
       - name: Package test results and logs
         if: always()
-        env:
-          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         run: |
           # Create artifacts directory
           mkdir -p artifacts/final
@@ -293,8 +295,6 @@ jobs:
       # Upload final artifact
       - name: Upload final artifact
         if: always()
-        env:
-          ARTIFACT_NAME: behave_tests_results_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ needs.setup.outputs.build_version }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
