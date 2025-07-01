@@ -35,8 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write  # Required to push to GHCR
-    outputs:
-      sha_image_tag: ${{ steps.build_and_push.outputs.sha_image_tag }}
     steps:
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
