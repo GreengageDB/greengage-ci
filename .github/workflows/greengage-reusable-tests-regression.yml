@@ -75,6 +75,14 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
 
+      # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
       # Run Regression tests
       - name: Regression test with optimizer=${{ matrix.optimizer }}
         env:
