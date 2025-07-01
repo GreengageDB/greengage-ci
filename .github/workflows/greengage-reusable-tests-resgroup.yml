@@ -37,8 +37,9 @@ jobs:
   resgroup:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: read
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
 
     steps:
       # Checkout repository with specified ref or default

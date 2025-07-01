@@ -34,7 +34,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      packages: write  # Required to push to GHCR
+      contents: read  # Explicit for default behavior
+      packages: write # Required to push to GHCR
     steps:
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
