@@ -68,6 +68,7 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
+          export IMAGE=${IMAGE,,}
           # For pull requests, tag with safe branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             TAG=${$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g'):-unknown}

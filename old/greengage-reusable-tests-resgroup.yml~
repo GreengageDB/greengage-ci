@@ -178,6 +178,7 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
         run: |
+          export IMAGE=${IMAGE,,}
           echo 'services:' > $COMPOSE_FILE
           echo "Debug COMPOSE_FILE $COMPOSE_FILE"
           for service in $SERVICES ; do
@@ -191,6 +192,7 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
         run: |
+          export IMAGE=${IMAGE,,}
           ## Initialize containers START
           set -ex -o pipefail
           # Detect&Down all working Docker composes

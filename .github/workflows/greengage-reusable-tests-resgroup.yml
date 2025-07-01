@@ -102,7 +102,9 @@ jobs:
       - name: Resource groups test
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-        run: ./ci/scripts/run_resgroup_test.bash
+        run: |
+          export IMAGE=${IMAGE,,}
+          ./ci/scripts/run_resgroup_test.bash
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails

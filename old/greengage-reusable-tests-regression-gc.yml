@@ -105,6 +105,7 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ needs.setup.outputs.build_version }}
         run: |
+          export IMAGE=${IMAGE,,}
           # Run tests and save logs to a volume
           docker run --name ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer }} \
             -v regression_logs_${{ matrix.optimizer }}:/tmp/regression_logs \

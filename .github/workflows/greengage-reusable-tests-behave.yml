@@ -126,6 +126,7 @@ jobs:
           CLUSTER: ~concourse_cluster
           PROJECT: ${{ matrix.feature }}_demo
         run: |
+          export IMAGE=${IMAGE,,}
           # # Initialize containers
           # bash ci/scripts/init_containers.sh $PROJECT
           set -ex -o pipefail

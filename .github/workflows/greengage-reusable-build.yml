@@ -72,4 +72,4 @@ jobs:
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
 
           # Build from Dockerfile specific to target OS and push
-          docker build --tag $IMAGE --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
+          docker build --tag ${IMAGE,,} --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .

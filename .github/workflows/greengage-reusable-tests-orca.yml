@@ -71,6 +71,7 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
+          export IMAGE=${IMAGE,,}
           docker run \
             -v gpAux:/home/gpadmin/gpdb_src/gpAux \
             $IMAGE bash -c "gpdb_src/concourse/scripts/unit_tests_gporca.bash"
