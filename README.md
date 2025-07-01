@@ -102,8 +102,6 @@ To integrate these workflows into your pipeline:
     │   ├── init_containers.sh
     │   ├── run_behave_tests.bash
     │   ├── run_resgroup_test.bash
-    │   ├── unit_tests_gporca.bash
-    │   ├── ic_gpdb.bash
   concourse/
     ├── scripts/
     │   ├── common.bash
