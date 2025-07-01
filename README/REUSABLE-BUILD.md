@@ -1,71 +1,84 @@
-
 # Greengage Reusable Docker Build Workflow
 
-This GitHub Actions reusable workflow builds and pushes a Docker image to the GitHub Container Registry (GHCR). It is designed to be called by other workflows, such as the main Greengage CI pipeline, to handle Docker image building for specific operating systems and versions.
+This workflow builds and pushes Docker images for the Greengage project to the GitHub Container Registry (GHCR). It is designed to be called from a parent CI pipeline, enabling users to create containerized environments with flexible version and operating system configurations.
 
 ## Purpose
 
-The workflow:
-
-- Checks out the Greengage repository (with an optional ref).
-- Sets up Docker Buildx for image building.
-- Logs into GHCR using a provided token.
-- Determines Docker image tags based on the Git context (commit SHA, branch, or tag).
-- Builds a Docker image using a specified Dockerfile and pushes it to GHCR with a SHA-based tag.
-
-## Prerequisites
-
-- Dockerfiles must exist in the `ci/` directory, named `Dockerfile.<target_os><target_os_version>` (e.g., `Dockerfile.ubuntu`, `Dockerfile.centos`).
-- The GitHub token provided must have `packages: write` permissions for GHCR.
-
-## Inputs
-
-| Name               | Description                                 | Required   | Type   | Default |
-|--------------------|---------------------------------------------|------------|--------|---------|
-| `version`          | Version derived from tag (e.g., `6` or `7`) | Yes        | String | -       |
-| `target_os`        | Target operating system (e.g., `ubuntu`, `centos`) | Yes | String | -       |
-| `target_os_version`| Target OS version (e.g., `22`, `7`)         | No         | String | `''`    |
-| `python3`          | Python3 build argument                      | No         | String | `''`    |
-| `ref`              | Branch or ref to checkout                   | No         | String | `''`    |
-
-## Secrets
-
-| Name          | Description                        | Required |
-|---------------|------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access       | Yes      |
+The workflow constructs a Docker image based on the specified Greengage version and target operating system, tags it with the commit SHA, and pushes it to GHCR. It supports both automated CI runs and manual executions with custom branch or tag references.
 
 ## Usage
 
-This workflow is intended to be called by another workflow, such as the main Greengage CI pipeline. Example usage:
+To integrate this workflow into your pipeline:
 
-```yaml
-jobs:
-  build:
-    strategy:
-      matrix:
-        target_os: [ubuntu, centos]
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
-    with:
-      version: 6
-      target_os: ${{ matrix.target_os }}
-    secrets:
-      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-```
+1. Add a job in your parent workflow that calls this reusable workflow.
+2. Provide the required and optional inputs as described below.
+3. Ensure the necessary permissions and secrets are configured.
 
-## Workflow Steps
+### Inputs
 
-1. **Checkout Greengage repo**: Checks out the repository with full Git history and submodules. If `ref` is provided, it checks out the specified branch or tag.
-2. **Set up Docker Buildx**: Configures Docker Buildx for image building.
-3. **Login to GitHub Container Registry**: Authenticates with GHCR using the provided token.
-4. **Determine image tags**: Generates tags based on the commit SHA, branch (for pull requests), or tag (for tagged pushes).
-5. **Build and push**: Builds the Docker image using a Dockerfile specific to the target OS and pushes it to GHCR with a SHA-based tag.
+| Name                | Description                                      | Required | Type   | Default |
+|---------------------|--------------------------------------------------|----------|--------|---------|
+| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String | -       |
+| `target_os_version` | Target OS version (e.g., `20`, `7`)              | No       | String | `''`    |
+| `python3`           | Python3 build argument for the Dockerfile        | No       | String | `''`    |
+| `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)  | No       | String | `''`    |
 
-## Notes
+### Secrets
 
-- The workflow assumes a Dockerfile exists in `ci/` (e.g., `Dockerfile.ubuntu` or `Dockerfile.centos`).
-- The `python3` input is currently unused but included for potential future build argument support.
-- If no Git tags are found, the workflow uses `unknown` as a fallback version to prevent failures.
+| Name          | Description                         | Required |
+|---------------|-------------------------------------|----------|
+| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
 
-## Limitations
+### Requirements
 
-- The workflow requires correctly named Dockerfiles in the `ci/` directory.
+- **Permissions**: The job requires `packages: write` permissions to push images to GHCR.
+- **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
+- **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os><target_os_version>` (e.g., `ci/Dockerfile.ubuntu`, `ci/Dockerfile.centos7`).
+- **Repository Access**: The workflow checks out the repository specified in `github.repository`.
+
+### Examples
+
+- Single
+
+  ```yaml
+  jobs:
+    build:
+      permissions:
+        packages: write
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
+      with:
+        version: 7
+        target_os: ubuntu
+        target_os_version: ''
+        python3: ''
+      secrets:
+        ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+  ```
+
+- Matrix
+
+  ```yaml
+  jobs:
+    build:
+      strategy:
+        fail-fast: true  # Stop on any failure in the matrix
+        matrix:
+          target_os: [ubuntu, centos]
+      permissions:
+        packages: write
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
+      with:
+        version: 6
+        target_os: ${{ matrix.target_os }}
+      secrets:
+        ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+  ```
+
+### Notes
+
+- If `ref` is not provided, the workflow checks out the default branch.
+- The Docker image is tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
+- Ensure the target OS and version match an existing Dockerfile in the `ci/` directory.
+
+For further details, refer to the workflow file in the `.github/workflows/` directory.
