@@ -71,7 +71,7 @@ jobs:
           export IMAGE=${IMAGE,,}
           # For pull requests, tag with safe branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            TAG=${$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g'):-unknown}
+            TAG=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g') ; TAG=${TAG:-unknown}
           # For tagged pushes, tag with git tag and push
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
