@@ -79,5 +79,6 @@ jobs:
             echo "Not a pull request or tagged push, skipping tagging"
             exit 1
           fi
-            docker tag $IMAGE:${{ github.sha }} $IMAGE:$TAG
-            docker push $IMAGE:$TAG
+          docker pull $IMAGE:${{ github.sha }}
+          docker tag $IMAGE:${{ github.sha }} $IMAGE:$TAG
+          docker push $IMAGE:$TAG
