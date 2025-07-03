@@ -119,7 +119,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rregression_${{ env.CONT_NAME }}
+          name: regression_opt_${{ matrix.optimizer }}
           path: regression_logs/${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
