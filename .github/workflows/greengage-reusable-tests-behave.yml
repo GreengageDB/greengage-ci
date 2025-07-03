@@ -37,32 +37,26 @@ on:
         required: true
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get feature list
+        id: set-matrix
+        run: |
+          behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
+          features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon|gpexpand" | sed 's/\.feature$//')
+          feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
   behave:
+    needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        feature:
-          - analyzedb
-          - gpactivatestandby
-          - gpaddmirrors
-          - gp_bash_functions
-          - gpcheckcat
-          - gpcheckperf
-          - gpconfig
-          - gpinitstandby
-          - gpinitsystem
-          - gplogfilter
-          - gpmovemirrors
-          - gppkg
-          - gprecoverseg
-          - gprecoverseg_newhost
-          - gpreload
-          - gpstart
-          - gpstate
-          - gpstop
-          - minirepro
-          - replication_slots
+        feature: ${{ fromJson(needs.generate-matrix.outputs.feature_matrix) }}
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
