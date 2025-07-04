@@ -29,6 +29,14 @@ on:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
+      DOCKERHUB_USERNAME:
+        description: 'DockerHub username for authentication'
+        # required: true
+        required: false
+      DOCKERHUB_TOKEN:
+        description: 'DockerHub token for authentication'
+        # required: true
+        required: false
 
 jobs:
   upload:
