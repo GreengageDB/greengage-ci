@@ -55,6 +55,13 @@ jobs:
           ref: ${{ inputs.ref }}
           submodules: recursive
           fetch-depth: 0
+
+      - name: Log trigger and context
+        run: |
+          echo "Trigger event: $GITHUB_EVENT_NAME"
+          echo "Ref: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+
       # May be failed without
       - name: Fetch all tags
         run: git fetch --tags
