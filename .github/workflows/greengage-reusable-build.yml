@@ -44,7 +44,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           submodules: recursive
-          # fetch-depth: 0  # Full history for tag resolution
+          fetch-depth: 0  # Full history for tag resolution
 
       # Checkout specific branch or tag if ref is provided for manual runs compatibility
       - name: Checkout specified ref
@@ -54,17 +54,11 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ inputs.ref }}
           submodules: recursive
-          # fetch-depth: 0
+          fetch-depth: 0
 
-      - name: Log trigger and context
-        run: |
-          echo "Trigger event: $GITHUB_EVENT_NAME"
-          echo "Ref: $GITHUB_REF"
-          echo "SHA: $GITHUB_SHA"
-
-      # May be failed without
       - name: Fetch all tags
-        run: git fetch --tags
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: git fetch --tags --force
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
