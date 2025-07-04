@@ -44,7 +44,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           submodules: recursive
-          fetch-depth: 0  # Full history for tag resolution
+          # fetch-depth: 0  # Full history for tag resolution
 
       # Checkout specific branch or tag if ref is provided for manual runs compatibility
       - name: Checkout specified ref
@@ -54,7 +54,7 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ inputs.ref }}
           submodules: recursive
-          fetch-depth: 0
+          # fetch-depth: 0
 
       - name: Log trigger and context
         run: |
