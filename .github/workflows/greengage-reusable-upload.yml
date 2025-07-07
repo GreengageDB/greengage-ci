@@ -92,21 +92,36 @@ jobs:
 
           # For pull requests, tag with safe branch name and push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # TAG is sanitized branch name
             TAG=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g') ; TAG=${TAG:-unknown}
-          # For tagged pushes, tag with git tag and push
+          # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           elif [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            # TAG is current nearest sanitized git tag
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            LATEST='latest' # Really latest version tag name
+            # All HEAD ref tags
+            SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
+            # Get the latest semantic tag
+            LATEST_SEMANTIC_TAG=$(echo "$SEMANTIC_TAGS" | tail -n 1)
+            # Check if the current tag is the latest semantic tag
+            if [[ "$TAG" == "$LATEST_SEMANTIC_TAG" ]]; then
+              LATEST='latest'
+              echo "Current tag $TAG is the latest semantic tag"
+            else
+              LATEST=''
+              echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
+            fi
           else
             echo "Not a pull request or tagged push, skipping tagging"
             exit 1
           fi
 
-          # If pull-request merged to default branch
-          if [[ "${{ github.event_name }}" == "pull_request" && "$(jq -r '.pull_request.merged' "$GITHUB_EVENT_PATH")" == "true" && "${{ github.base_ref }}" == "$(jq -r '.repository.default_branch' "$GITHUB_EVENT_PATH")" ]]; then
-            LATEST_DEV='latest' # Fake developers latest tag name
+          # If pull-request merged to default branch or version-based branch
+          if [[ "${{ github.event_name }}" == "pull_request" && \
+                "$(jq -r '.pull_request.merged' "$GITHUB_EVENT_PATH")" == "true" && \
+                ( "${{ github.base_ref }}" =~ ^${{ inputs.version }}\.[0-9]+\.[0-9]+$ || \
+                  "${{ github.base_ref }}" == "${{ github.event.repository.default_branch }}" ) ]]; then
+            LATEST_DEV='latest' # Fake developers latest tag name always from latest job
           fi
-
           docker pull $GHCR_IMAGE:${{ github.sha }}
 
           # Version or branch tag
