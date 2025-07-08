@@ -1,6 +1,6 @@
 # Greengage Reusable Docker Retag and Upload Workflow
 
-This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR). It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
+This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR) and optionally DockerHub. It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
 
 ## Purpose
 
@@ -10,7 +10,7 @@ The workflow performs the following task using a Docker image built for the give
 
 ### Algorithm
 
-The workflow processes a Docker image to retag and push it to GHCR based on specific conditions. Below is the detailed algorithm:
+The workflow processes a Docker image to retag and push it to GHCR and DockerHub based on specific conditions. Below is the detailed algorithm:
 
 1. **Input Image**:
    - The workflow expects an existing Docker image in GHCR with the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`, where:
@@ -21,29 +21,34 @@ The workflow processes a Docker image to retag and push it to GHCR based on spec
      - `<full-sha>` is the full commit SHA (`${{ github.sha }}`) of the repository at the time of the build.
 
 2. **Tag Assignment**:
-   - The workflow assigns a new tag to the input image based on the event triggering the workflow:
-     - **For `pull_request` events**:
-       - The new tag is derived from `github.head_ref` (the branch name of the pull request).
-       - The branch name is sanitized by replacing any characters not matching `[a-zA-Z0-9._-]` with `_` to ensure a valid Docker tag.
-       - If sanitization results in an empty or invalid tag, the fallback tag `unknown` is used.
-       - Example: For a branch `feature/my-test`, the tag might be `feature_my-test`.
+   - The workflow assigns tags to the input image based on the event triggering the workflow:
      - **For tagged push events** (when `github.ref` matches `refs/tags/*`):
-       - The new tag is derived from the git tag using `git describe --tags --abbrev=0`.
+       - The version tag is derived from the git tag using `git describe --tags --abbrev=0`.
        - Slashes (`/`) in the tag are replaced with `_` to ensure a valid Docker tag.
        - If no tag is found or the tag is invalid, the fallback tag `unknown` is used.
-       - Example: For a git tag `6.1.0`, the tag becomes `6.1.0`.
-     - **For other events** (e.g., `push` to a branch without a tag or manual triggers):
-       - The workflow exits with an error message: `"Not a pull request or tagged push, skipping tagging"`, and no tagging or pushing occurs.
+       - The `latest` tag is assigned for GHCR and DockerHub.
+       - Example: For a git tag `6.28.3`, the tags are `6.28.3` and `latest`.
+     - **For push to a branch** (e.g., `main` or `6.x`):
+       - The branch tag is derived from `github.ref_name` (the branch name).
+       - The branch name is sanitized by replacing any characters not matching `[a-zA-Z0-9._-]` with `_` to ensure a valid Docker tag.
+       - If sanitization results in an empty or invalid tag, the fallback tag `unknown` is used.
+       - The `latest` tag is assigned for GHCR, and the `testing` tag is assigned for DockerHub.
+       - Example: For a branch `main`, the tags are `main` and `latest` for GHCR, and `testing` for DockerHub.
 
 3. **Tagging and Pushing**:
-   - The input image (`$IMAGE:${{ github.sha }}`) is tagged with the new tag (`$IMAGE:$TAG`) using `docker tag`.
-   - The newly tagged image is pushed to GHCR using `docker push $IMAGE:$TAG`.
-   - Example: If the input image is `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:abcdef1234567890`, and the event is a pull request with `github.head_ref = feature/test`, the image is retagged as `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:feature_test` and pushed.
+   - For tagged pushes:
+     - The input image (`$GHCR_IMAGE:${{ github.sha }}`) is tagged with the version tag (`$GHCR_IMAGE:$TAG`) and `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
+     - The image is tagged with the version tag (`$DOCKERHUB_IMAGE:$TAG`) and `latest` (`$DOCKERHUB_IMAGE:latest`) and pushed to DockerHub (if secrets are provided).
+     - Example: For a tag `6.28.3`, the image `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:abcdef1234567890` is retagged as `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:6.28.3` and `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:latest` for GHCR, and `<username>/ggdb6_ubuntu:6.28.3` and `<username>/ggdb6_ubuntu:latest` for DockerHub.
+   - For branch pushes:
+     - The input image is tagged with the branch tag (`$GHCR_IMAGE:$TAG`) and `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
+     - The image is tagged with `testing` (`$DOCKERHUB_IMAGE:testing`) and pushed to DockerHub (if secrets are provided).
+     - Example: For a branch `main`, the image is retagged as `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:main` and `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:latest` for GHCR, and `<username>/ggdb6_ubuntu:testing` for DockerHub.
 
 4. **Failure Conditions**:
-   - If the input image does not exist in GHCR, the `docker tag` command will fail, causing the workflow to exit with an error.
-   - If the event is neither a `pull_request` nor a tagged push, the workflow exits with a non-zero status code and skips tagging.
+   - If the input image does not exist in GHCR, the `docker pull` command will fail, causing the workflow to exit with an error.
    - If the sanitized tag is invalid or empty (despite the `unknown` fallback), the `docker push` may fail if the tag does not conform to Docker’s tag requirements.
+   - If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub pushes are skipped, but GHCR pushes proceed.
 
 ## Usage
 
@@ -65,14 +70,16 @@ To integrate this workflow into your pipeline:
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+| Name                | Description                         | Required |
+|---------------------|-------------------------------------|----------|
+| `ghcr_token`        | GitHub token for GHCR access        | Yes      |
+| `DOCKERHUB_USERNAME`| DockerHub username for authentication | No     |
+| `DOCKERHUB_TOKEN`   | DockerHub token for authentication  | No       |
 
 ### Requirements
 
 - **Permissions**: The job requires `contents: read` and `packages: write` permissions to access repository contents and push images to GHCR.
-- **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
+- **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret. Optionally provide `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` for DockerHub uploads.
 - **Docker Image**: Ensure a Docker image exists in GHCR matching the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository`.
 
@@ -94,6 +101,8 @@ To integrate this workflow into your pipeline:
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
 - Matrix
@@ -114,13 +123,15 @@ To integrate this workflow into your pipeline:
         target_os: ${{ matrix.target_os }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
 ### Notes
 
 - If `ref` is not provided, the workflow checks out the default branch.
-- The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`) and retagged with a branch or tag name.
-- The workflow only runs for `pull_request` or tagged push events; otherwise, it exits with an error.
-- Ensure the repository has the necessary tags or branches for retagging.
-
-For further details, refer to the workflow file in the `.github/workflows/` directory.
+- For push of a git tag (e.g., `6.28.3`), images are tagged with the version and `latest` and pushed to GHCR, and the version and `latest` are pushed to DockerHub (if secrets are provided).
+- For push to a branch (e.g., `main` or `6.x`), images are tagged with the branch name and `latest` for GHCR, and only `testing` for DockerHub (if secrets are provided).
+- Tags are always fetched to ensure correct version resolution.
+- If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub pushes are skipped, but GHCR pushes proceed.
+- For further details, refer to the workflow file in the `.github/workflows/` directory.
