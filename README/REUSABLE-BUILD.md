@@ -4,7 +4,7 @@ This workflow builds and pushes Docker images for the Greengage project to the G
 
 ## Purpose
 
-The workflow constructs a Docker image based on the specified Greengage version and target operating system, tags it with the commit SHA, and pushes it to GHCR. It supports both automated CI runs and manual executions with custom branch or tag references.
+The workflow constructs a Docker image based on the specified Greengage version and target operating system, tags it with the commit SHA, and pushes it to GHCR. For pull requests, it also adds a developer tag (sanitized branch name) and pushes it. It supports both automated CI runs and manual executions with custom branch or tag references.
 
 ## Usage
 
@@ -78,7 +78,7 @@ To integrate this workflow into your pipeline:
 ### Notes
 
 - If `ref` is not provided, the workflow checks out the default branch.
-- The Docker image is tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
+- The Docker image is tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`). For pull requests, a developer tag based on the sanitized branch name (e.g., `feature_branch`) is also added and pushed.
+- Tags are always fetched to ensure correct version resolution.
 - Ensure the target OS and version match an existing Dockerfile in the `ci/` directory.
-
-For further details, refer to the workflow file in the `.github/workflows/` directory.
+- For further details, refer to the workflow file in the `.github/workflows/` directory.
