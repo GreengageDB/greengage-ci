@@ -93,8 +93,18 @@ jobs:
 
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            # TAG is current nearest sanitized git tag
-            LATEST='latest'
+            # All HEAD ref tags
+            SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
+            # Get the latest semantic tag
+            LATEST_SEMANTIC_TAG=$(echo "$SEMANTIC_TAGS" | tail -n 1)
+            # Check if the current tag is the latest semantic tag
+            if [[ "$TAG" == "$LATEST_SEMANTIC_TAG" ]]; then
+              LATEST='latest'
+              echo "Current tag $TAG is the latest semantic tag"
+            else
+              LATEST=''
+              echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
+            fi
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
             docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
@@ -105,4 +115,4 @@ jobs:
 
           docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
           docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest       && docker push $GHCR_IMAGE:latest
-          docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+          [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
