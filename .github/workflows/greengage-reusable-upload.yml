@@ -121,6 +121,8 @@ jobs:
             # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
             LATEST='testing'
             unset TAG
+            # Update latest at GHCR for master pushes only
+            docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
           fi
 
           # If image was tagged
@@ -128,6 +130,3 @@ jobs:
 
           # If tag is really latest or testing
           [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
-
-          # Update latest at GHCR always
-          docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
