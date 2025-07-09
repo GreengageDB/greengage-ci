@@ -74,14 +74,15 @@ jobs:
         run: |
           # Construct image name with version and OS without tag
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          IMAGE=${IMAGE,,}
 
           # Build from Dockerfile specific to target OS and push with SHA tag
-          docker build --tag ${IMAGE,,}:${{ github.sha }} --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
+          docker build --tag ${IMAGE}:${{ github.sha }} --push -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
 
           # Make additional developer's tag if pull-request
           if [ -n "${{ github.head_ref }}" ] ; then
               # DEV_TAG is sanitized branch name
               DEV_TAG=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
-              docker tag ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$DEV_TAG
-              docker push ${IMAGE,,}:$DEV_TAG
+              docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
+              docker push ${IMAGE}:$DEV_TAG
           fi
