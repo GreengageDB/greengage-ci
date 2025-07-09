@@ -62,6 +62,16 @@ jobs:
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for artifact upload
     steps:
+      # Determine registry namespace for external user
+      - name: Determine registry namespace
+        id: set-namespace
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "namespace=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "namespace=${{ github.repository }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
 
@@ -115,7 +125,7 @@ jobs:
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          IMAGE: ghcr.io/${{ steps.set-namespace.outputs.namespace }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           FEATURE: ${{ matrix.feature }}
           CLUSTER: ~concourse_cluster
           PROJECT: ${{ matrix.feature }}_demo

@@ -44,6 +44,16 @@ jobs:
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for artifact upload
     steps:
+      # Determine registry namespace for external user
+      - name: Determine registry namespace
+        id: set-namespace
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "namespace=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "namespace=${{ github.repository }}" >> $GITHUB_OUTPUT
+          fi
+
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -69,7 +79,7 @@ jobs:
       # Run ORCA Unit test using the passed image tag
       - name: ORCA Unit test
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          IMAGE: ghcr.io/${{ steps.set-namespace.outputs.namespace }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
           export IMAGE=${IMAGE,,}
           docker run \
