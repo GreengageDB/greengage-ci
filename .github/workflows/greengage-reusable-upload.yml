@@ -45,16 +45,6 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
-      # Determine registry namespace for external user
-      - name: Determine registry namespace
-        id: set-namespace
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "namespace=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "namespace=${{ github.repository }}" >> $GITHUB_OUTPUT
-          fi
-
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
         if: ${{ inputs.ref == '' }}
@@ -96,7 +86,7 @@ jobs:
         env:
           IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
-          GHCR_IMAGE=ghcr.io/${{ steps.set-namespace.outputs.namespace }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
+          GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
           DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
 
           docker pull $GHCR_IMAGE:${{ github.sha }}

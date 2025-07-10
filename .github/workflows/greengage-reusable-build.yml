@@ -37,15 +37,6 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
-      # Determine registry namespace for external user
-      - name: Determine registry namespace
-        id: set-namespace
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "namespace=${{ github.event.pull_request.head.repo.full_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "namespace=${{ github.repository }}" >> $GITHUB_OUTPUT
-          fi
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
         if: ${{ inputs.ref == '' }}
@@ -82,7 +73,7 @@ jobs:
         id: build_and_push
         run: |
           # Construct image name with version and OS without tag
-          IMAGE=ghcr.io/${{ steps.set-namespace.outputs.namespace }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
 
           # Build from Dockerfile specific to target OS and push with SHA tag
