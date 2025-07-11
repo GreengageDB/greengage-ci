@@ -21,10 +21,6 @@ on:
         required: false
         type: string
         default: ''
-      ref:
-        description: 'Branch or ref to checkout'
-        required: false
-        type: string
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -45,16 +41,6 @@ jobs:
           repository: ${{ github.repository }}
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
-
-      # Checkout specific branch or tag if ref is provided for manual runs compatibility
-      - name: Checkout specified ref
-        if: ${{ inputs.ref != '' }}
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ inputs.ref }}
-          submodules: recursive
-          fetch-depth: 0
 
       - name: Fetch all tags
         run: git fetch --tags --force
