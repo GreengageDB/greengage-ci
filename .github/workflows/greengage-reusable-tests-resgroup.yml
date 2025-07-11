@@ -88,7 +88,7 @@ jobs:
           SocketUser=$(whoami)
           EOF
           lima curl -fsSL https://get.docker.com -o get-docker.sh
-          lima sudo sh get-docker.sh
+          lima sudo sh get-docker.sh --version 20.10
 
       - name: Configure the host to use dockerd in the guest VM
         run: |
