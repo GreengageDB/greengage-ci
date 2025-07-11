@@ -35,10 +35,10 @@ jobs:
     steps:
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
-        if: ${{ inputs.ref == '' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
 
