@@ -32,6 +32,7 @@ jobs:
     permissions:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
+      actions: write  # Required for cache
     steps:
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
@@ -67,26 +68,29 @@ jobs:
           # Build from Dockerfile specific to target OS with SHA tag
           docker build --tag ${IMAGE}:${{ github.sha }} -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
 
-      # Save and upload Docker image with SHA tag as artifact
+      # Save Docker image
       - name: Save SHA image
         run: |
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
           docker save ${IMAGE}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
-      - name: Upload SHA image artifact
-        uses: actions/upload-artifact@v4
+      # Cache SHA image
+      - name: Cache SHA image
+        uses: actions/cache@v4
         with:
-          name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
       # Push developer's tag image if pull-request and same repository
       - name: Push developer's tag image
         if: github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
-          DEV_TAG=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
+          DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
           echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
           docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
           docker push ${IMAGE}:$DEV_TAG

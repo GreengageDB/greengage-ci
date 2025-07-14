@@ -43,7 +43,7 @@ jobs:
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
-      actions: write  # Required for artifact upload
+      actions: write  # Required for cache and artifact upload
     steps:
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
@@ -72,14 +72,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
-      # Download and load SHA image artifact
-      - name: Download SHA image artifact
-        uses: actions/download-artifact@v4
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
         with:
-          name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
+      # Load SHA image
       - name: Load SHA image
-        run: docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        run: |
+          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       # Run Regression tests
       - name: Regression test with optimizer=${{ matrix.optimizer }}

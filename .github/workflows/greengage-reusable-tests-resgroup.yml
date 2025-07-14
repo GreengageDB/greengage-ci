@@ -35,7 +35,7 @@ jobs:
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
-      actions: write  # Required for artifact upload
+      actions: write  # Required for cache and artifact upload
 
     steps:
       # Checkout repository with specified ref or default
@@ -46,14 +46,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
-      # Download and load SHA image artifact
-      - name: Download SHA image artifact
-        uses: actions/download-artifact@v4
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
         with:
-          name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
+      # Load SHA image
       - name: Load SHA image
-        run: docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        run: |
+          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Setup Lima
         uses: lima-vm/lima-actions/setup@v1
