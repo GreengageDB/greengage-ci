@@ -33,7 +33,7 @@ on:
         required: true
 
 jobs:
-  generate-matrix:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
       feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
@@ -52,13 +52,33 @@ jobs:
           features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon|gpexpand" | sed 's/\.feature$//')
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
+
+      # Debug check
+      - name: Check disk usage
+        run: |
+          df -h
+          du -sh /home/runner/work/*
+
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+      # Load SHA image
+      - name: Load SHA image
+        run: |
+          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
   behave:
-    needs: generate-matrix
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(needs.generate-matrix.outputs.feature_matrix) }}
+        feature: ${{ fromJson(needs.prepare.outputs.feature_matrix) }}
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
@@ -89,18 +109,6 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
-
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Load SHA image
-      - name: Load SHA image
-        run: |
-          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1

@@ -57,6 +57,7 @@ jobs:
       - name: Load SHA image
         run: |
           docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Setup Lima
         uses: lima-vm/lima-actions/setup@v1
