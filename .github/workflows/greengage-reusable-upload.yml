@@ -69,14 +69,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Download and load SHA image artifact
+      - name: Download SHA image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+      - name: Load SHA image
+        run: docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
       - name: Tag and push Docker image
         env:
           IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
           GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
           DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
-
-          docker pull $GHCR_IMAGE:${{ github.sha }}
 
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
