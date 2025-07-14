@@ -33,9 +33,32 @@ on:
         required: true
 
 jobs:
-  prepare:
+  regression:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        optimizer: [on, off]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for cache and artifact upload
     steps:
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+      # Load SHA image
+      - name: Load SHA image
+        run: |
+          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
+      # Maximize build space for Docker
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
 
@@ -55,45 +78,6 @@ jobs:
       - name: Restore /var/lib/docker/
         run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          submodules: recursive
-
-      # Debug check
-      - name: Check disk usage
-        run: |
-          df -h
-          du -sh /home/runner/work/*
-
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Load SHA image
-      - name: Load SHA image
-        run: |
-          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-  regression:
-    needs: prepare
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        optimizer: [on, off]
-    permissions:
-      contents: read  # Explicit for default behavior
-      packages: read  # Explicit for GHCR access clarity
-      actions: write  # Required for cache and artifact upload
-    steps:
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo
         uses: actions/checkout@v4

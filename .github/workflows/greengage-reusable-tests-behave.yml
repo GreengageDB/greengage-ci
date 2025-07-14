@@ -53,12 +53,18 @@ jobs:
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
-      # Debug check
-      - name: Check disk usage
-        run: |
-          df -h
-          du -sh /home/runner/work/*
-
+  behave:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(needs.prepare.outputs.feature_matrix) }}
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for cache and artifact upload
+    steps:
       # Restore SHA image from cache
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
@@ -72,18 +78,7 @@ jobs:
           docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
-  behave:
-    needs: prepare
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        feature: ${{ fromJson(needs.prepare.outputs.feature_matrix) }}
-    permissions:
-      contents: read  # Explicit for default behavior
-      packages: read  # Explicit for GHCR access clarity
-      actions: write  # Required for cache and artifact upload
-    steps:
+      # Maximize build space for Docker
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
 

@@ -46,19 +46,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Load SHA image
-      - name: Load SHA image
-        run: |
-          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
       - name: Setup Lima
         uses: lima-vm/lima-actions/setup@v1
         id: lima-actions-setup
@@ -99,6 +86,24 @@ jobs:
           echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
           docker info
           docker version
+
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+      # Copy tar file to Lima VM
+      - name: Copy Docker image tar to Lima VM
+        run: |
+          limactl copy ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar default:/home/runner/
+
+      # Load SHA image in Lima VM
+      - name: Load SHA image in Lima VM
+        run: |
+          lima docker load < /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          lima rm /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Resource groups test
         env:
