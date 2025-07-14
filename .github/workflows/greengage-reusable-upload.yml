@@ -27,11 +27,12 @@ on:
         required: true
       DOCKERHUB_USERNAME:
         description: 'DockerHub username for authentication'
-        # required: true
-        required: false
+        required: true
       DOCKERHUB_TOKEN:
         description: 'DockerHub token for authentication'
-        # required: true
+        required: true
+      ALLOWED_EXTERNAL_REPOS:
+        description: 'Allowed extarnal repositories for execute this job'
         required: false
 
 jobs:
@@ -41,6 +42,22 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
+      # Restrict DockerHub uploads to trusted repos using our secrets
+      # Example: external-org/repo1 external-org/repo2
+      - name: Check repository access
+        env:
+          ALLOWED_EXTERNAL_REPOS: ${{ vars.ALLOWED_EXTERNAL_REPOS }}
+        run: |
+          OWNER=$(echo "${{ github.event.repository.owner.login }}")
+          if [[ "${{ github.repository_owner }}" == "$OWNER" ]]; then
+            echo "Repository belongs to the same organization/owner as the workflow ($OWNER), access granted."
+          elif [[ -n "$ALLOWED_EXTERNAL_REPOS" && "$ALLOWED_EXTERNAL_REPOS" =~ "${{ github.repository }}" ]]; then
+            echo "Repository is in allowed external repos, access granted."
+          else
+            echo "Your repository not allowed for upload artifacts."
+            exit 0
+          fi
+
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
