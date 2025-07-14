@@ -25,15 +25,15 @@ on:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
-      DOCKERHUB_USERNAME:
-        description: 'DockerHub username for authentication'
-        required: true
-      DOCKERHUB_TOKEN:
-        description: 'DockerHub token for authentication'
-        required: true
-      ALLOWED_EXTERNAL_REPOS:
-        description: 'Allowed extarnal repositories for execute this job'
-        required: false
+      # DOCKERHUB_USERNAME:
+      #   description: 'DockerHub username for authentication'
+      #   required: true
+      # DOCKERHUB_TOKEN:
+      #   description: 'DockerHub token for authentication'
+      #   required: true
+      # ALLOWED_EXTERNAL_REPOS:
+      #   description: 'Allowed extarnal repositories for execute this job'
+      #   required: false
 
 jobs:
   upload:
