@@ -1,0 +1,64 @@
+name: Greengage Reusable Cleanup Workflow
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version derived from tag (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Delete branch images
+        env:
+          REF: ${{ github.event.ref }}
+        run: |
+          branch_name=$(sed 's#refs/heads/##' <<< $REF)
+          dev_tag=$(echo "$branch_name" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          if [ -z "$dev_tag" ]; then
+            echo "Can't define Development's tag from Branch name '$branch_name'"
+            exit 0
+          fi
+          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          IMAGE=${IMAGE,,}
+          digest=$(crane digest $IMAGE:$dev_tag || echo "")
+          if [ -z "$digest" ]; then
+            echo "No image found for tag $dev_tag"
+            exit 0
+          fi
+          tags=$(crane ls $IMAGE)
+          for tag in $tags; do
+            if [ "$tag" != "latest" ]; then
+              tag_digest=$(crane digest $IMAGE:$tag || echo "")
+              if [ "$tag_digest" == "$digest" ]; then
+                echo "Deleting tag $tag"
+                crane delete $IMAGE:$tag || true
+              fi
+            fi
+          done
