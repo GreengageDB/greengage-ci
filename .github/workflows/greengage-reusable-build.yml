@@ -101,4 +101,5 @@ jobs:
           DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
           echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
           docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
+          docker push ${IMAGE}:${{ github.sha }}
           docker push ${IMAGE}:$DEV_TAG
