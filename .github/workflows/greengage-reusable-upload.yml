@@ -136,6 +136,7 @@ jobs:
           for tag in $tags; do
             version_id=$(gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions -H "Accept: application/vnd.github+json" | jq -r --arg tag "$tag" '.[] | select(.metadata.container.tags[] == $tag) | .id' || true)
             if [ -n "$version_id" ]; then
+              echo "Deleting ${IMAGE}:$version_id"
               gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions/$version_id -X DELETE || echo "Failed to delete tag $tag (version $version_id). Continuing."
             else
               echo "Version ID for tag $tag not found. Skipping."
