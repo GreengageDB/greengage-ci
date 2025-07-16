@@ -55,7 +55,7 @@ jobs:
           tags=$(crane ls $IMAGE)
           for tag in $tags; do
             if [ "$tag" != "latest" ]; then
-              echo "Operate with tag '$tag'"
+              echo "OPERATE with TAG '$tag'"
               tag_digest=$(crane digest $IMAGE:$tag || echo "")
               echo "Get tag digest '$tag_digest'"
               if [ "$tag_digest" == "$digest" ]; then
