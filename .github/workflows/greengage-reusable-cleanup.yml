@@ -55,18 +55,22 @@ jobs:
           tags=$(crane ls $IMAGE)
           for tag in $tags; do
             if [ "$tag" != "latest" ]; then
+              echo "Operate with tag '$tag'"
               tag_digest=$(crane digest $IMAGE:$tag || echo "")
+              echo "Get tag digest '$tag_digest'"
               if [ "$tag_digest" == "$digest" ]; then
-                echo "Attempting to delete tag $tag with crane"
+                echo "Attempting to delete '$IMAGE:$tag' with crane"
                 if ! crane delete $IMAGE:$tag; then
-                  echo "crane delete failed for tag $tag, attempting GitHub API"
+                  echo "crane delete failed for '$IMAGE:$tag', attempting GitHub API"
                   # Construct package name
                   package_name=$(echo "${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}" | tr '[:upper:]' '[:lower:]')
+                  echo "Get package_name '$package_name'"
                   # Get API response and check for errors
                   api_response=$(curl -s -H "Authorization: Bearer ${{ secrets.ghcr_token }}" \
                     -H "Accept: application/vnd.github+json" \
                     "https://api.github.com/repos/${{ github.repository }}/packages/container/$package_name/versions")
                   # Check if response contains an error message
+                  echo "Get api_response '$api_response'"
                   error_message=$(echo "$api_response" | jq -r '.message // empty')
                   if [ -n "$error_message" ]; then
                     echo "API error: $error_message"
