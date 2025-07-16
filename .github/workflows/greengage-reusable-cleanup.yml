@@ -57,8 +57,27 @@ jobs:
             if [ "$tag" != "latest" ]; then
               tag_digest=$(crane digest $IMAGE:$tag || echo "")
               if [ "$tag_digest" == "$digest" ]; then
-                echo "Deleting tag $tag"
-                crane delete $IMAGE:$tag || true
+                echo "Attempting to delete tag $tag with crane"
+                if ! crane delete $IMAGE:$tag; then
+                  echo "crane delete failed for tag $tag, attempting GitHub API"
+                  # Get package version ID for the tag
+                  package_name=$(echo "${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}" | tr '[:upper:]' '[:lower:]')
+                  version_id=$(curl -s -H "Authorization: Bearer ${{ secrets.ghcr_token }}" \
+                    -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/${{ github.repository }}/packages/container/$package_name/versions" | \
+                    jq -r ".[] | select(.metadata.container.tags[]? == \"$tag\") | .id")
+                  if [ -n "$version_id" ]; then
+                    echo "Deleting tag $tag (version ID: $version_id) via GitHub API"
+                    curl -X DELETE \
+                      -H "Authorization: Bearer ${{ secrets.ghcr_token }}" \
+                      -H "Accept: application/vnd.github+json" \
+                      "https://api.github.com/repos/${{ github.repository }}/packages/container/$package_name/versions/$version_id" || true
+                  else
+                    echo "No version ID found for tag $tag"
+                  fi
+                else
+                  echo "Successfully deleted tag $tag with crane"
+                fi
               fi
             fi
           done
