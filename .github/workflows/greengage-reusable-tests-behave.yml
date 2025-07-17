@@ -33,7 +33,7 @@ on:
         required: true
 
 jobs:
-  prepare:
+  generate-matrix:
     runs-on: ubuntu-latest
     outputs:
       feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
@@ -54,12 +54,12 @@ jobs:
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
   behave:
-    needs: prepare
+    needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(needs.prepare.outputs.feature_matrix) }}
+        feature: ${{ fromJson(needs.generate-matrix.outputs.feature_matrix) }}
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
