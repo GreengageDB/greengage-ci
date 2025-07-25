@@ -46,7 +46,7 @@ jobs:
       - name: Build Docker Builder image
         if: inputs.rebuild_builder
         run: |
-          docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} .
+          docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} ./gpdb_src/
 
       - name: Build Debian packages
         run: |
