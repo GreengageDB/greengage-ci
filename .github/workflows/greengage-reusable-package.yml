@@ -47,6 +47,7 @@ jobs:
           docker build -f ci/Dockerfile.ubuntu.builder -t ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder --cache-from ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder .
 
       - name: Push Docker Builder image to GHCR
+        if: inputs.rebuild_builder
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder
 
