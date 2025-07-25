@@ -1,0 +1,120 @@
+name: Greengage Reusable Package Workflow
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version derived from tag (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS'
+        required: true
+        type: string
+      rebuild_builder:
+        description: 'Rebuild builder image required'
+        required: false
+        type: boolean
+        default: false
+
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  build-deb:
+    if: target_os == 'ubuntu'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          path: gpdb_src
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      - name: Build Docker Builder image
+        if: rebuild_builder
+        run: |
+          docker build -f ci/Dockerfile.ubuntu.builder -t ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder --cache-from ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder .
+
+      - name: Push Docker Builder image to GHCR
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder
+
+      - name: Build Debian packages
+        run: |
+          docker run --rm \
+            -v $(pwd)/gpdb_src:/home/gpadmin/gpdb_src \
+            -e BUILDNUMBER=${{ github.run_number }} \
+            ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder \
+            /bin/bash -c "git config --global --add safe.directory '*' && make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j"$(nproc)""
+
+      - name: Upload Debian artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages
+          path: gpdb_src/*.deb
+
+  # Test built package
+  install-deb:
+    needs: build-deb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Lima
+        uses: lima-vm/lima-actions/setup@v1
+        id: lima-actions-setup
+      - name: Cache Lima
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/lima
+          key: lima-${{ steps.lima-actions-setup.outputs.version }}
+      - name: Download deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-packages
+          path: ./deb-packages
+      - name: Start the guest VM
+        run: |
+          set -eux
+          limactl start \
+            --name=default \
+            --cpus=4 \
+            --memory=8 \
+            --containerd=none \
+            --mount-type=9p \
+            --set '.mounts=[{"location":"~/","writable":true,"9p":{"securityModel":"mapped-xattr","cache":"mmap"}}]' \
+            template://ubuntu-20.04
+      - name: Copy deb artifacts to Lima VM
+        run: |
+          limactl copy -r ./deb-packages default:/home/runner/deb-packages
+      - name: Install deb package with apt in Lima
+        run: |
+          limactl shell default sudo apt-get update
+          # limactl shell default sudo apt-get install -y software-properties-common
+          # limactl shell default sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu jammy main universe"
+          # limactl shell default sudo apt-get update
+          set -o pipefail
+          limactl shell default sudo apt-get install -y /home/runner/deb-packages/*.deb 2>&1 | tee install.log || \
+            limactl shell default sudo dpkg -i /home/runner/deb-packages/*.deb 2>&1 | tee -a install.log
+          limactl shell default sudo apt-get install -f -y 2>&1 | tee -a install.log
+      - name: Upload install logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-logs
+          path: install.log
+      - name: Cleanup Lima
+        if: always()
+        run: |
+          limactl stop default || true
+          limactl delete default || true
