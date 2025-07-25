@@ -43,15 +43,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      - name: Build and Push Docker Builder image
+      - name: Build Docker Builder image
         if: inputs.rebuild_builder
-        uses: docker/build-push-action@v6
-        with:
-          context: gpdb_src
-          file: gpdb_src/ci/Dockerfile.{{ inputs.target_os }}.builder
-          push: true
-          tags: ${BUILDER,,}
-          cache-from: type=registry,ref=${BUILDER,,}
+        run: |
+          docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} .
 
       - name: Build Debian packages
         run: |
