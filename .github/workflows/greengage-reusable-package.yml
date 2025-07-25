@@ -16,7 +16,16 @@ on:
         required: false
         type: boolean
         default: false
-
+      test_lima:
+        description: 'Lima Template (e.g., ubuntu-22.04) for deploy test. Skip if empty'
+        required: false
+        type: string
+        default: ''
+      test_docker:
+        description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
+        required: false
+        type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -35,19 +44,16 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           path: gpdb_src
-
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
-
       - name: Build Docker Builder image
         if: inputs.rebuild_builder
         run: |
           docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} ./gpdb_src/
-
       - name: Build Debian packages
         run: |
           docker run --rm \
@@ -55,15 +61,14 @@ jobs:
             -e BUILDNUMBER=${{ github.run_number }} \
             ${BUILDER,,} \
             /bin/bash -c "git config --global --add safe.directory '*' && make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j"$(nproc)""
-
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
           name: deb-packages
           path: gpdb_src/*.deb
 
-  # Test built package
-  install-deb:
+  test-lima:
+    if: inputs.test_lima != ''
     needs: build-deb
     runs-on: ubuntu-latest
     steps:
@@ -92,20 +97,24 @@ jobs:
             --containerd=none \
             --mount-type=9p \
             --set '.mounts=[{"location":"~/","writable":true,"9p":{"securityModel":"mapped-xattr","cache":"mmap"}}]' \
-            template://ubuntu-22.04
-      - name: Copy deb artifacts to Lima VM
-        run: |
-          limactl copy -r ./deb-packages default:/home/runner/deb-packages
+            template://${{ inputs.test_lima }}
       - name: Install deb package with apt in Lima
         run: |
-          limactl shell default sudo apt-get update
-          # limactl shell default sudo apt-get install -y software-properties-common
-          # limactl shell default sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu jammy main universe"
-          # limactl shell default sudo apt-get update
-          set -o pipefail
-          limactl shell default sudo apt-get install -y /home/runner/deb-packages/*.deb 2>&1 | tee install.log || \
-            limactl shell default sudo dpkg -i /home/runner/deb-packages/*.deb 2>&1 | tee -a install.log
-          limactl shell default sudo apt-get install -f -y 2>&1 | tee -a install.log
+          cat << 'EOF' > ./deb-packages/install_deb.sh
+          #!/bin/bash
+          set -eux
+          cd /home/runner
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          if apt-get install -y *.deb; then
+            exit 0
+          else
+            dpkg -i *.deb
+            apt-get install -f -y
+          fi
+          EOF
+          limactl copy -r ./deb-packages default:/home/runner
+          limactl shell default sudo bash install_deb.sh 2>&1 | tee install.log
       - name: Upload install logs
         uses: actions/upload-artifact@v4
         with:
@@ -116,3 +125,27 @@ jobs:
         run: |
           limactl stop default || true
           limactl delete default || true
+
+  test-docker:
+    if: inputs.test_docker != ''
+    needs: build-deb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-packages
+          path: ./deb-packages
+      - name: Start Docker container and install deb package
+        run: |
+          set -eux
+          docker run --rm -v $(pwd)/deb-packages:/deb-packages ${{ inputs.test_docker }} /bin/bash -c "\
+            export DEBIAN_FRONTEND=noninteractive && \
+            apt-get update && \
+            { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
+            apt-get install -f -y 2>&1" | tee install.log
+      - name: Upload install logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-logs-docker
+          path: install.log
