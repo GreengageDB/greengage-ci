@@ -24,11 +24,11 @@ on:
 
 jobs:
   build-deb:
-    if: target_os == 'ubuntu'
+    if: inputs.target_os == 'ubuntu'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
@@ -42,7 +42,7 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Build Docker Builder image
-        if: rebuild_builder
+        if: inputs.rebuild_builder
         run: |
           docker build -f ci/Dockerfile.ubuntu.builder -t ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder --cache-from ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder .
 
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Lima
         uses: lima-vm/lima-actions/setup@v1
         id: lima-actions-setup
