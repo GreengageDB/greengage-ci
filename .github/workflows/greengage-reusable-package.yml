@@ -92,7 +92,7 @@ jobs:
             --containerd=none \
             --mount-type=9p \
             --set '.mounts=[{"location":"~/","writable":true,"9p":{"securityModel":"mapped-xattr","cache":"mmap"}}]' \
-            template://ubuntu-20.04
+            template://ubuntu-22.04
       - name: Copy deb artifacts to Lima VM
         run: |
           limactl copy -r ./deb-packages default:/home/runner/deb-packages
