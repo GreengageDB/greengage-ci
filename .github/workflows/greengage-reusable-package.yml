@@ -26,6 +26,8 @@ jobs:
   build-deb:
     if: inputs.target_os == 'ubuntu'
     runs-on: ubuntu-latest
+    env:
+      BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}:builder
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,22 +43,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      - name: Build Docker Builder image
+      - name: Build and Push Docker Builder image
         if: inputs.rebuild_builder
-        run: |
-          docker build -f ci/Dockerfile.ubuntu.builder -t ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder --cache-from ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder .
-
-      - name: Push Docker Builder image to GHCR
-        if: inputs.rebuild_builder
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder
+        uses: docker/build-push-action@v6
+        with:
+          context: gpdb_src
+          file: gpdb_src/ci/Dockerfile.{{ inputs.target_os }}.builder
+          push: true
+          tags: ${BUILDER,,}
+          cache-from: type=registry,ref=${BUILDER,,}
 
       - name: Build Debian packages
         run: |
           docker run --rm \
             -v $(pwd)/gpdb_src:/home/gpadmin/gpdb_src \
             -e BUILDNUMBER=${{ github.run_number }} \
-            ghcr.io/${{ github.repository_owner }}/ggdb6_ubuntu:builder \
+            ${BUILDER,,} \
             /bin/bash -c "git config --global --add safe.directory '*' && make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j"$(nproc)""
 
       - name: Upload Debian artifacts
