@@ -51,9 +51,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
       - name: Build Docker Builder image
-        if: inputs.rebuild_builder
         run: |
-          docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} ./gpdb_src/
+          set -eux
+          export BUILDER=${BUILDER,,}
+          if [[ "${{ inputs.rebuild_builder }}" == "true" ]] || ! docker pull $BUILDER; then
+            echo "Builder $BUILDER not exists or rebuild asked. Building..."
+            docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t $BUILDER ./gpdb_src/
+          else
+            echo "Builder $BUILDER exists and rebuild not asked. Skipping"
+          fi
       - name: Build Debian packages
         run: |
           docker run --rm \
