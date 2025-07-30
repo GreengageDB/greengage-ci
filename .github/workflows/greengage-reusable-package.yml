@@ -71,7 +71,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: deb-packages
-          path: gpdb_src/*.deb
+          path: |
+            gpdb_src/*.deb
+            gpdb_src/*.ddeb
+            gpdb_src/*.build
+            gpdb_src/*.buildinfo
+            gpdb_src/*.changes
 
   test-lima:
     if: inputs.test_lima != ''
