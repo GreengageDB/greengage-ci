@@ -61,12 +61,26 @@ jobs:
             echo "Builder $BUILDER exists and rebuild not asked. Skipping"
           fi
       - name: Build Debian packages
+        env:
+          REF: ${{ github.ref }}
         run: |
+          if [[ "$REF" =~ ^refs/tags/ ]]; then
+            CHANGELOG_OPTS=()
+          else
+            CHANGELOG_OPTS=(last-tag all-commits)
+          fi
+          
+          # Get available CPU cores
+          CPU_CORES=$(nproc)
+          
           docker run --rm \
             -v $(pwd)/gpdb_src:/home/gpadmin/gpdb_src \
             -e BUILDNUMBER=${{ github.run_number }} \
             ${BUILDER,,} \
-            /bin/bash -c "git config --global --add safe.directory '*' && make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j"$(nproc)""
+            /bin/bash -c "
+              git config --global --add safe.directory '*' && \
+              make -C ./gpdb_src/gpAux pkg-deb ${CHANGELOG_OPTS[*]} PARALLEL_MAKE_OPTS=-j$CPU_CORES
+            "
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
