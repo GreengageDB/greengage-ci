@@ -90,7 +90,7 @@ jobs:
       - name: Regression test with Optimizer ${{ matrix.optimizer }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_opt_${{ matrix.optimizer}}
+          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_${{ matrix.optimizer}}
         run: |
           export IMAGE=${IMAGE,,}
           # Run tests and save logs to a volume
@@ -121,7 +121,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression_opt_${{ matrix.optimizer }}
+          name: regression_optimizer_${{ matrix.optimizer }}
           path: regression_logs/${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
