@@ -95,7 +95,7 @@ jobs:
           export IMAGE=${IMAGE,,}
           # Run tests and save logs to a volume
           docker run --name $CONT_NAME \
-            -v regression_logs_${{ matrix.optimizer }}:/tmp/regression_logs \
+            -v /tmp/regression_logs_${{ matrix.optimizer }}:/tmp/regression_logs \
             -e TEST_OS=${{ inputs.target_os }} \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
@@ -106,13 +106,13 @@ jobs:
           # Debug: exit code
           echo "Exit code: '$status'"
 
-          # Copy logs from volume
-          mkdir -p regression_logs
-          docker cp $CONT_NAME:/tmp/regression_logs regression_logs/${{ matrix.optimizer }}
-          docker rm $CONT_NAME
+          # # Copy logs from volume
+          # mkdir -p regression_logs
+          # docker cp $CONT_NAME:/tmp/regression_logs regression_logs/${{ matrix.optimizer }}
+          # docker rm $CONT_NAME
 
-          # Debug: List copied logs
-          ls -lR regression_logs/
+          # # Debug: List copied logs
+          # ls -lR regression_logs/
 
           exit ${status:-1} # erro if not known
 
@@ -122,6 +122,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression_optimizer_${{ matrix.optimizer }}
-          path: regression_logs/${{ matrix.optimizer }}
+          path: /tmp/regression_logs_${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
