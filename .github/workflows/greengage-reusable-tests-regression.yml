@@ -137,6 +137,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression_optimizer_${{ matrix.optimizer }}
-          path: $LOG_DIR
+          path: /var/lib/docker/logs_${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
