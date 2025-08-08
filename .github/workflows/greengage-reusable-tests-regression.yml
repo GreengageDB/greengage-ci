@@ -116,7 +116,7 @@ jobs:
           EOF
 
           # Run tests and save logs to a volume
-          docker run --name $CONT_NAME \
+          docker run -i --name $CONT_NAME \
             -v $LOG_DIR:/logs \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
@@ -128,7 +128,7 @@ jobs:
           # Debug: exit code
           echo "Exit code: '$status'"
           echo "Logs saved to $LOG_DIR"
-          ls -lah $$LOG_DIR
+          ls -lah $LOG_DIR
           exit ${status:-1} # error if not known
 
       # Upload regression artifacts
