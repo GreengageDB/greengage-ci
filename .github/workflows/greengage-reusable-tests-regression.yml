@@ -89,7 +89,10 @@ jobs:
       # Run Regression tests
       - name: Regression test with Optimizer ${{ matrix.optimizer }}
         env:
-          LOG_DIR: /var/lib/docker/logs_${{ matrix.optimizer }}
+          ARCH: 'x86-64'
+          LOG_DIR: '/var/lib/docker/logs_${{ matrix.optimizer }}'
+          LOG_NAME: '${{ matrix.optimizer }}'
+          LOG_EXTENSION: 'pg_log'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_${{ matrix.optimizer}}
         run: |
@@ -115,9 +118,6 @@ jobs:
           # Run tests and save logs to a volume
           docker run --name $CONT_NAME \
             -v $LOG_DIR:/logs \
-            -e ARCH='x86-64' \
-            -e LOG_NAME='${{ matrix.optimizer }}' \
-            -e LOG_EXTENSION='pg_log' \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
