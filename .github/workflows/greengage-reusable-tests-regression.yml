@@ -105,14 +105,12 @@ jobs:
           EXIT_CODE=0
           bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
           echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
-          echo "Debug LOG_EXTENSION=$LOG_EXTENSION"
-          find gpdb_src/src/test/ -name "*" -type d | tee /logs/log_dirs
           for dir in results regression.diffs ${LOG_EXTENSION} ; do
             find gpdb_src/src/test/ -name "$dir" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
-            # if [ -f "/logs/${LOG_NAME}_${ARCH}_$dir.tar" ]; then
-            #   gzip -9 /logs/${LOG_NAME}_${ARCH}_$dir.tar
-            # fi
           done
+          echo "Debug find LOG_EXTENSION=$LOG_EXTENSION"
+          find gpdb_src/gpAux/gpdemo/datadirs/ -name "*" -type d | tee /logs/log_dirs
+          find gpdb_src/gpAux/gpdemo/datadirs/ -name "$LOG_EXTENSION" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAdminLogs.tar gpAdminLogs/
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAux.tar gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs/
           exit \$EXIT_CODE
