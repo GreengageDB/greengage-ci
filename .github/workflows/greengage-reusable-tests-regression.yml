@@ -90,7 +90,6 @@ jobs:
       - name: Regression test with Optimizer ${{ matrix.optimizer }}
         env:
           ARCH: 'x86-64'
-          LOG_DIR: '/var/lib/docker/logs_${{ matrix.optimizer }}'
           LOG_NAME: '${{ matrix.optimizer }}'
           LOG_EXTENSION: 'pg_log'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
@@ -98,7 +97,7 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           cat > regression_optimizer_${{ matrix.optimizer }}.bash << EOF
-          set -x
+          # set -x
           cd /home/gpadmin/
           ssh-keygen -A
           /usr/sbin/sshd
@@ -108,8 +107,8 @@ jobs:
           for dir in results regression.diffs ${LOG_EXTENSION} ; do
             find gpdb_src/src/test/ -name "$dir" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
           done
-          echo "Debug find LOG_EXTENSION=$LOG_EXTENSION"
-          find gpdb_src/gpAux/gpdemo/datadirs/ -name "*" -type d | tee /logs/log_dirs
+          # echo "Debug find LOG_EXTENSION=$LOG_EXTENSION"
+          # find gpdb_src/gpAux/gpdemo/datadirs/ -name "*" -type d | tee /logs/log_dirs
           find gpdb_src/gpAux/gpdemo/datadirs/ -name "$LOG_EXTENSION" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAdminLogs.tar gpAdminLogs/
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAux.tar gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs/
@@ -118,7 +117,7 @@ jobs:
 
           # Run tests and save logs to a volume
           docker run -i --name $CONT_NAME \
-            -v $LOG_DIR:/logs \
+            -v /var/lib/docker/logs_${{ matrix.optimizer }}:/logs \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
@@ -126,10 +125,11 @@ jobs:
             /bin/bash < ./regression_optimizer_${{ matrix.optimizer }}.bash
           status=$?
 
-          # Debug: exit code
-          echo "Exit code: '$status'"
-          echo "Logs saved to $LOG_DIR"
-          ls -lah $LOG_DIR
+          # # Debug: exit code
+          # echo "Exit code: '$status'"
+          # echo "Logs saved to /var/lib/docker/logs_${{ matrix.optimizer }}"
+          # ls -lah /var/lib/docker/logs_${{ matrix.optimizer }}
+
           exit ${status:-1} # error if not known
 
       # Upload regression artifacts
