@@ -8,7 +8,7 @@ The workflow executes the following regression test using a Docker image built f
 
 - `regression`
 
-It generates test artifacts (e.g., regression logs) and uploads them to GitHub Actions artifacts.
+It generates test artifacts (e.g., regression logs, `pg_log` directories, `gpAdminLogs`) and uploads them to GitHub Actions artifacts.
 
 ## Usage
 
@@ -40,7 +40,7 @@ To integrate this workflow into your pipeline:
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
 - **Docker Image**: Ensure a Docker image exists in GHCR matching the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository`.
-- **Artifacts**: The workflow uploads artifacts (e.g., `regression_logs`) to GitHub Actions.
+- **Artifacts**: The workflow uploads artifacts (e.g., `regression_logs`, `pg_log`, `gpAdminLogs`) to GitHub Actions.
 
 ### Examples
 
@@ -88,7 +88,8 @@ To integrate this workflow into your pipeline:
 
 - If `ref` is not provided, the workflow checks out the default branch.
 - The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
-- Artifacts are uploaded with the name `rregression_ggdb<version>_<target_os><target_os_version>_opt_<optimizer>`.
+- Artifacts are uploaded with the name `regression_optimizer_<optimizer>`.
 - Ensure the regression test environment is configured correctly in the repository (e.g., `gpdb_src/concourse/scripts/ic_gpdb.bash`).
+- The workflow collects logs from multiple sources, including `pg_log` directories under `gpdb_src/gpAux/gpdemo/datadirs/`, `results`, `regression.diffs`, and `gpAdminLogs`, and archives them into tar files for upload.
 
 For further details, refer to the workflow file in the `.github/workflows/` directory.
