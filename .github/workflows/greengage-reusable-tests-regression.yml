@@ -109,7 +109,11 @@ jobs:
             "gpdb_src/src/test/ f regression.diffs"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
           )
+          echo ">>> DEBUG params[@]=${params[@]}"
           for param in "${params[@]}"; do
+            echo ">>> DEBUG path=${path}"
+            echo ">>> DEBUG type=${path}"
+            echo ">>> DEBUG name=${path}"
             read -r path type name <<< "$param"
             find "$path" -name "$name" -type "$type" -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_$name.tar" "{}" \;
           done
