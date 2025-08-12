@@ -91,7 +91,6 @@ jobs:
         env:
           ARCH: 'x86-64'
           LOG_NAME: '${{ matrix.optimizer }}'
-          LOG_EXTENSION: 'pg_log'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_${{ matrix.optimizer}}
         run: |
@@ -104,12 +103,15 @@ jobs:
           EXIT_CODE=0
           bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
           echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
-          for dir in results regression.diffs ${LOG_EXTENSION} ; do
-            find gpdb_src/src/test/ -name "$dir" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
+          params=(
+            "gpdb_src/src/test/ d results"
+            "gpdb_src/src/test/ f regression.diffs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+          )
+          for param in "${params[@]}"; do
+            read -r path type name <<< "$param"
+            find "$path" -name "$name" -type "$type" -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_$dir.tar" "{}" \;
           done
-          # echo "Debug find LOG_EXTENSION=$LOG_EXTENSION"
-          # find gpdb_src/gpAux/gpdemo/datadirs/ -name "*" -type d | tee /logs/log_dirs
-          find gpdb_src/gpAux/gpdemo/datadirs/ -name "$LOG_EXTENSION" -type d -exec tar -rf /logs/${LOG_NAME}_${ARCH}_$dir.tar "{}" \;
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAdminLogs.tar gpAdminLogs/
           tar -cf /logs/${LOG_NAME}_${ARCH}_gpAux.tar gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs/
           exit \$EXIT_CODE
