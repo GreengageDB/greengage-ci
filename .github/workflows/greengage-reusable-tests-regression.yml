@@ -96,7 +96,7 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           cat > regression_optimizer_${{ matrix.optimizer }}.bash << EOF
-          # set -x
+          set -x
           cd /home/gpadmin/
           ssh-keygen -A
           /usr/sbin/sshd
@@ -109,12 +109,10 @@ jobs:
             "gpdb_src/src/test/ f regression.diffs"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
           )
-          for param in "${params[@]}"; do
-            read -r path type name <<< "$param"
-            find "$path" -name "$name" -type "$type" -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_$name.tar" "{}" \;
+          for param in "\${params[@]}"; do
+            read -r path type name <<< "\$param"
+            find \$path -name \$name -type \$type -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_\$name.tar" "{}" \;
           done
-          # tar -cf /logs/${LOG_NAME}_${ARCH}_gpAdminLogs.tar gpAdminLogs/
-          # tar -cf /logs/${LOG_NAME}_${ARCH}_gpAux.tar gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs/
           exit \$EXIT_CODE
           EOF
 
@@ -127,11 +125,6 @@ jobs:
             $IMAGE \
             /bin/bash < ./regression_optimizer_${{ matrix.optimizer }}.bash
           status=$?
-
-          # # Debug: exit code
-          # echo "Exit code: '$status'"
-          # echo "Logs saved to /var/lib/docker/logs_${{ matrix.optimizer }}"
-          # ls -lah /var/lib/docker/logs_${{ matrix.optimizer }}
 
           exit ${status:-1} # error if not known
 
