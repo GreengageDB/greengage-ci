@@ -167,6 +167,31 @@ jobs:
             cdw gpdb_src/ci/scripts/behave_gpdb.bash
           status=$?
 
+          # Collect logs
+          cat > collect_logs_${{ matrix.feature }}.bash << EOF
+          set -x
+          params=(
+            "./ d gpAdminLogs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+          )
+          for param in "\${params[@]}"; do
+            read -r path type name <<< "\$param"
+            find \$path -name \$name -type \$type -exec tar -rf "/logs/behave_${{ matrix.feature }}_$name.tar" "{}" \;
+          done
+          exit \$EXIT_CODE
+          EOF
+
+          for node in cdw sdw1; do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $node /bin/bash < ./collect_logs_${{ matrix.feature }}.bash
+          done
+
+          # DEBUG
+          set -x
+          env
+          ls -lah
+          ls -lah allure-results/* logs_cdw/* logs_sdw1/*
+
           # Debug: exit code
           echo "Exit code: '$status'"
           exit ${status:-1} # erro if not known
