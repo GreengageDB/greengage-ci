@@ -169,8 +169,7 @@ jobs:
 
           # Collect logs
           cat > collect_logs_${{ matrix.feature }}.bash << EOF
-          set -x
-          ls -lah
+          # set -x
           params=(
             "./ d gpAdminLogs"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
@@ -187,14 +186,6 @@ jobs:
             $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
               $node /bin/bash < ./collect_logs_${{ matrix.feature }}.bash
           done
-
-          # DEBUG
-          set -x
-          env
-          ls -lah
-          ls -lah logs_cdw/
-          ls -lah logs_sdw1/
-          ls -lah allure-results/
 
           # Debug: exit code
           echo "Exit code: '$status'"
