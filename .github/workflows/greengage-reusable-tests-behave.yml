@@ -176,7 +176,7 @@ jobs:
           )
           for param in "\${params[@]}"; do
             read -r path type name <<< "\$param"
-            find \$path -name \$name -type \$type -exec tar -rf "/logs/behave_${{ matrix.feature }}_$name.tar" "{}" \;
+            find \$path -name \$name -type \$type -exec rsync -a "{}" "/logs/" \;
           done
           exit \$EXIT_CODE
           EOF
