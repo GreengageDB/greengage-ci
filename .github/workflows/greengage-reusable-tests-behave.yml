@@ -170,6 +170,7 @@ jobs:
           # Collect logs
           cat > collect_logs_${{ matrix.feature }}.bash << EOF
           set -x
+          ls -lah
           params=(
             "./ d gpAdminLogs"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
@@ -177,6 +178,7 @@ jobs:
           for param in "\${params[@]}"; do
             read -r path type name <<< "\$param"
             find \$path -name \$name -type \$type -exec rsync -a "{}" "/logs/" \;
+            chmod -R a+rX /logs
           done
           exit \$EXIT_CODE
           EOF
@@ -190,7 +192,9 @@ jobs:
           set -x
           env
           ls -lah
-          ls -lah allure-results/* logs_cdw/* logs_sdw1/*
+          ls -lah logs_cdw/
+          ls -lah logs_sdw1/
+          ls -lah allure-results/
 
           # Debug: exit code
           echo "Exit code: '$status'"
