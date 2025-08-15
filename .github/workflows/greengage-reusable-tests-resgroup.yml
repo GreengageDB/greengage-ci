@@ -1,6 +1,8 @@
 # Environment variables
 env:
   COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_COMPOSE: "docker compose"
+  PROJECT: "resgroup"
 
 # Trigger for reusable workflow
 on:
@@ -111,6 +113,31 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           ./ci/scripts/run_resgroup_test.bash
+
+      - name: Collect logs
+        if: always()  # Run even if previous step fails
+        run: |
+          rm -rf ./logs_{cdw,sdw1}/* # Remove logs created by tests
+          cat > collect_logs.bash << EOF
+          # set -x
+          params=(
+            "./ d gpAdminLogs"
+            "gpdb_src/src/test/ d results"
+            "gpdb_src/src/test/ f regression.diffs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+          )
+          for param in "\${params[@]}"; do
+            read -r path type name <<< "\$param"
+            find \$path -name \$name -type \$type -exec tar -rf "/logs/\$name.tar" "{}" \;
+            chmod -R a+rwX /logs
+          done
+          exit \$EXIT_CODE
+          EOF
+
+          for node in cdw sdw1; do
+            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
+              $node /bin/bash < ./collect_logs.bash
+          done
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
