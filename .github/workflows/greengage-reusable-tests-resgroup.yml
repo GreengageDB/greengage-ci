@@ -114,34 +114,9 @@ jobs:
           export IMAGE=${IMAGE,,}
           ./ci/scripts/run_resgroup_test.bash
 
-      - name: Collect logs
+      - name: Unzip logs to tar
         if: always()  # Run even if previous step fails
-        run: |
-          cat > collect_logs.bash << EOF
-          # set -x
-          params=(
-            "./ d gpAdminLogs"
-            "gpdb_src/src/test/ d results"
-            "gpdb_src/src/test/ f regression.diffs"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
-          )
-          rm -rf /logs/*
-          for param in "\${params[@]}"; do
-            read -r path type name <<< "\$param"
-            find \$path -name \$name -type \$type -exec tar -rf "/logs/\$name.tar" "{}" \;
-          done
-          chmod -R a+rwX /logs
-          exit \$EXIT_CODE
-          EOF
-
-          nodes='cdw sdw1'
-
-          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml -d $nodes
-
-          for node in $nodes; do
-            $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
-              $node /bin/bash < ./collect_logs.bash
-          done
+        run: find ./logs_cdw/ ./logs_sdw1/ -type f -name "*.tar.gz" -exec gzip -d {} \;
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
