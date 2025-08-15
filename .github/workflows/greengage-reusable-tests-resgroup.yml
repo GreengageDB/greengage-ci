@@ -125,15 +125,20 @@ jobs:
             "gpdb_src/src/test/ f regression.diffs"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
           )
+          rm -rf /logs/*
           for param in "\${params[@]}"; do
             read -r path type name <<< "\$param"
             find \$path -name \$name -type \$type -exec tar -rf "/logs/\$name.tar" "{}" \;
-            chmod -R a+rwX /logs
           done
+          chmod -R a+rwX /logs
           exit \$EXIT_CODE
           EOF
 
-          for node in cdw sdw1; do
+          nodes='cdw sdw1'
+
+          $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml -d $nodes
+
+          for node in $nodes; do
             $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
               $node /bin/bash < ./collect_logs.bash
           done
@@ -144,7 +149,7 @@ jobs:
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: |
-            ./logs_cdw/*.tar
-            ./logs_sdw1/*.tar
+            ./logs_cdw
+            ./logs_sdw1
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
