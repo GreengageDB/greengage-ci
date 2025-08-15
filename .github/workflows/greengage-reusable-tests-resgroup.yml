@@ -117,7 +117,6 @@ jobs:
       - name: Collect logs
         if: always()  # Run even if previous step fails
         run: |
-          rm -rf ./logs_{cdw,sdw1}/* # Remove logs created by tests
           cat > collect_logs.bash << EOF
           # set -x
           params=(
@@ -145,7 +144,7 @@ jobs:
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: |
-            ./logs_cdw
-            ./logs_sdw1
+            ./logs_cdw/*.tar
+            ./logs_sdw1/*.tar
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
