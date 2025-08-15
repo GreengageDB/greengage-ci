@@ -113,6 +113,7 @@ jobs:
             read -r path type name <<< "\$param"
             find \$path -name \$name -type \$type -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_\$name.tar" "{}" \;
           done
+          chmod -R a+rwX /logs
           exit \$EXIT_CODE
           EOF
 
