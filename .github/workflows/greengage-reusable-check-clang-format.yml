@@ -6,11 +6,16 @@ on:
 jobs:
   check-clang-format:
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     steps:
       - name: Install requirements
         run: |
           set -e
-          sudo apt install -y git parallel clang-format
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y git parallel clang-format-11
+          ln -s /usr/bin/clang-format-11 /usr/bin/clang-format
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,6 +24,8 @@ jobs:
           submodules: recursive
 
       - name: Check clang-format
+        env:
+          CLANG_FORMAT: clang-format-11
         run: |
           set -eu -o pipefail
           clang-format --version
