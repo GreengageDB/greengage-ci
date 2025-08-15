@@ -1,0 +1,29 @@
+name: Check clang-format
+
+on:
+ workflow_call:
+
+jobs:
+ check-clang-format:
+   runs-on: ubuntu-latest
+   steps:
+     - name: Install requirements
+       run: |
+         set -e
+         sudo apt install -y git parallel clang-format-11
+         sudo ln -s /usr/bin/clang-format-11 /usr/bin/clang-format
+
+     - name: Checkout repository
+       uses: actions/checkout@v4
+       with:
+         ref: ${{ github.event.pull_request.head.sha || github.ref }}
+         submodules: recursive
+
+     - name: Check clang-format
+       env:
+         CLANG_FORMAT: clang-format-11
+       run: |
+         set -eu -o pipefail
+         src/tools/fmt gen
+         git diff --exit-code
+         src/tools/fmt chk

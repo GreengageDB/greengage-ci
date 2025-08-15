@@ -1,8 +1,6 @@
 # Environment variables
 env:
   COMPOSE_HTTP_TIMEOUT: 400
-  DOCKER_COMPOSE: "docker compose"
-  PROJECT: "resgroup"
 
 # Trigger for reusable workflow
 on:
