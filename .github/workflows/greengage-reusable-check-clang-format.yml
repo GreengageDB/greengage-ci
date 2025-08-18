@@ -24,6 +24,7 @@ jobs:
           submodules: recursive
 
       - name: Check clang-format
+        shell: bash
         env:
           CLANG_FORMAT: clang-format-11
         run: |
