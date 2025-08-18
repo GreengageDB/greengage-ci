@@ -69,6 +69,45 @@ jobs:
           # Build from Dockerfile specific to target OS with SHA tag
           docker build --tag ${IMAGE}:${{ github.sha }} -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
 
+      # Collect build unit test logs
+      - name: Collect build logs
+        if: always()
+        run: |
+          # Construct image name with version and OS
+          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          IMAGE=${IMAGE,,}
+          cat > collect_logs.bash << EOF
+          set -x
+          cd /home/gpadmin/
+          params=(
+            "./ d gpAdminLogs"
+            "gpdb_src/src/test/ d results"
+            "gpdb_src/src/test/ f regression.diffs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+          )
+          for param in "\${params[@]}"; do
+            read -r path type name <<< "\$param"
+            find \$path -name \$name -type \$type -exec tar -rf "/logs/build_\$name.tar" "{}" \;
+          done
+          chmod -R a+rwX /logs
+          EOF
+
+          # Run tests and save logs to a volume
+          docker run -i --name collect_logs \
+            -v ${GITHUB_WORKSPACE}/logs:/logs \
+            ${IMAGE}:${{ github.sha }} \
+            /bin/bash < ./collect_logs.bash
+
+      # Upload regression artifacts
+      - name: Upload regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_logs
+          path: logs/
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
+
       # Save Docker image
       - name: Save SHA image
         run: |
