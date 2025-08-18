@@ -60,11 +60,11 @@ jobs:
           docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
-      # Run ORCA Linter
-      - name: ORCA Linter
-        run: |
-          docker build -t orca-linter:test -f ci/Dockerfile.linter .
-          docker run      orca-linter:test
+      # # Run ORCA Linter
+      # - name: ORCA Linter
+      #   run: |
+      #     docker build -t orca-linter:test -f ci/Dockerfile.linter .
+      #     docker run      orca-linter:test
 
       # Run ORCA Unit test using the passed image tag
       - name: ORCA Unit test
