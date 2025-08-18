@@ -98,8 +98,8 @@ jobs:
             ${IMAGE}:${{ github.sha }} \
             /bin/bash < ./collect_logs.bash
 
-      # Upload regression artifacts
-      - name: Upload regression artifacts
+      # Upload build unit test logs
+      - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
