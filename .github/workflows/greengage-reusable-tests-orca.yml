@@ -73,7 +73,7 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           docker run \
-            -v gpAux:/home/gpadmin/gpdb_src/gpAux \
+            -v ./gpAux:/home/gpadmin/gpdb_src/gpAux \
             $IMAGE bash -c "gpdb_src/concourse/scripts/unit_tests_gporca.bash"
 
       # Upload ORCA artifacts
