@@ -73,8 +73,11 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           docker run \
-            -v $(pwd)/build:/home/gpadmin/gpdb_src/src/backend/gporca/build \
-            $IMAGE bash -c "gpdb_src/concourse/scripts/unit_tests_gporca.bash"
+            -v $(pwd)/logs:/home/gpadmin/logs \
+            $IMAGE bash -c "
+              gpdb_src/concourse/scripts/unit_tests_gporca.bash
+              cp -rf gpdb_src/src/backend/gporca/build/Testing/Temporary/* logs/ 2>/dev/null || true
+              "
 
       # Upload ORCA artifacts
       - name: Upload ORCA artifacts
@@ -82,6 +85,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: build/Testing/Temporary
+          path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
