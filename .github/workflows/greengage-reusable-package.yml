@@ -64,11 +64,11 @@ jobs:
         env:
           REF: ${{ github.ref }}
         run: |
-          if [[ "$REF" =~ ^refs/tags/ ]]; then
-            CHANGELOG_OPTS=()
-          else
-            CHANGELOG_OPTS=(last-tag all-commits)
-          fi
+          # if [[ "$REF" =~ ^refs/tags/ ]]; then
+          #   CHANGELOG_OPTS=()
+          # else
+          #   CHANGELOG_OPTS=(last-tag all-commits)
+          # fi
           
           # Get available CPU cores
           CPU_CORES=$(nproc)
