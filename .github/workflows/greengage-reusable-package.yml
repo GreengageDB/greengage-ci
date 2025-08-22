@@ -64,12 +64,6 @@ jobs:
         env:
           REF: ${{ github.ref }}
         run: |
-          # if [[ "$REF" =~ ^refs/tags/ ]]; then
-          #   CHANGELOG_OPTS=()
-          # else
-          #   CHANGELOG_OPTS=(last-tag all-commits)
-          # fi
-          
           # Get available CPU cores
           CPU_CORES=$(nproc)
           
@@ -79,7 +73,7 @@ jobs:
             ${BUILDER,,} \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              make -C ./gpdb_src/gpAux pkg-deb ${CHANGELOG_OPTS[*]} PARALLEL_MAKE_OPTS=-j$CPU_CORES
+              make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j$CPU_CORES
             "
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
