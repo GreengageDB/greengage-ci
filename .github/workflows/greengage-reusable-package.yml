@@ -73,7 +73,7 @@ jobs:
             ${BUILDER,,} \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              make -C ./gpdb_src/gpAux pkg-deb PARALLEL_MAKE_OPTS=-j$CPU_CORES
+              make -C ./gpdb_src/gpAux pkg-deb GPDIR=gpdb
             "
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
