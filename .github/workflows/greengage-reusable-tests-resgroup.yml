@@ -114,7 +114,10 @@ jobs:
 
       - name: Unzip logs to tar
         if: always()  # Run even if previous step fails
-        run: find ./logs_cdw/ ./logs_sdw1/ -type f -name "*.tar.gz" -exec gzip -d {} \;
+        run: |
+          for dir in logs_cdw logs_sdw1; do
+            [ -d "$dir" ] && find $dir -type f -name "*.tar.gz" -exec gzip -d {} \;
+          done
 
       - name: Upload resgroup artifacts
         if: always()  # Run even if previous step fails
