@@ -116,7 +116,7 @@ jobs:
         if: always()  # Run even if previous step fails
         run: |
           for dir in logs_cdw logs_sdw1; do
-            [ -d "$dir" ] && find $dir -type f -name "*.tar.gz" -exec gzip -d {} \;
+            [ -d "$dir" ] && find $dir -type f -name "*.tar.gz" -exec gzip -d {} \; || echo "No folder $dir found"
           done
 
       - name: Upload resgroup artifacts
