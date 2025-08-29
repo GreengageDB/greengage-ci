@@ -109,8 +109,9 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           TEST_OS: ${{ inputs.target_os }}
-          OPTIMIZER: 'off'
-          # OPTIMIZER: ${{ coalesce(matrix.optimizer, '') == 'orca' && 'on' || 'off' }}
+          STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '256MB' }}
+          OPTIMIZER: ${{ matrix.optimizer && matrix.optimizer == 'orca' && 'on' || 'off' }}
+          # OPTIMIZER: 'off'
         run: |
           export IMAGE=${IMAGE,,}
           mkdir logs
