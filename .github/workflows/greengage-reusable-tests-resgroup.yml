@@ -108,15 +108,21 @@ jobs:
       - name: Resource groups test
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          TEST_OS: ${{ inputs.target_os }}
+          OPTIMIZER: ${{ coalesce(matrix.optimizer, '') == 'orca' && 'on' || 'off' }}
         run: |
           export IMAGE=${IMAGE,,}
+          mkdir logs
           ./ci/scripts/run_resgroup_test.bash
 
       - name: Unzip logs to tar
         if: always()  # Run even if previous step fails
         run: |
           for dir in logs_cdw logs_sdw1; do
-            [ -d "$dir" ] && find $dir -type f -name "*.tar.gz" -exec gzip -d {} \; || echo "No folder $dir found"
+            if [ -d "$dir" ] ; then
+              find $dir -type f -name "*.tar.gz" -exec gzip -df {} \;
+              find $dir -type f -name "*.tar" -exec bash -c 'tar={} ; mv -f $tar logs/${tar/\//_}' \;
+            fi
           done
 
       - name: Upload resgroup artifacts
@@ -124,8 +130,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: |
-            ./logs_cdw
-            ./logs_sdw1
+          path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
