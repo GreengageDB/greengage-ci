@@ -82,7 +82,7 @@ jobs:
         run: |
           set -eux
           sudo systemctl disable --now docker.service docker.socket
-          export DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
+          DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
           echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
           docker info
           docker version
@@ -123,7 +123,7 @@ jobs:
           for dir in logs_cdw logs_sdw1; do
             if [ -d "$dir" ] ; then
               find $dir -type f -name "*.tar.gz" -exec gzip -df {} \;
-              find $dir -type f -name "*.tar" -exec bash -c 'tar={} ; mv -f $tar logs/${tar/\//_}' \;
+              find $dir -type f -name "*.tar" -exec bash -c 'tar="$1" ; mv -f $tar logs/${tar/\//_}' shell {} \;
             fi
           done
 
