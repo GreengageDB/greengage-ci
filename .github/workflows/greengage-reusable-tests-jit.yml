@@ -1,0 +1,140 @@
+name: Greengage Reusable JIT Tests on GitHub
+
+# Environment variables
+env:
+  COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_COMPOSE: "docker compose"
+
+# Trigger for reusable workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 22, 7, 8)'
+        required: false
+        type: string
+        default: ''
+      python3:
+        description: 'Python3 build argument (ignored)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  optimizer:  # JIT tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        optimizer: [orca, postgres]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for cache and artifact upload
+    steps:
+      # Restore SHA image from cache
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+      # Load SHA image
+      - name: Load SHA image
+        run: |
+          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
+      # Maximize build space for Docker
+      - name: Move /var/lib/docker/
+        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          temp-reserve-mb: 32
+          swap-size-mb: 32
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'false'
+          build-mount-path: '/var/lib/docker/'
+
+      - name: Restore /var/lib/docker/
+        run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
+
+      # Checkout repository with shallow clone
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          submodules: recursive
+
+      # Run JIT tests
+      - name: JIT test with Optimizer ${{ matrix.optimizer }}
+        env:
+          ARCH: 'x86-64'
+          LOG_NAME: '${{ matrix.optimizer }}'
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_${{ matrix.optimizer}}
+        run: |
+          export IMAGE=${IMAGE,,}
+          cat > jit_optimizer_${{ matrix.optimizer }}.bash << EOF
+          set -x
+          cd /home/gpadmin/
+          ssh-keygen -A
+          /usr/sbin/sshd
+          EXIT_CODE=0
+          bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
+          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
+          params=(
+            "./ d gpAdminLogs"
+            "gpdb_src/src/test/ d results"
+            "gpdb_src/src/test/ f regression.diffs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+          )
+          for param in "\${params[@]}"; do
+            read -r path type name <<< "\$param"
+            find \$path -name \$name -type \$type -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_\$name.tar" "{}" \;
+          done
+          chmod -R a+rwX /logs
+          exit \$EXIT_CODE
+          EOF
+
+          # Run tests and save logs to a volume
+          docker run -i --name $CONT_NAME \
+            -v /var/lib/docker/logs_${{ matrix.optimizer }}:/logs \
+            -e TEST_OS='${{ inputs.target_os }}' \
+            -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c jit=on -c optimizer=${{ matrix.optimizer == 'orca' && 'on -c optimizer_jit_above_cost=0' || 'off' }} -c jit_above_cost=0 -c gp_explain_jit=off' installcheck" \
+            --sysctl 'kernel.sem=500 1024000 200 4096' \
+            $IMAGE \
+            /bin/bash < ./jit_optimizer_${{ matrix.optimizer }}.bash
+          status=$?
+
+          exit ${status:-1} # error if not known
+
+      # Upload JIT artifacts
+      - name: Upload JIT artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jit_optimizer_${{ matrix.optimizer }}
+          path: /var/lib/docker/logs_${{ matrix.optimizer }}
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
