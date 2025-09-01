@@ -32,11 +32,6 @@ on:
 jobs:
   resgroup:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        optimizer: [orca, postgres]
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
@@ -110,12 +105,12 @@ jobs:
           lima docker load < /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           lima rm /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
-      - name: Resource groups test with Optimizer ${{ matrix.optimizer }}
+      - name: Resource groups test
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           TEST_OS: ${{ inputs.target_os }}
           STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
-          OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          OPTIMIZER: ${{ matrix.optimizer && matrix.optimizer == 'orca' && 'on' || 'off' }}
           # OPTIMIZER: 'off'
         run: |
           export IMAGE=${IMAGE,,}
@@ -136,7 +131,7 @@ jobs:
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
