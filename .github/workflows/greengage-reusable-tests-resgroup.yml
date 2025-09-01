@@ -82,7 +82,7 @@ jobs:
         run: |
           set -eux
           sudo systemctl disable --now docker.service docker.socket
-          DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
+          export DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
           echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
           docker info
           docker version
