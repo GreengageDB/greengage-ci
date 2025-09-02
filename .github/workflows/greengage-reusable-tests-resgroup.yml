@@ -109,7 +109,7 @@ jobs:
           lima docker load < /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           lima rm /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
-      - name: Resource groups test with with optimizer ${{ matrix.optimizer) }}
+      - name: Resource groups test with with optimizer ${{ matrix.optimizer }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           TEST_OS: ${{ inputs.target_os }}
