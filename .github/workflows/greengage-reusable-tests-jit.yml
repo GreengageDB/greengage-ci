@@ -134,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jit_${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+          name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
           path: /var/lib/docker/logs_${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
