@@ -87,15 +87,15 @@ jobs:
           submodules: recursive
 
       # Run Regression tests
-      - name: Regression test with Optimizer ${{ matrix.optimizer }}
+      - name: Regression test ${{ github.job }} ${{ matrix.optimizer }}
         env:
           ARCH: 'x86-64'
           LOG_NAME: '${{ matrix.optimizer }}'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_${{ matrix.optimizer}}
+          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
         run: |
           export IMAGE=${IMAGE,,}
-          cat > regression_optimizer_${{ matrix.optimizer }}.bash << EOF
+          cat > regression_${{ github.job }}_${{ matrix.optimizer }}.bash << EOF
           set -x
           cd /home/gpadmin/
           ssh-keygen -A
@@ -124,17 +124,17 @@ jobs:
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             $IMAGE \
-            /bin/bash < ./regression_optimizer_${{ matrix.optimizer }}.bash
+            /bin/bash < ./regression_${{ github.job }}_${{ matrix.optimizer }}.bash
           status=$?
 
           exit ${status:-1} # error if not known
 
       # Upload regression artifacts
-      - name: Upload regression artifacts
+      - name: Upload regression ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression_optimizer_${{ matrix.optimizer }}
+          name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
           path: /var/lib/docker/logs_${{ matrix.optimizer }}
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
