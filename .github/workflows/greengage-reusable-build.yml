@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: ''
+      pxf:
+        description: 'Build PXF'
+        required: false
+        type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -59,40 +64,45 @@ jobs:
       - name: Fetch all tags
         run: git fetch --tags --force
 
+      # Define all variables here
+      - name: Set variables
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          dev_tag=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
+
+          IMAGE_NAME="ggdb${{ inputs.version }}${{ inputs.pxf && '_pxf' || '' }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          IMAGE_FULL="ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${{ github.sha }}"
+          IMAGE_DEV="ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${dev_tag:-unknown}"
+
+          ARCHIVE_NAME="${IMAGE_NAME}_${{ github.sha }}.tar"
+          DOCKERFILE="ci/Dockerfile${{ inputs.pxf && '' || format('.{0}{1}',${{ inputs.target_os }},${{ inputs.target_os_version }}) }}"
+
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "IMAGE_FULL=${IMAGE_FULL,,}" >> $GITHUB_ENV
+          echo "IMAGE_DEV=${IMAGE_DEV,,}" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+          echo "DOCKERFILE=${DOCKERFILE}" >> $GITHUB_ENV
+
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
-        id: build_image
-        run: |
-          # Construct image name with version and OS
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          IMAGE=${IMAGE,,}
-          # Build from Dockerfile specific to target OS with SHA tag
-          docker build --tag ${IMAGE}:${{ github.sha }} -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
+        run: docker build --tag ${IMAGE_FULL} -f ${DOCKERFILE} .
 
       # Save Docker image
       - name: Save SHA image
-        run: |
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          IMAGE=${IMAGE,,}
-          docker save ${IMAGE}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        run: docker save ${IMAGE_FULL} > ${ARCHIVE_NAME}
 
       # Cache SHA image
       - name: Cache SHA image
         uses: actions/cache@v4
         with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          path: ${{ env.ARCHIVE_NAME }}
+          key:  ${{ env.IMAGE_NAME }}
 
       # Push developer's tag image if pull-request and same repository
       - name: Push developer's tag image
         if: github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name
-        env:
-          HEAD_REF: ${{ github.head_ref }}
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          IMAGE=${IMAGE,,}
-          DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
-          echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
-          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
-          docker push ${IMAGE}:${{ github.sha }}
-          docker push ${IMAGE}:$DEV_TAG
+          docker tag ${IMAGE_FULL} ${IMAGE_DEV}
+          docker push ${IMAGE_FULL}
+          docker push ${IMAGE_DEV}
