@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: ''
+      pxf:
+        description: 'PXF build'
+        required: false
+        type: boolean
+        default: false
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -73,27 +78,45 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Define all variables here
+      - name: Set variables
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ '${{ inputs.pxf }}' == 'true' ]]; then
+            DOCKERFILE="ci/Dockerfile"
+            IMAGE_NAME="ggdb${{ inputs.version }}_pxf_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          else
+            DOCKERFILE="ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }}"
+            IMAGE_NAME="ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          fi
+
+          IMAGE_GHCR=ghcr.io/${{ github.repository }}/${IMAGE_NAME}
+          IMAGE_DOCKERHUB=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE_NAME}
+
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "IMAGE_GHCR=${IMAGE_GHCR,,}" >> $GITHUB_ENV
+          echo "IMAGE_DOCKERHUB=${IMAGE_DOCKERHUB,,}" >> $GITHUB_ENV
+          echo "DOCKERFILE=${DOCKERFILE}" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=${IMAGE_NAME}_${{ github.sha }}.tar" >> $GITHUB_ENV
+
       # Restore SHA image from cache
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
         with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          path: ${{ env.ARCHIVE_NAME }}
+          key:  ${{ env.IMAGE_NAME }}
 
       # Load SHA image
       - name: Load SHA image
         run: |
-          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          docker load < ${{ env.ARCHIVE_NAME }}
+          rm -f ${{ env.ARCHIVE_NAME }}
 
       - name: Tag and push Docker image
         env:
           REF: ${{ github.ref }}
-          IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
-          GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
-          DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
-
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "$REF" =~ ^refs/tags/ ]]; then
             # All HEAD ref tags
@@ -109,20 +132,20 @@ jobs:
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
+            docker tag $IMAGE_GHCR:${{ github.sha }} $IMAGE_DOCKERHUB:$TAG && docker push $IMAGE_DOCKERHUB:$TAG || true
           else
             # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
             LATEST='testing'
             unset TAG
             # Update latest at GHCR for master pushes only
-            docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
+            docker tag $IMAGE_GHCR:${{ github.sha }} $IMAGE_GHCR:latest && docker push $IMAGE_GHCR:latest
           fi
 
           # If image was tagged
-          [ -n "$TAG" ]    && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
+          [ -n "$TAG" ]    && docker tag $IMAGE_GHCR:${{ github.sha }} $IMAGE_GHCR:$TAG         && docker push $IMAGE_GHCR:$TAG
 
           # If tag is really latest or testing
-          [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+          [ -n "$LATEST" ] && docker tag $IMAGE_GHCR:${{ github.sha }} $IMAGE_DOCKERHUB:$LATEST && docker push $IMAGE_DOCKERHUB:$LATEST || true
 
       # - name: Delete GHCR tags except latest
       #   env:
