@@ -80,7 +80,7 @@ jobs:
           exit ${status:-1} # error if not known
 
       # Upload regression artifacts
-      - name: Upload ${{ github.job } artifacts
+      - name: Upload ${{ github.job }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
