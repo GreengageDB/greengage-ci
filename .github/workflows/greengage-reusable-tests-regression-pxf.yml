@@ -34,8 +34,8 @@ jobs:
       # Define all variables here
       - name: Set variables
         run: |
-          DOCKERFILE="ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }}"
-          IMAGE_NAME="ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          DOCKERFILE="ci/Dockerfile"
+          IMAGE_NAME="ggdb${{ inputs.version }}_pxf_${{ inputs.target_os }}${{ inputs.target_os_version }}"
           IMAGE_FULL="ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${{ github.sha }}"
 
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
