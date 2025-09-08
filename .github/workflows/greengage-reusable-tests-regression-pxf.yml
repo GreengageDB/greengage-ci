@@ -77,9 +77,10 @@ jobs:
               set +e
               cd /tmp/build || status=1
               pxf_src/ci/test_in_docker.sh
-              status=$?
+              status=\$?
               find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
-              exit ${status:-1} # error if not known
+              echo \">>> STATUS \$status\"
+              exit \${status:-1}
             "
 
       # Upload regression artifacts
