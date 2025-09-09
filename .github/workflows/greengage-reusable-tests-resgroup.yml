@@ -50,44 +50,102 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
-      - name: Setup Lima
-        uses: lima-vm/lima-actions/setup@v1
-        id: lima-actions-setup
+      - name: Setup QEMU
+        run: |
+          set -eux
+          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils
 
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/lima
-          key: lima-${{ steps.lima-actions-setup.outputs.version }}
+          path: ~/.cache/qemu
+          key: qemu-ubuntu-22.04-${{ runner.os }}
 
-      - name: Start the guest VM
+      - name: Download Ubuntu cloud image
         run: |
           set -eux
-          limactl start \
-            --name=default \
-            --cpus=4 \
-            --memory=16 \
-            --containerd=none \
-            --mount-type 9p \
-            --set '.mounts=[{"location":"~/","writable":true, "9p": { "securityModel": "mapped-xattr", "cache": "mmap"}}] | .portForwards=[{"guestSocket":"/var/run/docker.sock","hostSocket":"{{.Dir}}/sock/docker.sock"}]' \
-            template://ubuntu-20.04.yaml
+          mkdir -p ~/.cache/qemu
+          if [ ! -f ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img ]; then
+            wget -O ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img \
+              https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+          fi
 
-      - name: Install dockerd in the guest VM
+      - name: Create shared directory
         run: |
           set -eux
-          lima sudo mkdir -p /etc/systemd/system/docker.socket.d
-          cat <<-EOF | lima sudo tee /etc/systemd/system/docker.socket.d/override.conf
-          [Socket]
-          SocketUser=$(whoami)
+          mkdir -p shared-data
+          chmod 777 shared-data
+
+      # Alternative approach - pass kernel parameters directly to QEMU (no reboot needed)
+      - name: Start QEMU VM with shared volume and cgroups v1
+        run: |
+          set -eux
+          cd vm-work
+          
+          # Start QEMU VM with kernel parameters for cgroups v1
+          qemu-system-x86_64 \
+            -machine type=pc,accel=kvm \
+            -cpu host \
+            -smp 4 \
+            -m 16384 \
+            -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
+            -drive file=seed.img,format=raw,if=virtio \
+            -netdev user,id=net0,hostfwd=tcp::2375-:2375 \
+            -device virtio-net-pci,netdev=net0 \
+            -fsdev local,security_model=passthrough,id=fsdev0,path=../shared-data \
+            -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
+            -append "systemd.unified_cgroup_hierarchy=0" \
+            -display none \
+            -daemonize \
+            -pidfile qemu.pid
+
+      # And simplified cloud-init without GRUB manipulation
+      - name: Create VM disk and cloud-init config (no GRUB changes)
+        run: |
+          set -eux
+          mkdir -p vm-work
+          cd vm-work
+          
+          cp ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img vm-disk.qcow2
+          qemu-img resize vm-disk.qcow2 20G
+          
+          cat > user-data <<EOF
+          #cloud-config
+          users:
+            - name: runner
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+          
+          write_files:
+            - path: /etc/fstab
+              append: true
+              content: |
+                hostshare /mnt/shared 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
+          
+          runcmd:
+            - mkdir -p /mnt/shared
+            - mount -t 9p -o trans=virtio,version=9p2000.L hostshare /mnt/shared
+            - curl -fsSL https://get.docker.com -o get-docker.sh
+            - sh get-docker.sh
+            - systemctl enable docker
+            - systemctl start docker
+            - usermod -aG docker runner
+            - mkdir -p /var/run
+            - chmod 666 /var/run/docker.sock
+            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]}' > /etc/docker/daemon.json
+            - systemctl restart docker
           EOF
-          lima curl -fsSL https://get.docker.com -o get-docker.sh
-          lima sudo sh get-docker.sh --version 20.10
+          
+          echo "instance-id: github-actions-vm" > meta-data
+          cloud-localds seed.img user-data meta-data
 
-      - name: Configure the host to use dockerd in the guest VM
+      - name: Configure host to use Docker in VM
         run: |
           set -eux
-          sudo systemctl disable --now docker.service docker.socket
-          export DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
+          export DOCKER_HOST="tcp://localhost:2375"
           echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
+          
+          # Test Docker connection
           docker info
           docker version
 
@@ -98,16 +156,22 @@ jobs:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
-      # Copy tar file to Lima VM
-      - name: Copy Docker image tar to Lima VM
+      # Copy Docker image to shared directory (no network transfer needed)
+      - name: Copy Docker image to shared directory
         run: |
-          limactl copy ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar default:/home/runner/
+          cp ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar shared-data/
 
-      # Load SHA image in Lima VM
-      - name: Load SHA image in Lima VM
+      # Load image directly from shared volume
+      - name: Load SHA image in VM from shared volume
         run: |
-          lima docker load < /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          lima rm /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          # Wait a bit for shared volume to be fully mounted
+          sleep 10
+          
+          # Load Docker image from shared volume
+          docker load < shared-data/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          
+          # Clean up the tar file from shared volume
+          rm shared-data/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
         env:
@@ -115,18 +179,40 @@ jobs:
           TEST_OS: ${{ inputs.target_os }}
           STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
           OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          SHARED_OUTPUT_DIR: ${{ github.workspace }}/shared-data/logs
         run: |
           export IMAGE=${IMAGE,,}
-          mkdir logs
+          mkdir -p shared-data/logs
+          # Run test script - it should output logs to SHARED_OUTPUT_DIR if supported
+          # Otherwise logs will be created in current directory and copied later
           ./ci/scripts/run_resgroup_test.bash
+
+      - name: Copy logs from test execution
+        if: always()  # Run even if previous step fails
+        run: |
+          # Ensure logs directory exists in shared-data
+          mkdir -p shared-data/logs
+          
+          # Copy any logs that weren't written directly to shared volume
+          if [ -d logs_cdw ]; then
+            cp -r logs_cdw shared-data/logs/
+          fi
+          if [ -d logs_sdw1 ]; then
+            cp -r logs_sdw1 shared-data/logs/
+          fi
+          if [ -d logs ]; then
+            cp -r logs/* shared-data/logs/ 2>/dev/null || true
+          fi
 
       - name: Unzip logs to tar
         if: always()  # Run even if previous step fails
         run: |
-          for dir in logs_cdw logs_sdw1; do
+          cd shared-data
+          mkdir -p final-logs
+          for dir in logs logs_cdw logs_sdw1; do
             if [ -d "$dir" ] ; then
               find $dir -type f -name "*.tar.gz" -exec gzip -df {} \;
-              find $dir -type f -name "*.tar" -exec bash -c 'tar="$1" ; mv -f $tar logs/${tar/\//_}' shell {} \;
+              find $dir -type f -name "*.tar" -exec bash -c 'tar="$1" ; mv -f $tar final-logs/${tar/\//_}' shell {} \;
             fi
           done
 
@@ -135,6 +221,22 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: resgroup_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: logs
+          path: shared-data/final-logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
+
+      - name: Cleanup VM
+        if: always()  # Always cleanup, even if job fails
+        run: |
+          cd vm-work
+          if [ -f qemu.pid ]; then
+            sudo kill $(cat qemu.pid) || true
+            sleep 5
+            # Force kill if still running
+            if kill -0 $(cat qemu.pid) 2>/dev/null; then
+              sudo kill -9 $(cat qemu.pid) || true
+            fi
+          fi
+          # Cleanup working directories
+          cd ..
+          rm -rf vm-work shared-data
