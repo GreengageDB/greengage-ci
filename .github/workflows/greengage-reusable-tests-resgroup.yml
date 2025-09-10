@@ -30,6 +30,12 @@ on:
         required: true
 
 jobs:
+  resgroup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success Step
+        run: echo "Job completed successfully!"
+
   optimizer:
     runs-on: ubuntu-latest
     strategy:
