@@ -55,8 +55,8 @@ jobs:
         uses: tj-actions/changed-files@v46
         with:
           files: |
-            gpdb_src/ci/Dockerfile.ubuntu.builder
-            gpdb_src/README.ubuntu.bash
+            ci/Dockerfile.ubuntu.builder
+            README.ubuntu.bash
       - name: Build Docker Builder image
         if: steps.builder-changed.outputs.any_changed == 'true'
         run: docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} ./gpdb_src/
