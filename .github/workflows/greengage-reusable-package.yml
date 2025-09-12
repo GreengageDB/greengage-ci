@@ -50,16 +50,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
+      - name: Check Builder Dockerfile changed
+        id: dockerfile-changed
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            gpdb_src/ci/Dockerfile.ubuntu.builder
       - name: Build Docker Builder image
-        run: |
-          set -eux
-          export BUILDER=${BUILDER,,}
-          if [[ "${{ inputs.rebuild_builder }}" == "true" ]] || ! docker pull $BUILDER; then
-            echo "Builder $BUILDER not exists or rebuild asked. Building..."
-            docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t $BUILDER ./gpdb_src/
-          else
-            echo "Builder $BUILDER exists and rebuild not asked. Skipping"
-          fi
+        if: steps.dockerfile-changed.outputs.any_changed == 'true'
+        run: docker build --push -f ./gpdb_src/ci/Dockerfile.ubuntu.builder -t ${BUILDER,,} ./gpdb_src/
       - name: Build Debian packages
         env:
           REF: ${{ github.ref }}
