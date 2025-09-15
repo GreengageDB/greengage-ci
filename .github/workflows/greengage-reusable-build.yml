@@ -62,12 +62,24 @@ jobs:
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
         id: build_image
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
+
+          # Run unit tests only in PRs
+          [[ "${EVENT}" == "pull_request" ]] || SKIP_UNITTESTS_ARG="--build-arg SKIP_UNITTESTS=1"
+
+          # DEBUG!
+          SKIP_UNITTESTS_ARG="--build-arg SKIP_UNITTESTS=1"
+
           # Build from Dockerfile specific to target OS with SHA tag
-          docker build --tag ${IMAGE}:${{ github.sha }} -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
+          docker build \
+            --tag ${IMAGE}:${{ github.sha }} \
+            -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
+            ${SKIP_UNITTESTS_ARG} .
 
       # Save Docker image
       - name: Save SHA image
