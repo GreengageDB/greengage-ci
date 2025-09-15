@@ -78,7 +78,7 @@ jobs:
           # Build from Dockerfile specific to target OS with SHA tag
           echo "((((((((((((((((((( SKIP_UNITTESTS = $SKIP_UNITTESTS )))))))))))))))))))"
           docker build \
-            --build-arg SKIP_UNITTESTS=$SKIP_UNITTESTS \
+            --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE}:${{ github.sha }} \
             -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
             .
