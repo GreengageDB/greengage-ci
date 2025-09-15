@@ -68,6 +68,8 @@ jobs:
 
   test-docker:
     if: inputs.test_docker != ''
+    env:
+      TEST_DOCKER: ${{ inputs.test_docker }}
     needs: build-deb
     runs-on: ubuntu-latest
     steps:
@@ -75,17 +77,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: deb-packages
-          path: ./deb-packages
+          path: deb-packages
       - name: Start Docker container and install deb package
         run: |
           set -eux
-          docker run --rm -v $(pwd)/deb-packages:/deb-packages ${{ inputs.test_docker }} /bin/bash -c "\
-            export DEBIAN_FRONTEND=noninteractive && \
-            apt-get update && \
-            { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
-            apt-get install -f -y 2>&1" | tee install.log
-      - name: Upload install logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: install-logs-docker
-          path: install.log
+          docker run --rm -v ./deb-packages:/deb-packages \
+            "${TEST_DOCKER}" /bin/bash -c "\
+              export DEBIAN_FRONTEND=noninteractive && \
+              apt-get update && \
+              { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
+              apt-get install -f -y"
