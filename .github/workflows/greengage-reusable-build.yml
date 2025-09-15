@@ -73,7 +73,7 @@ jobs:
           [[ "${EVENT}" == "pull_request" ]] && unset SKIP_UNITTESTS || export SKIP_UNITTESTS=1
 
           # DEBUG!
-          SKIP_UNITTESTS=1
+          export SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
           docker build \
