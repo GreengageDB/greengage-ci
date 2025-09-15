@@ -70,16 +70,17 @@ jobs:
           IMAGE=${IMAGE,,}
 
           # Run unit tests only in PRs
-          [[ "${EVENT}" == "pull_request" ]] || SKIP_UNITTESTS_ARG="--build-arg SKIP_UNITTESTS=1"
+          [[ "${EVENT}" == "pull_request" ]] && unset SKIP_UNITTESTS || export SKIP_UNITTESTS=1
 
           # DEBUG!
-          SKIP_UNITTESTS_ARG="--build-arg SKIP_UNITTESTS=1"
+          SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
           docker build \
+            --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE}:${{ github.sha }} \
             -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
-            ${SKIP_UNITTESTS_ARG} .
+            .
 
       # Save Docker image
       - name: Save SHA image
