@@ -50,48 +50,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
-      - name: Check Builder changed
-        id: builder-changed
-        uses: tj-actions/changed-files@v46
-        with:
-          files: |
-            ci/Dockerfile.ubuntu.builder
-            README.ubuntu.bash
-      - name: Build Docker Builder image
-        if: steps.builder-changed.outputs.any_changed == 'true'
-        run: |
-          docker build \
-            --push \
-            --tag ${BUILDER,,} \
-            --build-arg USER_UID="$(id -u)" \
-            --build-arg USER_GID="$(id -g)" \
-            --file ./gpdb_src/ci/Dockerfile.ubuntu.builder \
-            ./gpdb_src/
+
       - name: Build Debian packages
         env:
-          REF: ${{ github.ref }}
+          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
         run: |
-          # Get available CPU cores
-          CPU_CORES=$(nproc)
-          
           docker run --rm \
-            -v $(pwd)/gpdb_src:/home/gpadmin/gpdb_src \
+            -v ./deb-packages:/home/gpadmin/gpdb_src/Release \
             -e BUILDNUMBER=${{ github.run_number }} \
-            ${BUILDER,,} \
-            /bin/bash -c "
-              git config --global --add safe.directory '*' && \
-              make -C ./gpdb_src/gpAux pkg-deb
-            "
+            "${BUILDER,,}":${{ github.ref }} \
+            /bin/bash -c "make -C ./gpdb_src/gpAux pkg-deb"
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
           name: deb-packages
-          path: |
-            gpdb_src/*.deb
-            gpdb_src/*.ddeb
-            gpdb_src/*.build
-            gpdb_src/*.buildinfo
-            gpdb_src/*.changes
+          path: deb-packages
 
   test-lima:
     if: inputs.test_lima != ''
