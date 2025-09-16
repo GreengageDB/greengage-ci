@@ -50,7 +50,7 @@ jobs:
           BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
         run: |
           docker run --rm \
-            -v ./deb-packages:/home/gpadmin/gpdb_src/Release \
+            -v ./deb-packages:/home/gpadmin/gpdb_src/Package \
             -e BUILDNUMBER=${{ github.run_number }} \
             -e SKIP_UNITTESTS=1
             "${BUILDER,,}":${{ github.sha }} \
