@@ -76,7 +76,6 @@ jobs:
           export SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
-          echo "((((((((((((((((((( SKIP_UNITTESTS = $SKIP_UNITTESTS )))))))))))))))))))"
           docker build \
             --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE}:${{ github.sha }} \

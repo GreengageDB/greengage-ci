@@ -52,7 +52,7 @@ jobs:
           docker run --rm \
             -v ./deb-packages:/home/gpadmin/gpdb_src/Package \
             -e BUILDNUMBER=${{ github.run_number }} \
-            -e SKIP_UNITTESTS=1
+            -e SKIP_UNITTESTS=1 \
             "${BUILDER,,}":${{ github.sha }} \
             /bin/bash -c "make -C ./gpdb_src/gpAux pkg-deb"
       - name: Upload Debian artifacts
