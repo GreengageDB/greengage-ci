@@ -72,7 +72,7 @@ jobs:
           # Run unit tests only in PRs
           [[ "${EVENT}" == "pull_request" ]] && unset SKIP_UNITTESTS || export SKIP_UNITTESTS=1
 
-          # DEBUG!
+          # DEVELOPMENT! Deb package building
           export SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
