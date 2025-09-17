@@ -43,13 +43,6 @@ jobs:
 
     steps:
       # Checkout repository with specified ref or default
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          submodules: recursive
-
       - name: Setup QEMU
         run: |
           set -eux
@@ -70,74 +63,90 @@ jobs:
               https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
           fi
 
-      - name: Create shared directory
+      - name: Create VM disk and cloud-init config
         run: |
           set -eux
-          mkdir -p shared-data
-          chmod 777 shared-data
+          mkdir -p vm-home
+          mkdir -p vm-work
+          cd vm-work
+          
+          # Copy base image and resize
+          cp ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img vm-disk.qcow2
+          qemu-img resize vm-disk.qcow2 20G
+          
+          # Create cloud-init user-data
+          cat > user-data <<EOF
+          #cloud-config
+          users:
+            - name: gpadmin
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+              uid: $(id -u)
 
-      # Alternative approach - pass kernel parameters directly to QEMU (no reboot needed)
+          write_files:
+            - path: /etc/fstab
+              append: true
+              content: |
+                hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
+
+          runcmd:
+            - mount -t 9p -o trans=virtio,version=9p2000.L hostshare /home/gpadmin
+            - curl -sSL https://get.docker.com/ | sh
+            - systemctl enable docker
+            - systemctl start docker
+            - usermod -aG docker gpadmin
+            - mkdir -p /var/run
+            - chmod 666 /var/run/docker.sock
+            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]}' > /etc/docker/daemon.json
+            - systemctl restart docker
+          EOF
+
+          # Create meta-data
+          echo "instance-id: github-actions-vm" > meta-data
+          
+          # Create cloud-init ISO
+          cloud-localds seed.img user-data meta-data
+
       - name: Start QEMU VM with shared volume and cgroups v1
         run: |
           set -eux
           cd vm-work
-          
+
           # Start QEMU VM with kernel parameters for cgroups v1
           qemu-system-x86_64 \
             -machine type=pc,accel=kvm \
             -cpu host \
             -smp 4 \
-            -m 16384 \
+            -m 8192 \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
             -netdev user,id=net0,hostfwd=tcp::2375-:2375 \
             -device virtio-net-pci,netdev=net0 \
-            -fsdev local,security_model=passthrough,id=fsdev0,path=../shared-data \
+            -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
             -append "systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -daemonize \
             -pidfile qemu.pid
 
-      # And simplified cloud-init without GRUB manipulation
-      - name: Create VM disk and cloud-init config (no GRUB changes)
-        run: |
-          set -eux
-          mkdir -p vm-work
-          cd vm-work
+          # Wait for VM to boot and Docker to be available
+          echo "Waiting for VM to boot and Docker to start..."
+          timeout=300
+          while [ $timeout -gt 0 ]; do
+            if nc -z localhost 2375; then
+              if docker -H tcp://localhost:2375 info > /dev/null 2>&1; then
+                echo "VM and Docker are ready!"
+                break
+              fi
+            fi
+            sleep 5
+            timeout=$((timeout - 5))
+          done
           
-          cp ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img vm-disk.qcow2
-          qemu-img resize vm-disk.qcow2 20G
-          
-          cat > user-data <<EOF
-          #cloud-config
-          users:
-            - name: runner
-              sudo: ALL=(ALL) NOPASSWD:ALL
-              shell: /bin/bash
-          
-          write_files:
-            - path: /etc/fstab
-              append: true
-              content: |
-                hostshare /mnt/shared 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
-          
-          runcmd:
-            - mkdir -p /mnt/shared
-            - mount -t 9p -o trans=virtio,version=9p2000.L hostshare /mnt/shared
-            - curl -fsSL https://get.docker.com -o get-docker.sh
-            - sh get-docker.sh
-            - systemctl enable docker
-            - systemctl start docker
-            - usermod -aG docker runner
-            - mkdir -p /var/run
-            - chmod 666 /var/run/docker.sock
-            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]}' > /etc/docker/daemon.json
-            - systemctl restart docker
-          EOF
-          
-          echo "instance-id: github-actions-vm" > meta-data
-          cloud-localds seed.img user-data meta-data
+          if [ $timeout -eq 0 ]; then
+            echo "VM failed to start within timeout"
+            exit 1
+          fi
 
       - name: Configure host to use Docker in VM
         run: |
@@ -156,10 +165,9 @@ jobs:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
-      # Copy Docker image to shared directory (no network transfer needed)
-      - name: Copy Docker image to shared directory
-        run: |
-          cp ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar shared-data/
+      # Move Docker image to shared directory
+      - name: Move Docker image to shared directory
+        run: mv ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar vm-home/
 
       # Load image directly from shared volume
       - name: Load SHA image in VM from shared volume
@@ -168,10 +176,10 @@ jobs:
           sleep 10
           
           # Load Docker image from shared volume
-          docker load < shared-data/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          docker load < vm-home/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           
           # Clean up the tar file from shared volume
-          rm shared-data/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          rm vm-home/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
         env:
@@ -179,29 +187,16 @@ jobs:
           TEST_OS: ${{ inputs.target_os }}
           STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
           OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-          SHARED_OUTPUT_DIR: ${{ github.workspace }}/shared-data/logs
         run: |
           export IMAGE=${IMAGE,,}
-          mkdir -p shared-data/logs
-          # Run test script - it should output logs to SHARED_OUTPUT_DIR if supported
-          # Otherwise logs will be created in current directory and copied later
           ./ci/scripts/run_resgroup_test.bash
 
       - name: Copy logs from test execution
         if: always()  # Run even if previous step fails
         run: |
-          # Ensure logs directory exists in shared-data
-          mkdir -p shared-data/logs
-          
-          # Copy any logs that weren't written directly to shared volume
-          if [ -d logs_cdw ]; then
-            cp -r logs_cdw shared-data/logs/
-          fi
-          if [ -d logs_sdw1 ]; then
-            cp -r logs_sdw1 shared-data/logs/
-          fi
+          # Copy logs from Docker container output to shared directory for processing
           if [ -d logs ]; then
-            cp -r logs/* shared-data/logs/ 2>/dev/null || true
+            cp -r logs/* shared-data/ 2>/dev/null || true
           fi
 
       - name: Unzip logs to tar
@@ -228,15 +223,17 @@ jobs:
       - name: Cleanup VM
         if: always()  # Always cleanup, even if job fails
         run: |
-          cd vm-work
-          if [ -f qemu.pid ]; then
-            sudo kill $(cat qemu.pid) || true
-            sleep 5
-            # Force kill if still running
-            if kill -0 $(cat qemu.pid) 2>/dev/null; then
-              sudo kill -9 $(cat qemu.pid) || true
+          if [ -d vm-work ]; then
+            cd vm-work
+            if [ -f qemu.pid ]; then
+              sudo kill $(cat qemu.pid) || true
+              sleep 5
+              # Force kill if still running
+              if kill -0 $(cat qemu.pid) 2>/dev/null; then
+                sudo kill -9 $(cat qemu.pid) || true
+              fi
             fi
+            cd ..
           fi
           # Cleanup working directories
-          cd ..
           rm -rf vm-work shared-data
