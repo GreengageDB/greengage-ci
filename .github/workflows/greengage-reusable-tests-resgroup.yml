@@ -66,8 +66,7 @@ jobs:
       - name: Create VM disk and cloud-init config
         run: |
           set -eux
-          mkdir -p vm-home
-          mkdir -p vm-work
+          mkdir -p logs vm-home vm-work
           cd vm-work
           
           # Copy base image and resize
@@ -174,10 +173,10 @@ jobs:
         run: |
           # Wait a bit for shared volume to be fully mounted
           sleep 10
-          
+
           # Load Docker image from shared volume
-          docker load < vm-home/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          
+          docker load < /home/gpadmin/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
           # Clean up the tar file from shared volume
           rm vm-home/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
@@ -189,34 +188,18 @@ jobs:
           OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
         run: |
           export IMAGE=${IMAGE,,}
-          ./ci/scripts/run_resgroup_test.bash
-
-      - name: Copy logs from test execution
-        if: always()  # Run even if previous step fails
-        run: |
-          # Copy logs from Docker container output to shared directory for processing
-          if [ -d logs ]; then
-            cp -r logs/* shared-data/ 2>/dev/null || true
-          fi
-
-      - name: Unzip logs to tar
-        if: always()  # Run even if previous step fails
-        run: |
-          cd shared-data
-          mkdir -p final-logs
-          for dir in logs logs_cdw logs_sdw1; do
-            if [ -d "$dir" ] ; then
-              find $dir -type f -name "*.tar.gz" -exec gzip -df {} \;
-              find $dir -type f -name "*.tar" -exec bash -c 'tar="$1" ; mv -f $tar final-logs/${tar/\//_}' shell {} \;
-            fi
-          done
+          # Get test script from image NOT from repo
+          docker create --name temp-container $IMAGE
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+          docker rm temp-container
+          ./run_resgroup_test.bash
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
           name: resgroup_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: shared-data/final-logs
+          path: vm-home/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
@@ -235,5 +218,3 @@ jobs:
             fi
             cd ..
           fi
-          # Cleanup working directories
-          rm -rf vm-work shared-data
