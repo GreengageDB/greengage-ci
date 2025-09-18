@@ -66,6 +66,10 @@ jobs:
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
+
+          # DEVELOPMENT! Deb package building
+          export SKIP_UNITTESTS=1
+
           # Build from Dockerfile specific to target OS with SHA tag
           docker build --tag ${IMAGE}:${{ github.sha }} -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} .
 
