@@ -70,7 +70,8 @@ jobs:
           cd vm-work
 
           # Extract kernel from cloud image for usin as external
-          virt-get-kernel --add ~/.cache/qemu/ubuntu-22.04.img
+          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
+          virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
 
           # Copy base image and resize
           cp ~/.cache/qemu/ubuntu-22.04.img vm-disk.qcow2
