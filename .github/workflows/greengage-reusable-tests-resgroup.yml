@@ -53,14 +53,14 @@ jobs:
         id: cache-qemu
         with:
           path: ~/.cache/qemu
-          key: qemu-ubuntu-22.04
+          key: ubuntu-22.04-image
 
       - name: Download Ubuntu cloud image
         if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
           mkdir -p ~/.cache/qemu
-          wget -O ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img \
+          wget -O ~/.cache/qemu/ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Create VM disk and cloud-init config
@@ -70,10 +70,10 @@ jobs:
           cd vm-work
 
           # Extract kernel from cloud image for usin as external
-          virt-get-kernel ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img --output vm-work/
+          virt-get-kernel ~/.cache/qemu/ubuntu-22.04.img
 
           # Copy base image and resize
-          cp ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img vm-disk.qcow2
+          cp ~/.cache/qemu/ubuntu-22.04.img vm-disk.qcow2
           qemu-img resize vm-disk.qcow2 20G
           
           # Create cloud-init user-data
