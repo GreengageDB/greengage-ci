@@ -81,6 +81,11 @@ jobs:
           sudo virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
           sudo chmod -R a+rwX ./
 
+          # Make clear links to kernel files
+          for f in initrd vmlinuz ; do
+            find . -maxdepth 1 -type f -name "$f*" -exec ln -sf {} $f \;
+          done
+
           # Copy base image and resize
           cp ~/.cache/qemu/ubuntu-22.04.img vm-disk.qcow2
           qemu-img resize vm-disk.qcow2 20G
@@ -92,7 +97,7 @@ jobs:
             - name: gpadmin
               sudo: ALL=(ALL) NOPASSWD:ALL
               shell: /bin/bash
-              uid: $(id -u)
+              uid: $UID
 
           write_files:
             - path: /etc/fstab
@@ -124,6 +129,7 @@ jobs:
         run: |
           set -eux
           cd vm-work
+          sudo usermod -aG kvm $USER
 
           # Start QEMU VM with kernel parameters for cgroups v1
           qemu-system-x86_64 \
