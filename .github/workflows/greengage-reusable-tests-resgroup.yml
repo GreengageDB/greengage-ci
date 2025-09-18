@@ -106,6 +106,10 @@ jobs:
           # Create meta-data
           echo "instance-id: github-actions-vm" > meta-data
           
+          # DEBUG
+          pwd
+          ls -lah ./
+
           # Create cloud-init ISO
           cloud-localds seed.img user-data meta-data
 
