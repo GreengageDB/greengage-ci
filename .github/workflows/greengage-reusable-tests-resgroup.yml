@@ -68,7 +68,7 @@ jobs:
       - name: Create VM disk and cloud-init config
         run: |
           set -eux
-          mkdir -p logs vm-home vm-work
+          mkdir -p logs vm-home/logs vm-work
           cd vm-work
 
           function dbg {
