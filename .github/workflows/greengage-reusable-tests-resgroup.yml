@@ -99,13 +99,8 @@ jobs:
               shell: /bin/bash
               uid: $UID
 
-          write_files:
-            - path: /etc/fstab
-              append: true
-              content: |
-                hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
-
           runcmd:
+            - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
