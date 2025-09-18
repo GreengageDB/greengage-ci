@@ -1,6 +1,6 @@
 # Environment variables
 env:
-  COMPOSE_HTTP_TIMEOUT: 400
+  DOCKER_HOST: "tcp://localhost:2375"
 
 # Trigger for reusable workflow
 on:
@@ -194,23 +194,13 @@ jobs:
       - name: Check Docker debug info
         if: always()
         run: |
-          if [ -f vm-home/docker-debug.log ]; then
+          if [ -f vm-home/logs/docker-debug.log ]; then
             echo "=== DOCKER DEBUG LOG ==="
-            cat vm-home/docker-debug.log
+            cat vm-home/logs/docker-debug.log
             echo "========================"
           else
             echo "Debug log not found - VM may not have booted properly"
           fi
-
-      - name: Configure host to use Docker in VM
-        run: |
-          set -eux
-          export DOCKER_HOST="tcp://localhost:2375"
-          echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
-          
-          # Test Docker connection
-          docker info
-          docker version
 
       # Restore SHA image from cache
       - name: Restore SHA image from cache
