@@ -107,8 +107,8 @@ jobs:
 
           runcmd:
             - mkdir -p /home/gpadmin/logs
-            - curl -sSL https://get.docker.com/ | sh
-
+            - curl -fsSL https://get.docker.com -o get-docker.sh
+            - sh get-docker.sh --version 20.10
             - mkdir -p /etc/systemd/system/docker.service.d/
             - |
               cat > /etc/systemd/system/docker.service.d/override.conf <<EOS
