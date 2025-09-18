@@ -69,9 +69,17 @@ jobs:
           mkdir -p logs vm-home vm-work
           cd vm-work
 
+          function dbg {
+            pwd
+            ls -lah
+          }
+
+          trap dbg EXIT ERR
+
           # Extract kernel from cloud image for usin as external
           export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
-          virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
+          sudo virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
+          sudo chmod -R a+rwX ./
 
           # Copy base image and resize
           cp ~/.cache/qemu/ubuntu-22.04.img vm-disk.qcow2
@@ -107,9 +115,7 @@ jobs:
           # Create meta-data
           echo "instance-id: github-actions-vm" > meta-data
           
-          # DEBUG
-          pwd
-          ls -lah ./
+          dbg
 
           # Create cloud-init ISO
           cloud-localds seed.img user-data meta-data
