@@ -154,7 +154,7 @@ jobs:
           timeout=300
           while [ $timeout -gt 0 ]; do
             if nc -z localhost 2375; then
-              if docker -H tcp://localhost:2375 info > /dev/null 2>&1; then
+              if docker -H tcp://localhost:2375 info ; then
                 echo "VM and Docker are ready!"
                 break
               fi
