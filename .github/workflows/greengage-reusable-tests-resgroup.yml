@@ -1,6 +1,8 @@
 # Environment variables
 env:
   DOCKER_HOST: "tcp://localhost:2375"
+  LIBGUESTFS_DEBUG: 1
+  LIBGUESTFS_TRACE: 1
 
 # Trigger for reusable workflow
 on:
@@ -60,7 +62,7 @@ jobs:
         run: |
           set -eux
           mkdir -p ~/.cache/qemu
-          wget -O ~/.cache/qemu/ubuntu-22.04.img \
+          wget -q -O ~/.cache/qemu/ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Create VM disk and cloud-init config
@@ -77,7 +79,6 @@ jobs:
           trap dbg EXIT ERR
 
           # Extract kernel from cloud image for usin as external
-          export LIBGUESTFS_DEBUG=1 LIBGUESTFS_TRACE=1
           sudo virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
           sudo chmod -R a+rwX ./
 
@@ -98,6 +99,12 @@ jobs:
               sudo: ALL=(ALL) NOPASSWD:ALL
               shell: /bin/bash
               uid: $UID
+
+          write_files:
+            - path: /etc/fstab
+              append: true
+              content: |
+                hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
 
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
@@ -152,7 +159,9 @@ jobs:
             -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -daemonize \
-            -pidfile qemu.pid
+            -pidfile qemu.pid \
+            -serial file:../vm-home/logs/qemu-serial.log \
+            -D ../vm-home/logs/qemu-debug.log
 
       - name: Wait for VM to boot and Docker to be available
         run: |
