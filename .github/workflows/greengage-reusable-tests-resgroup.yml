@@ -106,11 +106,25 @@ jobs:
                 hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
 
           runcmd:
-            - mount -t 9p -o trans=virtio,version=9p2000.L hostshare /home/gpadmin
+            - mkdir -p /home/gpadmin/logs
             - curl -sSL https://get.docker.com/ | sh
-            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://127.0.0.1:2375"]}' > /etc/docker/daemon.json
+
+            - mkdir -p /etc/systemd/system/docker.service.d/
+            - |
+              cat > /etc/systemd/system/docker.service.d/override.conf <<EOS
+              [Service]
+              ExecStart=
+              ExecStart=/usr/bin/dockerd -H fd:// -H tcp://127.0.0.1:2375
+              EOS
+            - systemctl daemon-reload
             - systemctl enable docker
             - systemctl start docker
+            - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
+            - systemctl status docker >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - echo "Docker journal:" >> /home/gpadmin/logs/docker-debug.log
+            - journalctl -u docker.service -n 20 >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
+            - docker info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
           EOF
 
           # Create meta-data
@@ -149,41 +163,43 @@ jobs:
         run: |
           echo "Waiting for VM to boot and Docker to start..."
           timeout=300
-          attempt=1
-
           while [ $timeout -gt 0 ]; do
-            echo "Attempt $attempt: Checking Docker connection..."
-
-            # Check port
             if nc -z -w 2 localhost 2375; then
-              echo "Port 2375 is open, testing Docker..."
-
-              # Check Docker
-              if docker -H tcp://localhost:2375 info; then
-                echo "✅ Docker is fully operational!"
-                echo "Docker info:"
-                docker -H tcp://localhost:2375 info | grep -E "(Server Version|Containers|Images)"
-                break
-              else
-                echo "⚠️ Port is open but Docker not responding yet"
-                docker -H tcp://localhost:2375 info 2>&1 | head -10
-              fi
-            else
-              echo "⏳ Port 2375 not open yet"
+              echo "✅ Port 2375 is open - VM should be ready"
+              break
             fi
-
             sleep 5
             timeout=$((timeout - 5))
-            attempt=$((attempt + 1))
           done
-          
           if [ $timeout -le 0 ]; then
             echo "❌ VM failed to start within timeout"
-            echo "Last connection attempt:"
-            nc -zv localhost 2375 || echo "Port check failed"
-            echo "Trying to get Docker info:"
-            docker -H tcp://localhost:2375 info 2>&1 || true
             exit 1
+          fi
+          sleep 10
+          docker info || echo "Docker check failed, but continuing..."
+
+      - name: Quick Docker debug
+        if: always()
+        run: |
+          echo "Testing raw TCP connection..."
+          timeout 5 bash -c 'echo "GET /info HTTP/1.0\r\n" | nc -w 2 localhost 2375' || true
+          
+          echo "Checking if port is actually open..."
+          netstat -tln | grep 2375 || true
+          
+          echo "Trying simple curl..."
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:2375/info || true
+          echo ""
+
+      - name: Check Docker debug info
+        if: always()
+        run: |
+          if [ -f vm-home/docker-debug.log ]; then
+            echo "=== DOCKER DEBUG LOG ==="
+            cat vm-home/docker-debug.log
+            echo "========================"
+          else
+            echo "Debug log not found - VM may not have booted properly"
           fi
 
       - name: Configure host to use Docker in VM
