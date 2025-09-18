@@ -129,10 +129,9 @@ jobs:
         run: |
           set -eux
           cd vm-work
-          sudo usermod -aG kvm $USER
 
           # Start QEMU VM with kernel parameters for cgroups v1
-          qemu-system-x86_64 \
+          sudo qemu-system-x86_64 \
             -machine type=pc,accel=kvm \
             -cpu host \
             -smp 4 \
