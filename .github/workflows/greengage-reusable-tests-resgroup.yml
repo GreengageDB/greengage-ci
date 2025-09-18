@@ -108,13 +108,9 @@ jobs:
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L hostshare /home/gpadmin
             - curl -sSL https://get.docker.com/ | sh
+            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://127.0.0.1:2375"]}' > /etc/docker/daemon.json
             - systemctl enable docker
             - systemctl start docker
-            - usermod -aG docker gpadmin
-            - mkdir -p /var/run
-            - chmod 666 /var/run/docker.sock
-            - echo '{"hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]}' > /etc/docker/daemon.json
-            - systemctl restart docker
           EOF
 
           # Create meta-data
@@ -149,22 +145,44 @@ jobs:
             -daemonize \
             -pidfile qemu.pid
 
-          # Wait for VM to boot and Docker to be available
+      - name: Wait for VM to boot and Docker to be available
+        run: |
           echo "Waiting for VM to boot and Docker to start..."
           timeout=300
+          attempt=1
+
           while [ $timeout -gt 0 ]; do
-            if nc -z localhost 2375; then
-              if docker -H tcp://localhost:2375 info ; then
-                echo "VM and Docker are ready!"
+            echo "Attempt $attempt: Checking Docker connection..."
+
+            # Check port
+            if nc -z -w 2 localhost 2375; then
+              echo "Port 2375 is open, testing Docker..."
+
+              # Check Docker
+              if docker -H tcp://localhost:2375 info; then
+                echo "✅ Docker is fully operational!"
+                echo "Docker info:"
+                docker -H tcp://localhost:2375 info | grep -E "(Server Version|Containers|Images)"
                 break
+              else
+                echo "⚠️ Port is open but Docker not responding yet"
+                docker -H tcp://localhost:2375 info 2>&1 | head -10
               fi
+            else
+              echo "⏳ Port 2375 not open yet"
             fi
+
             sleep 5
             timeout=$((timeout - 5))
+            attempt=$((attempt + 1))
           done
           
-          if [ $timeout -eq 0 ]; then
-            echo "VM failed to start within timeout"
+          if [ $timeout -le 0 ]; then
+            echo "❌ VM failed to start within timeout"
+            echo "Last connection attempt:"
+            nc -zv localhost 2375 || echo "Port check failed"
+            echo "Trying to get Docker info:"
+            docker -H tcp://localhost:2375 info 2>&1 || true
             exit 1
           fi
 
@@ -225,17 +243,26 @@ jobs:
           if-no-files-found: warn  # Warning if no artifacts are found
 
       - name: Cleanup VM
-        if: always()  # Always cleanup, even if job fails
+        if: always()
         run: |
           if [ -d vm-work ]; then
             cd vm-work
             if [ -f qemu.pid ]; then
-              sudo kill $(cat qemu.pid) || true
-              sleep 5
-              # Force kill if still running
-              if kill -0 $(cat qemu.pid) 2>/dev/null; then
-                sudo kill -9 $(cat qemu.pid) || true
-              fi
+              # Read PID safely
+              pid=$(cat qemu.pid) && {
+                # Graceful shutdown first
+                sudo kill $pid 2>/dev/null || true
+                sleep 3
+                # Check if process still exists with the same PID and name
+                if ps -p $pid >/dev/null && [ "$(ps -p $pid -o comm=)" = "qemu-system-x86" ]; then
+                  echo "Force killing QEMU process $pid"
+                  sudo kill -9 $pid 2>/dev/null || true
+                fi
+              }
+              # Cleanup PID file
+              rm -f qemu.pid
             fi
             cd ..
           fi
+          # Additional cleanup
+          sudo pkill -f "qemu-system-x86_64" || true
