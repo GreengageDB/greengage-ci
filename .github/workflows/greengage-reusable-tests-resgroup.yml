@@ -47,28 +47,31 @@ jobs:
         run: |
           set -eux
           sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils
+          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools
 
       - uses: actions/cache@v4
+        id: cache-qemu
         with:
           path: ~/.cache/qemu
-          key: qemu-ubuntu-22.04-${{ runner.os }}
+          key: qemu-ubuntu-22.04
 
       - name: Download Ubuntu cloud image
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
           mkdir -p ~/.cache/qemu
-          if [ ! -f ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img ]; then
-            wget -O ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img \
-              https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
-          fi
+          wget -O ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img \
+            https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Create VM disk and cloud-init config
         run: |
           set -eux
           mkdir -p logs vm-home vm-work
           cd vm-work
-          
+
+          # Extract kernel from cloud image for usin as external
+          virt-get-kernel ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img --output vm-work/
+
           # Copy base image and resize
           cp ~/.cache/qemu/ubuntu-22.04-server-cloudimg-amd64.img vm-disk.qcow2
           qemu-img resize vm-disk.qcow2 20G
@@ -123,7 +126,9 @@ jobs:
             -device virtio-net-pci,netdev=net0 \
             -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
-            -append "systemd.unified_cgroup_hierarchy=0" \
+            -kernel vmlinuz \
+            -initrd initrd \
+            -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -daemonize \
             -pidfile qemu.pid
