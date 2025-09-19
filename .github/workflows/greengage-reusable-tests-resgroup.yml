@@ -161,7 +161,7 @@ jobs:
         run: |
           SOCKET_PATH="${{ github.workspace }}/vm-home/docker.sock"
           echo "Waiting for functional Docker socket..."
-
+          ls -lah $SOCKET_PATH
           sleep=6
           attempts=20
           for ((attempt=1; attempt <= $attempts; attempt++)); do
