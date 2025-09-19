@@ -1,7 +1,7 @@
 # Environment variables
-env:
-  LIBGUESTFS_DEBUG: 1
-  LIBGUESTFS_TRACE: 1
+# env:
+#   LIBGUESTFS_DEBUG: 1
+#   LIBGUESTFS_TRACE: 1
 
 # Trigger for reusable workflow
 on:
@@ -48,7 +48,7 @@ jobs:
         run: |
           set -eux
           sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools
+          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools socat
 
       - uses: actions/cache@v4
         id: cache-qemu
@@ -78,7 +78,7 @@ jobs:
           trap dbg EXIT ERR
 
           # Extract kernel from cloud image for usin as external
-          sudo virt-get-kernel -v -x --add ~/.cache/qemu/ubuntu-22.04.img
+          sudo virt-get-kernel --add ~/.cache/qemu/ubuntu-22.04.img
           sudo chmod -R a+rwX ./
 
           # Make clear links to kernel files
@@ -99,21 +99,18 @@ jobs:
               shell: /bin/bash
               uid: $UID
 
-          write_files:
-            - path: /etc/fstab
-              append: true
-              content: |
-                hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
+          # write_files:
+          #   - path: /etc/fstab
+          #     append: true
+          #     content: |
+          #       hostshare /home/gpadmin 9p trans=virtio,version=9p2000.L,rw,_netdev 0 0
 
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - systemctl enable --now docker
-            - sleep 10
-            - ln -sf /var/run/docker.sock /home/gpadmin/docker.sock
-            - chmod 666 /var/run/docker.sock
+            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,umask=007 UNIX-CONNECT:/var/run/docker.sock > /dev/null 2>&1 &
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
             - systemctl status docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
@@ -121,7 +118,8 @@ jobs:
             - journalctl -xeu docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
             - journalctl -xeu docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
-            - docker info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
+            - ls -la /home/gpadmin/docker.sock >> /home/gpadmin/logs/docker-debug.log
+            - docker -H unix:///home/gpadmin/docker.sock info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
           EOF1
 
           # Create meta-data
@@ -136,8 +134,6 @@ jobs:
         run: |
           set -eux
           cd vm-work
-
-          # Start QEMU VM with kernel parameters for cgroups v1
           sudo qemu-system-x86_64 \
             -machine type=pc,accel=kvm \
             -cpu host \
@@ -145,7 +141,6 @@ jobs:
             -m 8192 \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
-            -netdev user,id=net0 \
             -device virtio-net-pci,netdev=net0 \
             -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
