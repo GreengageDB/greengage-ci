@@ -92,7 +92,7 @@ jobs:
           qemu-img resize vm-disk.qcow2 20G
           
           # Create cloud-init user-data
-          cat > user-data <<EOF
+          cat > user-data <<EOF1
           #cloud-config
           users:
             - name: gpadmin
@@ -111,23 +111,21 @@ jobs:
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - mkdir -p /etc/systemd/system/docker.service.d/
+            - systemctl disable --now docker.socket  # ← Отключаем socket
             - |
-              cat > /etc/systemd/system/docker.service.d/override.conf <<EOS
-              [Service]
-              ExecStart=
-              ExecStart=/usr/bin/dockerd -H fd:// -H tcp://127.0.0.1:2375
-              EOS
-            - systemctl daemon-reload
-            - systemctl enable docker
-            - systemctl start docker
+              cat > /etc/docker/daemon.json <<'EOF2'
+              {
+                "hosts": ["unix:///var/run/docker.sock", "tcp://127.0.0.1:2375"]
+              }
+              EOF2
+            - systemctl enable --now docker  # ← Включаем и запускаем сервис!
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
             - systemctl status docker >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker journal:" >> /home/gpadmin/logs/docker-debug.log
             - journalctl -u docker.service -n 20 >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
             - docker info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
-          EOF
+          EOF1
 
           # Create meta-data
           echo "instance-id: github-actions-vm" > meta-data
