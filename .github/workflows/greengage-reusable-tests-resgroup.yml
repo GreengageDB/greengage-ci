@@ -112,8 +112,8 @@ jobs:
             - DEBIAN_FRONTEND=noninteractive apt install -y socat
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,umask=007 UNIX-CONNECT:/var/run/docker.sock > /home/gpadmin/logs/socat-debug.log 2>&1 &
-            - chmod 777 /home/gpadmin/docker.sock
+            - usermod -aG docker gpadmin
+            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,user=gpadmin,group=docker,mode=777 UNIX-CONNECT:/var/run/docker.sock > /home/gpadmin/logs/socat-debug.log 2>&1 &
             - ls -lah /home/gpadmin > /home/gpadmin/logs/cloud-init-debug.log
             - echo "Docker status:" >> /home/gpadmin/logs/cloud-init-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
