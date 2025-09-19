@@ -48,7 +48,7 @@ jobs:
         run: |
           set -eux
           sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools socat
+          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools
 
       - uses: actions/cache@v4
         id: cache-qemu
@@ -108,8 +108,11 @@ jobs:
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - mkdir -p /home/gpadmin/logs
+            - apt update
+            - DEBIAN_FRONTEND=noninteractive apt install -y socat
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
+            - ls -lah /home/gpadmin
             - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,umask=007 UNIX-CONNECT:/var/run/docker.sock > /dev/null 2>&1 &
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
