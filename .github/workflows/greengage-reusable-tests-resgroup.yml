@@ -157,7 +157,7 @@ jobs:
       - name: Wait for functional Docker API via TCP
         run: |
           echo "Disable host Docker service and socket..."
-          systemctl disable --now docker.service docker.socket
+          sudo systemctl disable --now docker.service docker.socket
           echo "Waiting for functional remote Docker API..."
 
           # DEBUG
