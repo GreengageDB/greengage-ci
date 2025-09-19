@@ -112,17 +112,17 @@ jobs:
             - DEBIAN_FRONTEND=noninteractive apt install -y socat
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - ls -lah /home/gpadmin
-            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,umask=007 UNIX-CONNECT:/var/run/docker.sock > /dev/null 2>&1 &
-            - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
-            - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
-            - systemctl status docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
-            - echo "Docker journal:" >> /home/gpadmin/logs/docker-debug.log
-            - journalctl -xeu docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
-            - journalctl -xeu docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
-            - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
-            - ls -la /home/gpadmin/docker.sock >> /home/gpadmin/logs/docker-debug.log
-            - docker -H unix:///home/gpadmin/docker.sock info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
+            - ls -lah /home/gpadmin >> /home/gpadmin/logs/cloud-init-debug.log
+            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,umask=007 UNIX-CONNECT:/var/run/docker.sock > /home/gpadmin/logs/socat-debug.log 2>&1 &
+            - echo "Docker status:" > /home/gpadmin/logs/cloud-init-debug.log
+            - systemctl status docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - systemctl status docker.socket >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - echo "Docker journal:" >> /home/gpadmin/logs/cloud-init-debug.log
+            - journalctl -xeu docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - journalctl -xeu docker.socket >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - echo "Docker info attempt:" >> /home/gpadmin/logs/cloud-init-debug.log
+            - ls -la /home/gpadmin/docker.sock >> /home/gpadmin/logs/cloud-init-debug.log ||  echo "/home/gpadmin/docker.sock failed" >> /home/gpadmin/logs/cloud-init-debug.log
+            - docker -H unix:///home/gpadmin/docker.sock info >> /home/gpadmin/logs/cloud-init-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/cloud-init-debug.log
           EOF1
 
           # Create meta-data
@@ -193,15 +193,22 @@ jobs:
           sudo chmod -R a+rwX vm-home/ vm-work/
           ls -lah vm-home/* vm-work/* || true
 
-      - name: Check Docker debug info
+      - name: Cloud-init debug info
         if: always()
         run: |
-          if [ -f vm-home/logs/docker-debug.log ]; then
-            echo "=== DOCKER DEBUG LOG ==="
-            cat vm-home/logs/docker-debug.log
+          if [ -f vm-home/logs/cloud-init-debug.log ]; then
+            echo "=== CLOUD-INIT DEBUG LOG ==="
+            cat vm-home/logs/cloud-init-debug.log
             echo "========================"
           else
-            echo "Debug log not found - VM may not have booted properly"
+            echo "CLOUD-INIT Debug log not found - VM may not have booted properly"
+          fi
+          if [ -f vm-home/logs/socat-debug.log ]; then
+            echo "=== SOCAT DEBUG LOG ==="
+            cat vm-home/logs/socat-debug.log
+            echo "========================"
+          else
+            echo "SOCAT Debug log not found - VM may not have booted properly"
           fi
 
       # Restore SHA image from cache
