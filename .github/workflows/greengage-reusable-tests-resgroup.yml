@@ -177,7 +177,7 @@ jobs:
 
           if ! timeout 5 docker -H tcp://localhost:2375 info >/dev/null 2>&1; then
             echo "❌ Docker API via TCP not functional after $((sleep*attempts)) seconds"
-            exit 1
+            # exit 1
           fi
 
           export DOCKER_HOST=tcp://localhost:2375
@@ -187,9 +187,22 @@ jobs:
           docker version
           docker info
 
-          echo ">>>>>>> Docker With Key 'H' <<<<<<<"
+          echo ">>>>>>> Docker With Key '-H tcp://localhost:2375' <<<<<<<"
           docker -H tcp://localhost:2375 version
           docker -H tcp://localhost:2375 info
+
+      - name: Check port 2375
+        run: |
+          echo ">>>>>> Open TCP/UDP ports"
+          sudo ss -lntpu
+          echo ">>>>>> Checking port 2375 on host:"
+          netstat -tln | grep 2375 || ss -tln | grep 2375
+          
+          echo ">>>>>> Trying to connect:"
+          nc -zv localhost 2375 || telnet localhost 2375 || true
+          
+          echo ">>>>>> Raw HTTP request:"
+          timeout 2 bash -c 'echo "GET /info HTTP/1.0\r\n" | nc localhost 2375' || true
 
       - name: Normalize permissions
         if: always()
