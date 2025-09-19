@@ -111,18 +111,23 @@ jobs:
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - systemctl disable --now docker.socket  # ← Отключаем socket
+            - systemctl disable --now docker.socket
+            - systemctl disable --now docker.service
             - |
-              cat > /etc/docker/daemon.json <<'EOF2'
-              {
-                "hosts": ["unix:///var/run/docker.sock", "tcp://127.0.0.1:2375"]
-              }
+              systemctl edit --stdin docker.service <<'EOF2'
+              [Service]
+              ExecStart=
+              ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock -H tcp://127.0.0.1:2375
               EOF2
-            - systemctl enable --now docker  # ← Включаем и запускаем сервис!
+            - systemctl daemon-reload
+            - systemctl enable --now docker.service
+            - systemctl enable --now docker.socket
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
-            - systemctl status docker >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - systemctl status docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker journal:" >> /home/gpadmin/logs/docker-debug.log
-            - journalctl -u docker.service -n 20 >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - journalctl -u docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - journalctl -u docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
             - docker info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
           EOF1
