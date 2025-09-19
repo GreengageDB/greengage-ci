@@ -110,6 +110,8 @@ jobs:
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
+            - systemctl enable --now docker
+            - sleep 10
             - ln -sf /var/run/docker.sock /home/gpadmin/docker.sock
             - chmod 666 /var/run/docker.sock
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
@@ -143,7 +145,7 @@ jobs:
             -m 8192 \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
-            -netdev user,id=net0,hostfwd=tcp::2375-:2375 \
+            -netdev user,id=net0 \
             -device virtio-net-pci,netdev=net0 \
             -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
@@ -165,6 +167,7 @@ jobs:
           for ((attempt=1; attempt <= $attempts; attempt++)); do
             if [ -S "$SOCKET_PATH" ] && timeout 5 docker -H "unix://$SOCKET_PATH" info >/dev/null 2>&1; then
               echo "✅ Docker socket functional after $((attempt*sleep)) seconds"
+              docker -H "unix://$SOCKET_PATH" info
               break
             fi
             echo "⏳ Attempt $attempt/$attempts: waiting $sleep seconds..."
@@ -177,8 +180,13 @@ jobs:
           fi
           export DOCKER_HOST="unix://$SOCKET_PATH"
           echo "DOCKER_HOST=${DOCKER_HOST}" | tee -a $GITHUB_ENV
+          sudo systemctl restart docker
+          echo ">>>>>>> Docker LOCAL <<<<<<<"
           docker version
           docker info
+          echo ">>>>>>> Docker With Key 'H' <<<<<<<"
+          docker -H "unix://$SOCKET_PATH" version
+          docker -H "unix://$SOCKET_PATH" info
 
       - name: Normalize permissions
         if: always()
