@@ -111,7 +111,6 @@ jobs:
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
             - ln -sf /var/run/docker.sock /home/gpadmin/docker.sock
-            - systemctl enable --now docker.service
             - chmod 666 /var/run/docker.sock
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
@@ -160,19 +159,20 @@ jobs:
         run: |
           SOCKET_PATH="${{ github.workspace }}/vm-home/docker.sock"
           echo "Waiting for functional Docker socket..."
-          
+
           sleep=6
-          for i in {1..10}; do
+          attempts=20
+          for ((attempt=1; attempt <= $attempts; attempt++)); do
             if [ -S "$SOCKET_PATH" ] && timeout 5 docker -H "unix://$SOCKET_PATH" info >/dev/null 2>&1; then
-              echo "✅ Docker socket functional after $((i*10)) seconds"
+              echo "✅ Docker socket functional after $((attempt*sleep)) seconds"
               break
             fi
-            echo "⏳ Attempt $i/10: waiting 10 seconds..."
+            echo "⏳ Attempt $attempt/$attempts: waiting $sleep seconds..."
             sleep $sleep
           done
-          
+
           if ! timeout 5 docker -H "unix://$SOCKET_PATH" info >/dev/null 2>&1; then
-            echo "❌ Docker socket not functional after $(( $sleep * 10 )) seconds"
+            echo "❌ Docker socket not functional after $((sleep*attempts)) seconds"
             exit 1
           fi
           export DOCKER_HOST="$SOCKET_PATH"
