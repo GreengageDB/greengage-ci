@@ -141,6 +141,7 @@ jobs:
             -m 8192 \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
+            -netdev user,id=net0 \
             -device virtio-net-pci,netdev=net0 \
             -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
