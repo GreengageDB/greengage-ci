@@ -1,6 +1,5 @@
 # Environment variables
 env:
-  DOCKER_HOST: "tcp://localhost:2375"
   LIBGUESTFS_DEBUG: 1
   LIBGUESTFS_TRACE: 1
 
@@ -111,17 +110,9 @@ jobs:
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - systemctl disable --now docker.socket
-            - systemctl disable --now docker.service
-            - |
-              systemctl edit --stdin docker.service <<'EOF2'
-              [Service]
-              ExecStart=
-              ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock -H tcp://127.0.0.1:2375
-              EOF2
-            - systemctl daemon-reload
+            - ln -sf /var/run/docker.sock /home/gpadmin/docker.sock
             - systemctl enable --now docker.service
-            - systemctl enable --now docker.socket
+            - chmod 666 /var/run/docker.sock
             - echo "Docker status:" > /home/gpadmin/logs/docker-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
             - systemctl status docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
@@ -163,80 +154,33 @@ jobs:
             -display none \
             -daemonize \
             -pidfile qemu.pid \
-            -serial file:../vm-home/logs/qemu-serial.log \
-            -D ../vm-home/logs/qemu-debug.log
+            -serial file:../vm-home/logs/qemu-serial.log
 
-      - name: Wait for VM to boot and Docker to be available
+      - name: Wait for functional Docker socket
         run: |
-          echo "Waiting for VM to boot and Docker to start..."
-          timeout=300
-          attempt=1
+          SOCKET_PATH="${{ github.workspace }}/vm-home/docker.sock"
+          echo "Waiting for functional Docker socket..."
           
-          # Wait for port to open first
-          while [ $timeout -gt 0 ]; do
-            echo "Attempt $attempt: Checking port 2375..."
-            
-            if nc -z -w 2 localhost 2375; then
-              echo "✅ Port 2375 is open"
+          sleep=6
+          for i in {1..10}; do
+            if [ -S "$SOCKET_PATH" ] && timeout 5 docker -H "unix://$SOCKET_PATH" info >/dev/null 2>&1; then
+              echo "✅ Docker socket functional after $((i*10)) seconds"
               break
-            else
-              echo "⏳ Port not ready yet"
-              sleep 5
-              timeout=$((timeout - 5))
-              attempt=$((attempt + 1))
             fi
+            echo "⏳ Attempt $i/10: waiting 10 seconds..."
+            sleep $sleep
           done
           
-          if [ $timeout -le 0 ]; then
-            echo "❌ Port 2375 failed to open within timeout"
+          if ! timeout 5 docker -H "unix://$SOCKET_PATH" info >/dev/null 2>&1; then
+            echo "❌ Docker socket not functional after $(( $sleep * 10 )) seconds"
             exit 1
           fi
-          
-          # Reset counters for Docker check
-          timeout=180
-          attempt=1
-          
-          # Wait for Docker to be fully ready
-          while [ $timeout -gt 0 ]; do
-            echo "Attempt $attempt: Testing Docker connection..."
-            
-            if docker -H tcp://localhost:2375 info >/dev/null 2>&1; then
-              echo "✅ Docker is fully operational!"
-              docker -H tcp://localhost:2375 info | grep -E "(Server Version|Containers|Images)"
-              break
-            else
-              echo "⏳ Docker starting up..."
-              sleep 10
-              timeout=$((timeout - 10))
-              attempt=$((attempt + 1))
-            fi
-          done
-          
-          if [ $timeout -le 0 ]; then
-            echo "❌ Docker failed to start within timeout"
-            echo "Last check:"
-            docker -H tcp://localhost:2375 info 2>&1 | head -20 || true
-            exit 1
-          fi
-          
-          # Final stabilization wait
-          echo "Waiting 15 seconds for Docker to stabilize completely..."
-          sleep 15
+          export DOCKER_HOST="$SOCKET_PATH"
+          echo "DOCKER_HOST=${DOCKER_HOST}" | tee -a $GITHUB_ENV
+          docker version
+          docker info
 
-      - name: DEBUG Quick Docker debug
-        if: always()
-        run: |
-          echo "Testing raw TCP connection..."
-          timeout 5 bash -c 'echo "GET /info HTTP/1.0\r\n" | nc -w 2 localhost 2375' || true
-          
-          echo "Checking if port is actually open..."
-          netstat -tln | grep 2375 || true
-          
-          echo "Trying simple curl..."
-          curl -s -o /dev/null -w "%{http_code}" http://localhost:2375/info || true
-          echo ""
-
-      - name: DEBUG Normalize permissions
+      - name: Normalize permissions
         if: always()
         run: |
           sudo chmod -R a+rwX vm-home/ vm-work/
