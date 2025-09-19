@@ -113,7 +113,7 @@ jobs:
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
             - usermod -aG docker gpadmin
-            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,user=gpadmin,group=docker,mode=777 UNIX-CONNECT:/var/run/docker.sock > /home/gpadmin/logs/socat-debug.log 2>&1 &
+            - nohup socat UNIX-LISTEN:/home/gpadmin/docker.sock,fork,user=gpadmin,group=gpadmin UNIX-CONNECT:/run/docker.sock > /home/gpadmin/logs/socat-debug.log 2>&1 &
             - ls -lah /home/gpadmin > /home/gpadmin/logs/cloud-init-debug.log
             - echo "Docker status:" >> /home/gpadmin/logs/cloud-init-debug.log
             - systemctl status docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
@@ -161,7 +161,8 @@ jobs:
         run: |
           SOCKET_PATH="${{ github.workspace }}/vm-home/docker.sock"
           echo "Waiting for functional Docker socket..."
-          ls -lah $SOCKET_PATH
+          docker -H "unix://$SOCKET_PATH" info || true
+          ls -lah $SOCKET_PATH || true
           sleep=6
           attempts=20
           for ((attempt=1; attempt <= $attempts; attempt++)); do
