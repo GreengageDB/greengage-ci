@@ -126,8 +126,8 @@ jobs:
             - systemctl status docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
             - systemctl status docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker journal:" >> /home/gpadmin/logs/docker-debug.log
-            - journalctl -u docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
-            - journalctl -u docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - journalctl -xeu docker.service >> /home/gpadmin/logs/docker-debug.log 2>&1
+            - journalctl -xeu docker.socket >> /home/gpadmin/logs/docker-debug.log 2>&1
             - echo "Docker info attempt:" >> /home/gpadmin/logs/docker-debug.log
             - docker info >> /home/gpadmin/logs/docker-debug.log 2>&1 || echo "docker info failed" >> /home/gpadmin/logs/docker-debug.log
           EOF1
