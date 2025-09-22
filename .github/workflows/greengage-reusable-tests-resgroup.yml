@@ -59,26 +59,26 @@ jobs:
         uses: actions/cache@v4
         id: cache-qemu
         with:
-          path: vm-disk.qcow2
+          path: ubuntu-22.04.img
           key:  ubuntu-22.04-image
 
       - name: Download Ubuntu cloud image
         if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
-          wget -q -O vm-disk.qcow2 \
+          wget -q -O ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
         with:
-          path: ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}.tar
-          key:  ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}
+          path: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
+          key:  ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}
 
       - name: Create VM disk and cloud-init config
         env:
           OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-          IMAGE_FILE: ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}.tar
+          IMAGE_FILE: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
         run: |
           set -eux
           # Debug function
@@ -91,9 +91,11 @@ jobs:
           # Create work folders
           mkdir -p vm-work vm-home/logs logs
 
-          # Move files to work folders
+          # Move image to VM Home folder
           mv ${IMAGE_FILE} vm-home/
-          mv vm-disk.qcow2 vm-work/
+
+          # Copy virtual disk to VM Work folder
+          cp ubuntu-22.04.img vm-work/vm-disk.qcow2
 
           cd vm-work
 
@@ -111,8 +113,6 @@ jobs:
           # Create cloud-init user-data
           cat > user-data <<EOF1
           #cloud-config
-          # mounts:
-          #   - [hostshare, /home/gpadmin, 9p, "trans=virtio,version=9p2000.L,rw", "0", "0"]
           users:
             - name: gpadmin
               sudo: ALL=(ALL) NOPASSWD:ALL
@@ -120,11 +120,11 @@ jobs:
               uid: $UID
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
-            - mount -l | tee /home/gpadmin/logs/cloud-init-debug.log
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
             - systemctl enable --now docker
+            - echo ">>> $(date) Debug cloud-init log" | tee /home/gpadmin/logs/cloud-init-debug.log
             - ls -lah /home/gpadmin | tee -a /home/gpadmin/logs/cloud-init-debug.log
             - echo "Docker status:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
             - systemctl status docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
@@ -135,17 +135,20 @@ jobs:
             - export STATEMENT_MEM=${STATEMENT_MEM}
             - export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
             - cd /home/gpadmin
-            - ls -lah
-            - ls -lah ./logs 
-            - docker load < ${IMAGE_FILE}
+            - ls -lah                     | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - ls -lah ./logs              | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - docker load < ${IMAGE_FILE} | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
             - rm ${IMAGE_FILE}
             - docker create --name temp-container \$IMAGE
             - docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
             - docker rm temp-container
-            - ./run_resgroup_test.bash
+            - ./run_resgroup_test.bash ; export EXIT_CODE=$?
+            - echo "$EXIT_CODE" > /home/gpadmin/logs/exit_code
             - chown gpadmin:gpadmin -R /home/gpadmin
-            - ls -lah
-            - ls -lah ./logs
+            - ls -lah | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - ls -lah ./logs | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - echo ">>> 'EXIT_CODE' variable on VM '$EXIT_CODE'" | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - echo ">>> 'EXIT_CODE' in file  on VM '$(cat /home/gpadmin/logs/exit_code)'" | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
             - shutdown -h now
           EOF1
 
@@ -164,6 +167,7 @@ jobs:
             -cpu host \
             -smp 4 \
             -m 8192 \
+            -pidfile qemu.pid \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
             -netdev user,id=net0 \
@@ -175,6 +179,8 @@ jobs:
             -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -serial stdio
+          exit_code=$(cat ../vm_home/logs/exit_code)
+          echo ">>> 'exit_code' on Runner '$exit_code'"
 
       - name: Normalize permissions
         if: always()
@@ -182,43 +188,11 @@ jobs:
           sudo chmod -R a+rwX vm-home/ vm-work/
           ls -lah vm-home/* vm-work/* || true
 
-      - name: Cloud-init debug info
-        if: always()
-        run: |
-          if [ -f vm-home/logs/cloud-init-debug.log ]; then
-            echo "=== CLOUD-INIT DEBUG LOG ==="
-            cat vm-home/logs/cloud-init-debug.log
-            echo "========================"
-          else
-            echo "CLOUD-INIT Debug log not found - VM may not have booted properly"
-          fi
-          if [ -f vm-home/logs/socat-debug.log ]; then
-            echo "=== SOCAT DEBUG LOG ==="
-            cat vm-home/logs/socat-debug.log
-            echo "========================"
-          else
-            echo "SOCAT Debug log not found - VM may not have booted properly"
-          fi
-
-      # - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
-      #   env:
-      #     IMAGE: ${IMAGE_REPO}/${IMAGE_NAME}:${IMAGE_SHA}
-      #     TEST_OS: ${{ inputs.target_os }}
-      #     STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
-      #     OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-      #   run: |
-      #     export IMAGE=${IMAGE,,}
-      #     # Get test script from image NOT from repo
-      #     docker create --name temp-container $IMAGE
-      #     docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
-      #     docker rm temp-container
-      #     ./run_resgroup_test.bash
-
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup_${IMAGE_NAME}_${{ github.job }}_${{ matrix.optimizer }}
+          name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
           path: vm-home/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
@@ -226,24 +200,22 @@ jobs:
       - name: Cleanup VM
         if: always()
         run: |
-          if [ -d vm-work ]; then
-            cd vm-work
-            if [ -f qemu.pid ]; then
-              # Read PID safely
-              pid=$(cat qemu.pid) && {
-                # Graceful shutdown first
-                sudo kill $pid 2>/dev/null || true
-                sleep 3
-                # Check if process still exists with the same PID and name
-                if ps -p $pid >/dev/null && [ "$(ps -p $pid -o comm=)" = "qemu-system-x86" ]; then
-                  echo "Force killing QEMU process $pid"
-                  sudo kill -9 $pid 2>/dev/null || true
-                fi
-              }
-              # Cleanup PID file
-              rm -f qemu.pid
-            fi
-            cd ..
+          set -e
+          PIDFILE=vm-work/qemu.pid
+          if [ -f $PIDFILE ]; then
+            # Read PID safely
+            pid=$(cat $PIDFILE) && {
+              # Graceful shutdown first
+              sudo kill $pid 2>/dev/null || true
+              sleep 3
+              # Check if process still exists with the same PID and name
+              if ps -p $pid >/dev/null && [ "$(ps -p $pid -o comm=)" = "qemu-system-x86" ]; then
+                echo "Force killing QEMU process $pid"
+                sudo kill -9 $pid 2>/dev/null || true
+              fi
+            }
+            # Cleanup PID file
+            rm -f $PIDFILE
           fi
           # Additional cleanup
           sudo pkill -f "qemu-system-x86_64" || true
