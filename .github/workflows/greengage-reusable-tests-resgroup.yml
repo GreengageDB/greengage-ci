@@ -72,13 +72,13 @@ jobs:
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
         with:
-          path: ${IMAGE_NAME}_${IMAGE_SHA}.tar
-          key: ${IMAGE_NAME}_${IMAGE_SHA}
+          path: ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}.tar
+          key:  ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}
 
       - name: Create VM disk and cloud-init config
         env:
           OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-          IMAGE_FILE: ${IMAGE_NAME}_${IMAGE_SHA}.tar
+          IMAGE_FILE: ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}.tar
         run: |
           set -eux
           mkdir -p logs vm-home/logs vm-work
