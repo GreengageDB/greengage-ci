@@ -194,7 +194,7 @@ jobs:
           cd -
           ls -la ./
           ls -la ./* || true
-          exit_code=$(cat ./vm_home/exit_code)
+          exit_code=$(cat vm-home/exit_code)
           echo ">>> 'exit_code' on Runner '$exit_code'"
           exit $exit_code
 
