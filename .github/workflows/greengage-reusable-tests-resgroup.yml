@@ -158,6 +158,8 @@ jobs:
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - bash /home/gpadmin/cloud-init ; echo $? > /home/gpadmin/exit_code
+            - ls -la /home/gpadmin
+            - cat /home/gpadmin/exit_code
             - shutdown -h now
           EOF1
 
@@ -190,7 +192,9 @@ jobs:
             -display none \
             -serial stdio
           cd -
-          exit_code=$(cat vm_home/exit_code)
+          ls -la ./
+          ls -la ./* || true
+          exit_code=$(cat ./vm_home/exit_code)
           echo ">>> 'exit_code' on Runner '$exit_code'"
           exit $exit_code
 
