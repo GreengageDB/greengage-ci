@@ -111,7 +111,7 @@ jobs:
               cat > /etc/systemd/system/docker.service.d/override.conf <<'EOF'
               [Service]
               ExecStart=
-              ExecStart=/usr/bin/dockerd -H unix:///run/docker.sock -H tcp://127.0.0.1:2375
+              ExecStart=/usr/bin/dockerd -H unix:///run/docker.sock -H tcp://0.0.0.0:2375
               EOF
             - systemctl daemon-reload
             - systemctl restart docker
