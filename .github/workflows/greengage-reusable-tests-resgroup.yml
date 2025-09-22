@@ -84,16 +84,18 @@ jobs:
           # Debug function
           function dbg {
             pwd
-            ls -lah
-          }
+            ls -lah ./
+            ls -lah ../* || true
+          } ; trap dbg EXIT ERR
 
-          mkdir -p logs vm-home/logs vm-work
+          # Create work folders
+          mkdir -p vm-work vm-home/logs logs
 
-          # Move Image to shared folder
+          # Move files to work folders
           mv ${IMAGE_FILE} vm-home/
+          mv vm-disk.qcow2 vm-work/
 
           cd vm-work
-          trap dbg EXIT ERR
 
           # Extract kernel from cloud image for usin as external
           sudo virt-get-kernel --add vm-disk.qcow2
@@ -150,9 +152,6 @@ jobs:
           # Create meta-data
           echo "instance-id: github-actions-vm" > meta-data
           
-          # DEBUG function
-          dbg
-
           # Create cloud-init ISO
           cloud-localds seed.img user-data meta-data
 
