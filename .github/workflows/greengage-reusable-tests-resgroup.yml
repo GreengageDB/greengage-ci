@@ -81,16 +81,19 @@ jobs:
           IMAGE_FILE: ${{ env.IMAGE_NAME}}_${{ env.IMAGE_SHA }}.tar
         run: |
           set -eux
-          mkdir -p logs vm-home/logs vm-work
-          cd vm-work
+          # Debug function
           function dbg {
             pwd
             ls -lah
           }
-          trap dbg EXIT ERR
+
+          mkdir -p logs vm-home/logs vm-work
 
           # Move Image to shared folder
           mv ${IMAGE_FILE} vm-home/
+
+          cd vm-work
+          trap dbg EXIT ERR
 
           # Extract kernel from cloud image for usin as external
           sudo virt-get-kernel --add vm-disk.qcow2
