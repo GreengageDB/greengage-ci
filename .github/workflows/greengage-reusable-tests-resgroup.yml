@@ -75,21 +75,58 @@ jobs:
           path: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
           key:  ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}
 
+      - name: Create cloud-init script
+        env:
+          OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          IMAGE_FILE: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
+        run: |
+          set -eux
+          mkdir -p vm-home
+
+          cat > vm-home/cloud-init <<EOF0
+          # cloud-init setup script
+          set -e
+
+          export TEST_OS=${TEST_OS}
+          export OPTIMIZER=${OPTIMIZER}
+          export STATEMENT_MEM=${STATEMENT_MEM}
+          export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
+
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sh get-docker.sh --version 20.10
+          systemctl enable --now docker
+
+          cd /home/gpadmin
+          mkdir -p logs
+
+          # Debug info
+          echo ">>> \$(date) Debug cloud-init log" | tee /home/gpadmin/logs/cloud-init-debug.log
+          ls -lah /home/gpadmin | tee -a /home/gpadmin/logs/cloud-init-debug.log
+          echo "Docker status:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
+          systemctl status docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+          echo "Docker journal:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
+          journalctl -xeu docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+
+          ls -lah logs | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+
+          docker load < ${IMAGE_FILE}
+          rm ${IMAGE_FILE}
+
+          # Extract test script from Image instaed of GIT
+          docker create --name temp-container \$IMAGE
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+          docker rm temp-container
+
+          ./run_resgroup_test.bash
+          EOF0
+
       - name: Create VM disk and cloud-init config
         env:
           OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
           IMAGE_FILE: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
         run: |
           set -eux
-          # Debug function
-          function dbg {
-            pwd
-            ls -lah ./
-            ls -lah ../* || true
-          } ; trap dbg EXIT ERR
-
-          # Create work folders
-          mkdir -p vm-work vm-home/logs logs
+          mkdir -p vm-work
 
           # Move image to VM Home folder
           mv ${IMAGE_FILE} vm-home/
@@ -120,35 +157,7 @@ jobs:
               uid: $UID
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
-            - mkdir -p /home/gpadmin/logs
-            - curl -fsSL https://get.docker.com -o get-docker.sh
-            - sh get-docker.sh --version 20.10
-            - systemctl enable --now docker
-            - echo ">>> $(date) Debug cloud-init log" | tee /home/gpadmin/logs/cloud-init-debug.log
-            - ls -lah /home/gpadmin | tee -a /home/gpadmin/logs/cloud-init-debug.log
-            - echo "Docker status:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
-            - systemctl status docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - echo "Docker journal:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
-            - journalctl -xeu docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - export TEST_OS=${TEST_OS}
-            - export OPTIMIZER=${OPTIMIZER}
-            - export STATEMENT_MEM=${STATEMENT_MEM}
-            - export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
-            - cd /home/gpadmin
-            - ls -lah                     | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - ls -lah ./logs              | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - docker load < ${IMAGE_FILE} | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - rm ${IMAGE_FILE}
-            - docker create --name temp-container \$IMAGE
-            - docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
-            - docker rm temp-container
-            - ./run_resgroup_test.bash ; export EXIT_CODE=$?
-            - echo "$EXIT_CODE" > /home/gpadmin/logs/exit_code
-            - chown gpadmin:gpadmin -R /home/gpadmin
-            - ls -lah | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - ls -lah ./logs | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - echo ">>> 'EXIT_CODE' variable on VM '$EXIT_CODE'" | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - echo ">>> 'EXIT_CODE' in file  on VM '$(cat /home/gpadmin/logs/exit_code)'" | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - bash /home/gpadmin/cloud-init ; echo $? > /home/gpadmin/exit_code
             - shutdown -h now
           EOF1
 
@@ -161,6 +170,7 @@ jobs:
       - name: Start QEMU VM with shared volume and cgroups v1
         run: |
           set -eux
+          rm -f vm-home/exit_code
           cd vm-work
           sudo qemu-system-x86_64 \
             -machine type=pc,accel=kvm \
@@ -179,8 +189,10 @@ jobs:
             -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -serial stdio
-          exit_code=$(cat ../vm_home/logs/exit_code)
+          cd -
+          exit_code=$(cat vm_home/exit_code)
           echo ">>> 'exit_code' on Runner '$exit_code'"
+          exit $exit_code
 
       - name: Normalize permissions
         if: always()
