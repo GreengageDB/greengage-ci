@@ -41,9 +41,14 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for cache and artifact upload
+    env:
+      IMAGE_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      IMAGE_REPO: ghcr.io/${{ github.repository }}
+      IMAGE_SHA: ${{ github.sha }}
+      TEST_OS: ${{ inputs.target_os }}
+      STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
 
     steps:
-      # Checkout repository with specified ref or default
       - name: Setup QEMU
         run: |
           set -eux
@@ -65,61 +70,63 @@ jobs:
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Create VM disk and cloud-init config
+        env:
+          OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
         run: |
           set -eux
           mkdir -p logs vm-home/logs vm-work
           cd vm-work
-
           function dbg {
             pwd
             ls -lah
           }
-
           trap dbg EXIT ERR
-
           # Extract kernel from cloud image for usin as external
           sudo virt-get-kernel --add ~/.cache/qemu/ubuntu-22.04.img
-          sudo chmod -R a+rwX ./
-
+          sudo chmod -R a+rwX .
           # Make clear links to kernel files
           for f in initrd vmlinuz ; do
             find . -maxdepth 1 -type f -name "$f*" -exec ln -sf {} $f \;
           done
-
           # Copy base image and resize
           cp ~/.cache/qemu/ubuntu-22.04.img vm-disk.qcow2
           qemu-img resize vm-disk.qcow2 20G
-          
           # Create cloud-init user-data
           cat > user-data <<EOF1
           #cloud-config
-          mounts:
-            - [hostshare, /home/gpadmin, 9p, "trans=virtio,version=9p2000.L,rw", "0", "0"]
+          # mounts:
+          #   - [hostshare, /home/gpadmin, 9p, "trans=virtio,version=9p2000.L,rw", "0", "0"]
           users:
             - name: gpadmin
               sudo: ALL=(ALL) NOPASSWD:ALL
               shell: /bin/bash
               uid: $UID
-
           runcmd:
-            # - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
+            - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
+            - mount -l | tee /home/gpadmin/logs/cloud-init-debug.log
             - mkdir -p /home/gpadmin/logs
             - curl -fsSL https://get.docker.com -o get-docker.sh
             - sh get-docker.sh --version 20.10
-            - mkdir -p /etc/systemd/system/docker.service.d
-            - |
-              cat > /etc/systemd/system/docker.service.d/override.conf <<'EOF'
-              [Service]
-              ExecStart=
-              ExecStart=/usr/bin/dockerd -H unix:///run/docker.sock -H tcp://0.0.0.0:2375
-              EOF
-            - systemctl daemon-reload
-            - systemctl restart docker
-            - ls -lah /home/gpadmin > /home/gpadmin/logs/cloud-init-debug.log
-            - echo "Docker status:" >> /home/gpadmin/logs/cloud-init-debug.log
-            - systemctl status docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
-            - echo "Docker journal:" >> /home/gpadmin/logs/cloud-init-debug.log
-            - journalctl -xeu docker.service >> /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - systemctl enable --now docker
+            - ls -lah /home/gpadmin | tee -a /home/gpadmin/logs/cloud-init-debug.log
+            - echo "Docker status:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
+            - systemctl status docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - echo "Docker journal:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
+            - journalctl -xeu docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
+            - export TEST_OS=${TEST_OS}
+            - export OPTIMIZER=${OPTIMIZER}
+            - export STATEMENT_MEM=${STATEMENT_MEM}
+            - export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
+            - export IMAGE_FILE=/home/gpadmin/${IMAGE_NAME}_${IMAGE_SHA}.tar
+            - docker load < \$IMAGE_FILE
+            - rm \$IMAGE_FILE
+            - cd /home/gpadmin
+            - docker create --name temp-container \$IMAGE
+            - docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+            - docker rm temp-container
+            - ./run_resgroup_test.bash
+            - chown gpadmin:gpadmin -R /home/gpadmin
+            - ls -lah ./logs 
           EOF1
 
           # Create meta-data
@@ -142,7 +149,7 @@ jobs:
             -m 8192 \
             -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
             -drive file=seed.img,format=raw,if=virtio \
-            -netdev user,id=net0,hostfwd=tcp::2375-:2375 \
+            -netdev user,id=net0 \
             -device virtio-net-pci,netdev=net0 \
             -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
             -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
@@ -150,59 +157,8 @@ jobs:
             -initrd initrd \
             -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
-            -daemonize \
-            -pidfile qemu.pid \
+            -serial stdio \
             -serial file:../vm-home/logs/qemu-serial.log
-
-      - name: Wait for functional Docker API via TCP
-        run: |
-          echo "Disable host Docker service and socket..."
-          sudo systemctl disable --now docker.service docker.socket
-          echo "Waiting for functional remote Docker API..."
-
-          # DEBUG
-          docker -H tcp://localhost:2375 info || true
-
-          sleep=6
-          attempts=20
-          for ((attempt=1; attempt <= $attempts; attempt++)); do
-            if timeout 5 docker -H tcp://localhost:2375 info >/dev/null 2>&1; then
-              echo "✅ Docker API via TCP functional after $((attempt*sleep)) seconds"
-              docker -H tcp://localhost:2375 info
-              break
-            fi
-            echo "⏳ Attempt $attempt/$attempts: waiting $sleep seconds..."
-            sleep $sleep
-          done
-
-          if ! timeout 5 docker -H tcp://localhost:2375 info >/dev/null 2>&1; then
-            echo "❌ Docker API via TCP not functional after $((sleep*attempts)) seconds"
-            # exit 1
-          fi
-
-          export DOCKER_HOST=tcp://localhost:2375
-          echo "DOCKER_HOST=${DOCKER_HOST}" | tee -a $GITHUB_ENV
-
-          echo ">>>>>>> Docker LOCAL <<<<<<<"
-          docker version
-          docker info
-
-          echo ">>>>>>> Docker With Key '-H tcp://localhost:2375' <<<<<<<"
-          docker -H tcp://localhost:2375 version
-          docker -H tcp://localhost:2375 info
-
-      - name: Check port 2375
-        run: |
-          echo ">>>>>> Open TCP/UDP ports"
-          sudo ss -lntpu
-          echo ">>>>>> Checking port 2375 on host:"
-          netstat -tln | grep 2375 || ss -tln | grep 2375
-          
-          echo ">>>>>> Trying to connect:"
-          nc -zv localhost 2375 || telnet localhost 2375 || true
-          
-          echo ">>>>>> Raw HTTP request:"
-          timeout 2 bash -c 'echo "GET /info HTTP/1.0\r\n" | nc localhost 2375' || true
 
       - name: Normalize permissions
         if: always()
@@ -228,48 +184,25 @@ jobs:
             echo "SOCAT Debug log not found - VM may not have booted properly"
           fi
 
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Move Docker image to shared directory
-      - name: Move Docker image to shared directory
-        run: mv ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar vm-home/
-
-      # Load image directly from shared volume
-      - name: Load SHA image in VM from shared volume
-        run: |
-          # Wait a bit for shared volume to be fully mounted
-          sleep 10
-
-          # Load Docker image from shared volume
-          docker load < /home/gpadmin/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-          # Clean up the tar file from shared volume
-          rm vm-home/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-      - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
-        env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          TEST_OS: ${{ inputs.target_os }}
-          STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
-          OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-        run: |
-          export IMAGE=${IMAGE,,}
-          # Get test script from image NOT from repo
-          docker create --name temp-container $IMAGE
-          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
-          docker rm temp-container
-          ./run_resgroup_test.bash
+      # - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
+      #   env:
+      #     IMAGE: ${IMAGE_REPO}/${IMAGE_NAME}:${IMAGE_SHA}
+      #     TEST_OS: ${{ inputs.target_os }}
+      #     STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
+      #     OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+      #   run: |
+      #     export IMAGE=${IMAGE,,}
+      #     # Get test script from image NOT from repo
+      #     docker create --name temp-container $IMAGE
+      #     docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+      #     docker rm temp-container
+      #     ./run_resgroup_test.bash
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
+          name: resgroup_${IMAGE_NAME}_${{ github.job }}_${{ matrix.optimizer }}
           path: vm-home/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
