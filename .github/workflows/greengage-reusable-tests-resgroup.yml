@@ -117,7 +117,7 @@ jobs:
           docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
           docker rm temp-container
 
-          ./run_resgroup_test.bash
+          source run_resgroup_test.bash
           EOF0
 
       - name: Create VM disk and cloud-init config
@@ -158,8 +158,8 @@ jobs:
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - bash /home/gpadmin/cloud-init ; echo $? > /home/gpadmin/exit_code
-            - ls -la /home/gpadmin
-            - cat /home/gpadmin/exit_code
+            - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin" ; ls -la /home/gpadmin
+            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/exit_code" ; cat /home/gpadmin/exit_code
             - shutdown -h now
           EOF1
 
