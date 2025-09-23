@@ -99,16 +99,6 @@ jobs:
           cd /home/gpadmin
           mkdir -p logs
 
-          # Debug info
-          echo ">>> \$(date) Debug cloud-init log" | tee /home/gpadmin/logs/cloud-init-debug.log
-          ls -lah /home/gpadmin | tee -a /home/gpadmin/logs/cloud-init-debug.log
-          echo "Docker status:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
-          systemctl status docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-          echo "Docker journal:" | tee -a /home/gpadmin/logs/cloud-init-debug.log
-          journalctl -xeu docker.service | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-
-          ls -lah logs | tee -a /home/gpadmin/logs/cloud-init-debug.log 2>&1
-
           docker load < ${IMAGE_FILE}
           rm ${IMAGE_FILE}
 
@@ -118,7 +108,6 @@ jobs:
           docker rm temp-container
 
           source run_resgroup_test.bash
-          echo ">>> \$(date) Debug cloud-init EXIT_CODE=\$EXIT_CODE after run_resgroup_test.bash" | tee /home/gpadmin/logs/cloud-init-debug.log
           EOF0
 
       - name: Create VM disk and cloud-init config
@@ -159,23 +148,19 @@ jobs:
           runcmd:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - bash /home/gpadmin/cloud-init
-            - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin" ; ls -la /home/gpadmin
-            - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin/logs" ; ls -la /home/gpadmin/logs
-            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exitcode after exit cloud-init" ; cat /home/gpadmin/logs/.exitcode
-            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exitcode after echo EXIT_CODE" ; cat /home/gpadmin/logs/.exitcode
             - shutdown -h now
           EOF1
 
           # Create meta-data
           echo "instance-id: github-actions-vm" > meta-data
-          
+
           # Create cloud-init ISO
           cloud-localds seed.img user-data meta-data
 
       - name: Start QEMU VM with shared volume and cgroups v1
         run: |
           set -eux
-          rm -f vm-home/exit_code
+          rm -f vm-home/logs/.exitcode
           cd vm-work
           sudo qemu-system-x86_64 \
             -machine type=pc,accel=kvm \
@@ -194,12 +179,8 @@ jobs:
             -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
             -display none \
             -serial stdio
-          cd -
-          ls -la ./
-          ls -la ./* || true
-          exit_code=$(cat vm-home/logs/.exitcode)
-          echo ">>> 'exit_code' on Runner '$exit_code'"
-          exit $exit_code
+          exit_code=$(cat ../vm-home/logs/.exitcode)
+          exit ${exit_code:-255} # unknown or absent exit code is error
 
       - name: Normalize permissions
         if: always()
