@@ -161,8 +161,8 @@ jobs:
             - bash /home/gpadmin/cloud-init
             - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin" ; ls -la /home/gpadmin
             - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin/logs" ; ls -la /home/gpadmin/logs
-            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exit_code after exit cloud-init" ; cat /home/gpadmin/logs/.exit_code
-            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exit_code after echo EXIT_CODE" ; cat /home/gpadmin/logs/.exit_code
+            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exitcode after exit cloud-init" ; cat /home/gpadmin/logs/.exitcode
+            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/logs/.exitcode after echo EXIT_CODE" ; cat /home/gpadmin/logs/.exitcode
             - shutdown -h now
           EOF1
 
@@ -197,7 +197,7 @@ jobs:
           cd -
           ls -la ./
           ls -la ./* || true
-          exit_code=$(cat vm-home/logs/.exit_code)
+          exit_code=$(cat vm-home/logs/.exitcode)
           echo ">>> 'exit_code' on Runner '$exit_code'"
           exit $exit_code
 
