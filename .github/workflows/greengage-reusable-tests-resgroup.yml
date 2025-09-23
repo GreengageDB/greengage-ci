@@ -160,8 +160,9 @@ jobs:
             - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
             - bash /home/gpadmin/cloud-init ; echo $? > /home/gpadmin/exit_code
             - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin" ; ls -la /home/gpadmin
-            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/exit_code" ; cat /home/gpadmin/exit_code
-            - echo ">>>>> DEBUG cloud-init -- EXIT_CODE=\$EXIT_CODE"
+            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/exit_code after exit cloud-init" ; cat /home/gpadmin/exit_code
+            - echo ">>>>> DEBUG cloud-init -- EXIT_CODE=\$EXIT_CODE" ; echo \$EXIT_CODE > /home/gpadmin/exit_code
+            - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/exit_code after echo EXIT_CODE" ; cat /home/gpadmin/exit_code
             - shutdown -h now
           EOF1
 
