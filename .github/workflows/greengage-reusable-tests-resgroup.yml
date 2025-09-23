@@ -118,6 +118,7 @@ jobs:
           docker rm temp-container
 
           source run_resgroup_test.bash
+          echo ">>> \$(date) Debug cloud-init EXIT_CODE=\$EXIT_CODE after run_resgroup_test.bash" | tee /home/gpadmin/logs/cloud-init-debug.log
           EOF0
 
       - name: Create VM disk and cloud-init config
@@ -160,6 +161,7 @@ jobs:
             - bash /home/gpadmin/cloud-init ; echo $? > /home/gpadmin/exit_code
             - echo ">>>>> DEBUG cloud-init -- ls -la /home/gpadmin" ; ls -la /home/gpadmin
             - echo ">>>>> DEBUG cloud-init -- cat /home/gpadmin/exit_code" ; cat /home/gpadmin/exit_code
+            - echo ">>>>> DEBUG cloud-init -- EXIT_CODE=\$EXIT_CODE"
             - shutdown -h now
           EOF1
 
