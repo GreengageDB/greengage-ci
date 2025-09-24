@@ -1,6 +1,4 @@
-# Environment variables
-env:
-  COMPOSE_HTTP_TIMEOUT: 400
+name: Greengage Reusable resource groups Tests
 
 # Trigger for reusable workflow
 on:
@@ -40,101 +38,181 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for cache and artifact upload
+    env:
+      IMAGE_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      IMAGE_REPO: ghcr.io/${{ github.repository }}
+      IMAGE_SHA: ${{ github.sha }}
+      TEST_OS: ${{ inputs.target_os }}
+      STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
 
     steps:
-      # Checkout repository with specified ref or default
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+      - name: Setup QEMU
+        run: |
+          set -eux
+          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools
+
+      - name: Try to restore Ubuntu cloud image from cache
+        uses: actions/cache@v4
+        id: cache-qemu
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          submodules: recursive
+          path: ubuntu-22.04.img
+          key:  ubuntu-22.04-image
 
-      - name: Setup Lima
-        uses: lima-vm/lima-actions/setup@v1
-        id: lima-actions-setup
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/lima
-          key: lima-${{ steps.lima-actions-setup.outputs.version }}
-
-      - name: Start the guest VM
+      - name: Download Ubuntu cloud image
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
-          limactl start \
-            --name=default \
-            --cpus=4 \
-            --memory=16 \
-            --containerd=none \
-            --mount-type 9p \
-            --set '.mounts=[{"location":"~/","writable":true, "9p": { "securityModel": "mapped-xattr", "cache": "mmap"}}] | .portForwards=[{"guestSocket":"/var/run/docker.sock","hostSocket":"{{.Dir}}/sock/docker.sock"}]' \
-            template://ubuntu-20.04.yaml
+          wget -q -O ubuntu-22.04.img \
+            https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
-      - name: Install dockerd in the guest VM
-        run: |
-          set -eux
-          lima sudo mkdir -p /etc/systemd/system/docker.socket.d
-          cat <<-EOF | lima sudo tee /etc/systemd/system/docker.socket.d/override.conf
-          [Socket]
-          SocketUser=$(whoami)
-          EOF
-          lima curl -fsSL https://get.docker.com -o get-docker.sh
-          lima sudo sh get-docker.sh --version 20.10
-
-      - name: Configure the host to use dockerd in the guest VM
-        run: |
-          set -eux
-          sudo systemctl disable --now docker.service docker.socket
-          export DOCKER_HOST="unix://$(limactl ls --format '{{.Dir}}/sock/docker.sock' default)"
-          echo "DOCKER_HOST=${DOCKER_HOST}" >>$GITHUB_ENV
-          docker info
-          docker version
-
-      # Restore SHA image from cache
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
         with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          path: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
+          key:  ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}
 
-      # Copy tar file to Lima VM
-      - name: Copy Docker image tar to Lima VM
-        run: |
-          limactl copy ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar default:/home/runner/
-
-      # Load SHA image in Lima VM
-      - name: Load SHA image in Lima VM
-        run: |
-          lima docker load < /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          lima rm /home/runner/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-      - name: Resource groups test ${{ github.job }} ${{ matrix.optimizer }}
+      - name: Create cloud-init script
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          TEST_OS: ${{ inputs.target_os }}
-          STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
-          OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          IMAGE_FILE: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
         run: |
-          export IMAGE=${IMAGE,,}
-          mkdir logs
-          ./ci/scripts/run_resgroup_test.bash
+          set -eux
+          mkdir -p vm-home
 
-      - name: Unzip logs to tar
-        if: always()  # Run even if previous step fails
+          cat > vm-home/cloud-init <<EOF0
+          # cloud-init setup script
+          set -e
+
+          export TEST_OS=${TEST_OS}
+          export OPTIMIZER=${OPTIMIZER}
+          export STATEMENT_MEM=${STATEMENT_MEM}
+          export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
+
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sh get-docker.sh --version 20.10
+          systemctl enable --now docker
+
+          cd /home/gpadmin
+          mkdir -p logs
+
+          docker load < ${IMAGE_FILE}
+          rm ${IMAGE_FILE}
+
+          # Extract test script from Image instaed of GIT
+          docker create --name temp-container \$IMAGE
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+          docker rm temp-container
+
+          source run_resgroup_test.bash
+          EOF0
+
+      - name: Create VM disk and cloud-init config
+        env:
+          OPTIMIZER:  ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
+          IMAGE_FILE: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
         run: |
-          for dir in logs_cdw logs_sdw1; do
-            if [ -d "$dir" ] ; then
-              find $dir -type f -name "*.tar.gz" -exec gzip -df {} \;
-              find $dir -type f -name "*.tar" -exec bash -c 'tar="$1" ; mv -f $tar logs/${tar/\//_}' shell {} \;
-            fi
+          set -eux
+          mkdir -p vm-work
+
+          # Move image to VM Home folder
+          mv ${IMAGE_FILE} vm-home/
+
+          # Copy virtual disk to VM Work folder
+          cp ubuntu-22.04.img vm-work/vm-disk.qcow2
+
+          cd vm-work
+
+          # Extract kernel from cloud image for usin as external
+          sudo virt-get-kernel --add vm-disk.qcow2
+          sudo chmod -R a+rwX .
+
+          # Make clear links to kernel files
+          for f in initrd vmlinuz ; do
+            find . -maxdepth 1 -type f -name "$f*" -exec ln -sf {} $f \;
           done
+
+          qemu-img resize vm-disk.qcow2 20G
+
+          # Create cloud-init user-data
+          cat > user-data <<EOF1
+          #cloud-config
+          users:
+            - name: gpadmin
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+              uid: $UID
+          runcmd:
+            - mount -t 9p -o trans=virtio,version=9p2000.L,rw hostshare /home/gpadmin
+            - bash /home/gpadmin/cloud-init
+            - shutdown -h now
+          EOF1
+
+          # Create meta-data
+          echo "instance-id: github-actions-vm" > meta-data
+
+          # Create cloud-init ISO
+          cloud-localds seed.img user-data meta-data
+
+      - name: Start QEMU VM with shared volume and cgroups v1
+        run: |
+          set -eux
+          rm -f vm-home/logs/.exitcode
+          cd vm-work
+          sudo qemu-system-x86_64 \
+            -machine type=pc,accel=kvm \
+            -cpu host \
+            -smp 4 \
+            -m 8192 \
+            -pidfile qemu.pid \
+            -drive file=vm-disk.qcow2,format=qcow2,if=virtio \
+            -drive file=seed.img,format=raw,if=virtio \
+            -netdev user,id=net0 \
+            -device virtio-net-pci,netdev=net0 \
+            -fsdev local,security_model=passthrough,id=fsdev0,path=../vm-home \
+            -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
+            -kernel vmlinuz \
+            -initrd initrd \
+            -append "root=/dev/vda1 ro console=tty1 console=ttyS0 systemd.unified_cgroup_hierarchy=0" \
+            -display none \
+            -serial stdio
+          exit_code=$(cat ../vm-home/logs/.exitcode)
+          exit ${exit_code:-255} # unknown or absent exit code is error
+
+      - name: Normalize permissions
+        if: always()
+        run: |
+          sudo chmod -R a+rwX vm-home/ vm-work/
+          ls -lah vm-home/* vm-work/* || true
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: resgroup_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: logs
+          name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
+          path: vm-home/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
+
+      - name: Cleanup VM
+        if: always()
+        run: |
+          set -e
+          PIDFILE=vm-work/qemu.pid
+          if [ -f $PIDFILE ]; then
+            # Read PID safely
+            pid=$(cat $PIDFILE) && {
+              # Graceful shutdown first
+              sudo kill $pid 2>/dev/null || true
+              sleep 3
+              # Check if process still exists with the same PID and name
+              if ps -p $pid >/dev/null && [ "$(ps -p $pid -o comm=)" = "qemu-system-x86" ]; then
+                echo "Force killing QEMU process $pid"
+                sudo kill -9 $pid 2>/dev/null || true
+              fi
+            }
+            # Cleanup PID file
+            rm -f $PIDFILE
+          fi
+          # Additional cleanup
+          sudo pkill -f "qemu-system-x86_64" || true
