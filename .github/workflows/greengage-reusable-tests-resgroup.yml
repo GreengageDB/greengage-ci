@@ -1,10 +1,5 @@
 name: Greengage Reusable resource groups Tests
 
-# Environment variables
-env:
-  COMPOSE_HTTP_TIMEOUT: 400
-  DOCKER_COMPOSE: "docker compose"
-
 # Trigger for reusable workflow
 on:
   workflow_call:
