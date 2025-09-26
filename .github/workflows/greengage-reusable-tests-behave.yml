@@ -202,6 +202,8 @@ jobs:
             allure-results
             logs_cdw
             logs_sdw1
+            logs_sdw2
+            logs_sdw3
           retention-days: 7
           if-no-files-found: ignore  # Ignore if no artifacts are found
 
