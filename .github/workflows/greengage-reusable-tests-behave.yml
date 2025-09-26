@@ -183,7 +183,7 @@ jobs:
           exit \$EXIT_CODE
           EOF
 
-          for node in cdw sdw1; do
+          for node in cdw sdw1 sdw3 sdw3; do
             $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
               $node /bin/bash < ./collect_logs_${{ matrix.feature }}.bash
           done
