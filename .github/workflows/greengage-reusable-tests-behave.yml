@@ -172,6 +172,7 @@ jobs:
           # set -x
           params=(
             "./ d gpAdminLogs"
+            "gpdb_src/gpAux/gpdemo/datadirs/ d log"
             "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
           )
           for param in "\${params[@]}"; do
@@ -182,7 +183,7 @@ jobs:
           exit \$EXIT_CODE
           EOF
 
-          for node in cdw sdw1; do
+          for node in cdw sdw1 sdw2 sdw3; do
             $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
               $node /bin/bash < ./collect_logs_${{ matrix.feature }}.bash
           done
@@ -201,6 +202,8 @@ jobs:
             allure-results
             logs_cdw
             logs_sdw1
+            logs_sdw2
+            logs_sdw3
           retention-days: 7
           if-no-files-found: ignore  # Ignore if no artifacts are found
 
