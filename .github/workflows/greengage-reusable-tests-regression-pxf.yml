@@ -56,14 +56,6 @@ jobs:
           docker load < ${{ env.ARCHIVE_NAME }}
           rm -f ${{ env.ARCHIVE_NAME }}
 
-      # Checkout repository with shallow clone
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          submodules: recursive
-
       # Run Regression tests
       - name: Regression test
         run: |
