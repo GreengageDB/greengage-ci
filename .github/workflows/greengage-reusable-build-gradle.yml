@@ -1,0 +1,89 @@
+name: Greengage Reusable Build Gradle Artifact
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version derived from tag (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version'
+        required: false
+        type: string
+        default: ''
+      python3:
+        description: 'Python3 build argument'
+        required: false
+        type: string
+        default: ''
+      pxf:
+        description: 'PXF flag'
+        required: false
+        type: boolean
+        default: false
+
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+    outputs:
+      artifact_key:
+        description: 'Cache key for the built artifact'
+        value: ${{ jobs.build.outputs.artifact_key }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_key: pxf-artifact-${{ github.sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Build PXF with Gradle
+        run: |
+          cd server
+          ./gradlew stage
+
+      - name: Create PXF tarball
+        run: |
+          mkdir -p pxf_tarball
+          cd server/build/stage
+          tar -czf ../../../pxf_tarball/pxf.tar.gz .
+          ls -lh ../../../pxf_tarball/pxf.tar.gz
+
+      - name: Save artifact to cache
+        uses: actions/cache/save@v4
+        with:
+          path: pxf_tarball/pxf.tar.gz
+          key: pxf-artifact-${{ github.sha }}
+
+      # Always upload artifact to GitHub Artifacts regardless of test results
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pxf-${{ github.sha }}
+          path: pxf_tarball/pxf.tar.gz
+          retention-days: 30
