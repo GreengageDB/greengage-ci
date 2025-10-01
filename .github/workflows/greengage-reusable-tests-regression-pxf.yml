@@ -23,7 +23,7 @@ on:
         required: true
 
 jobs:
-  regression-pxf:  # Regression tests
+  regression:  # Regression tests
     runs-on: ubuntu-latest
     timeout-minutes: 180
     permissions:
@@ -34,7 +34,7 @@ jobs:
       # Define all variables here
       - name: Set variables
         run: |
-          DOCKERFILE="ci/Dockerfile"
+          DOCKERFILE="ci/Dockerfile.${{ github.job }}"
           IMAGE_NAME="ggdb${{ inputs.version }}_pxf_${{ inputs.target_os }}${{ inputs.target_os_version }}"
           IMAGE_FULL="ghcr.io/${{ github.repository }}/${IMAGE_NAME}:${{ github.sha }}"
 
@@ -68,7 +68,7 @@ jobs:
             bash -c "
               set +e
               cd /tmp/build || status=1
-              pxf_src/ci/test_in_docker.sh
+              pxf_src/ci/test_${{ github.job }}.sh
               status=\$?
               find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
               echo \">>> STATUS \$status\"
