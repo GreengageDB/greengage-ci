@@ -43,18 +43,25 @@ jobs:
           echo "DOCKERFILE=${DOCKERFILE}" >> $GITHUB_ENV
           echo "ARCHIVE_NAME=${IMAGE_NAME}_${{ github.sha }}.tar" >> $GITHUB_ENV
 
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          path: ${{ env.ARCHIVE_NAME }}
-          key:  ${{ env.IMAGE_NAME }}
+          submodules: recursive
 
-      # Load SHA image
-      - name: Load SHA image
+      # Download PXF artifact from previous job
+      - name: Download PXF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pxf-${{ github.sha }}
+          path: ./
+
+      # Build regression Docker image
+      - name: Build regression Docker image
         run: |
-          docker load < ${{ env.ARCHIVE_NAME }}
-          rm -f ${{ env.ARCHIVE_NAME }}
+          docker build \
+            --build-arg GGDB_IMAGE=greengagedb/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }} \
+            -t ${{ env.IMAGE_FULL }} \
+            -f ${{ env.DOCKERFILE }} .
 
       # Run Regression tests
       - name: Regression test

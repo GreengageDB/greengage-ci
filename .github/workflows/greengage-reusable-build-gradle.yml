@@ -26,22 +26,14 @@ on:
         required: false
         type: boolean
         default: false
-
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
 
-    outputs:
-      artifact_key:
-        description: 'Cache key for the built artifact'
-        value: ${{ jobs.build.outputs.artifact_key }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      artifact_key: pxf-artifact-${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -78,7 +70,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: pxf_tarball/pxf.tar.gz
-          key: pxf-artifact-${{ github.sha }}
+          key: pxf-${{ github.sha }}
 
       # Always upload artifact to GitHub Artifacts regardless of test results
       - name: Upload artifact
