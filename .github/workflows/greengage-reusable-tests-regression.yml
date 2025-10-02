@@ -118,6 +118,7 @@ jobs:
 
       # Run Regression tests
       - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
+        if: always()
         env:
           CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
         run: |
