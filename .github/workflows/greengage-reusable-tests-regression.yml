@@ -103,18 +103,6 @@ jobs:
           EXIT_CODE=0
           bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
           echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
-          params=(
-            "./ d gpAdminLogs"
-            "gpdb_src/src/test/ d results"
-            "gpdb_src/src/test/ f regression.diffs"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d log"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
-          )
-          for param in "\${params[@]}"; do
-            read -r path type name <<< "\$param"
-            find \$path -name \$name -type \$type -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_\$name.tar" "{}" \;
-          done
-          chmod -R a+rwX /logs
           exit \$EXIT_CODE
           EOF
 
@@ -129,6 +117,28 @@ jobs:
           status=$?
 
           exit ${status:-1} # error if not known
+
+      # Run Regression tests
+      - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
+        env:
+          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
+        run: |
+          docker start $CONT_NAME
+          docker exec $CONT_NAME bash -c "
+            set -x
+            cd /home/gpadmin/
+            params=(
+              './ d gpAdminLogs'
+              'gpdb_src/src/test/ d results'
+              'gpdb_src/src/test/ f regression.diffs'
+              'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
+            )
+            for param in \"\${params[@]}\"; do
+              read -r path type name <<< \"\$param\"
+              find \$path -name \$name -type \$type -exec tar -rf '/logs/${LOG_NAME}_${ARCH}_\$name.tar' {} \;
+            done
+            chmod -R a+rwX /logs
+          "
 
       # Upload regression artifacts
       - name: Upload regression ${{ github.job }} ${{ matrix.optimizer }} artifacts
