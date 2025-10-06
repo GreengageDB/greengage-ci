@@ -52,7 +52,7 @@ jobs:
             -e BUILDNUMBER=${{ github.run_number }} \
             -e SKIP_UNITTESTS=1 \
             "${BUILDER,,}":${{ github.sha }} \
-            /bin/bash -c "make -C ./gpdb_src/gpAux pkg-deb"
+            /bin/bash -c "unset CONFIGURE_FLAGS ; make -C ./gpdb_src/gpAux pkg-deb"
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
