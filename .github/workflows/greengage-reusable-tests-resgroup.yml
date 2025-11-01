@@ -43,7 +43,7 @@ jobs:
       IMAGE_REPO: ghcr.io/${{ github.repository }}
       IMAGE_SHA: ${{ github.sha }}
       TEST_OS: ${{ inputs.target_os }}
-      STATEMENT_MEM: ${{ inputs.version == '7' && '126MB' || '249MB' }}
+      STATEMENT_MEM: ${{ inputs.version == '7' && '126MB' || '250MB' }}
 
     steps:
       - name: Setup QEMU
