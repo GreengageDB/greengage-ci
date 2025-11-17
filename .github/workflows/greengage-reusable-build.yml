@@ -80,6 +80,15 @@ jobs:
             -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
             .
 
+      - name: DEBUG -- Free space before clean .git
+        run: df -h
+
+      - name: Remove .git to free space
+        run: rm -rf .git
+
+      - name: DEBUG -- Free space after clean .git
+        run: df -h
+
       # Save Docker image
       - name: Save SHA image
         run: |
