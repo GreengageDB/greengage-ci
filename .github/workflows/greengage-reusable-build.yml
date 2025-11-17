@@ -91,9 +91,6 @@ jobs:
             -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
             .
 
-      - name: DEBUG -- Free space
-        run: df -h
-
       # Save Docker image
       - name: Save SHA image
         run: |
