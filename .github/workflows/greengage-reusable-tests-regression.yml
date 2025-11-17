@@ -45,6 +45,17 @@ jobs:
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for cache and artifact upload
     steps:
+      - name: Move Docker storage to /mnt/docker
+        run: |
+          sudo bash -c '
+            systemctl stop docker
+            mkdir -p /mnt/docker
+            rsync -a /var/lib/docker/ /mnt/docker
+            chown -R docker:docker /mnt/docker
+            echo "{ \"data-root\": \"/mnt/docker\" }" > /etc/docker/daemon.json
+            systemctl start docker
+          '
+
       # Restore SHA image from cache
       - name: Restore SHA image from cache
         uses: actions/cache/restore@v4
@@ -57,26 +68,6 @@ jobs:
         run: |
           docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-      # Maximize build space for Docker
-      - name: Move /var/lib/docker/
-        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
-
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          temp-reserve-mb: 32
-          swap-size-mb: 32
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'false'
-          build-mount-path: '/var/lib/docker/'
-
-      - name: Restore /var/lib/docker/
-        run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo
