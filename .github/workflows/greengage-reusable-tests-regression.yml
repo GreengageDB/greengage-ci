@@ -97,7 +97,7 @@ jobs:
 
           # Run tests and save logs to a volume
           docker run -i --name $CONT_NAME \
-            -v /var/lib/docker/logs_${{ matrix.optimizer }}:/logs \
+            -v /mnt/logs:/logs \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
@@ -136,6 +136,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: /var/lib/docker/logs_${{ matrix.optimizer }}
+          path: /mnt/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
