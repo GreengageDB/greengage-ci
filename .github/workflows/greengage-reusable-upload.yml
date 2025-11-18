@@ -41,6 +41,17 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
+      - name: Move Docker storage to /mnt/docker
+        run: |
+          sudo bash -c '
+            systemctl stop docker
+            mkdir -p /mnt/docker
+            rsync -a /var/lib/docker/ /mnt/docker
+            chown -R docker:docker /mnt/docker
+            echo "{ \"data-root\": \"/mnt/docker\" }" > /etc/docker/daemon.json
+            systemctl start docker
+          '
+
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -49,6 +60,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
+          filter: blob:none # without BLOBs
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
