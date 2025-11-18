@@ -58,9 +58,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GitHub Container Registry for local PRs
+      # Login to GitHub Container Registry for local PRs OR push
       - name: Login to GitHub Container Registry
-        if: github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name
+        if: >
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -105,16 +108,22 @@ jobs:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
-      # Push developer's tag image if pull-request and same repository
-      - name: Push developer's tag image
-        if: github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name
+      # Push developer's tag if exists and SHA tag always if pull-request and same repository OR push
+      - name: Push developer's and SHA tag image
+        if: >
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
-          DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g') ; DEV_TAG=${DEV_TAG:-unknown}
-          echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
-          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
+          if [ -n "$HEAD_REF" ]; then
+            DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
+            DEV_TAG=${DEV_TAG:-unknown}
+            echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
+            docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
+            docker push ${IMAGE}:$DEV_TAG
+          fi
           docker push ${IMAGE}:${{ github.sha }}
-          docker push ${IMAGE}:$DEV_TAG
