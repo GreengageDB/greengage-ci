@@ -76,18 +76,11 @@ jobs:
             systemctl start docker
           '
 
-      # Restore SHA image from cache
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
+      - name: Restore & Load SHA image
+        uses: ./.github/actions/restore-load-image
         with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Load SHA image
-      - name: Load SHA image
-        run: |
-          docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
