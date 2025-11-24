@@ -57,7 +57,7 @@ jobs:
           '
 
       - name: Restore & Load SHA image
-        uses: ./.github/actions/restore-load-image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@GG-16
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
