@@ -43,6 +43,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
+      - name: Restore & Load SHA image
+        uses: ./.github/actions/restore-load-image
+        with:
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
+
       - name: Build Debian packages
         env:
           BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
