@@ -1,0 +1,28 @@
+name: "Restore and load SHA image from cache"
+description: "Restores a Docker image tarball from cache and loads it"
+
+inputs:
+  version:
+    description: 'Version derived from tag (e.g., 6 or 7)'
+    required: true
+  target_os:
+    description: 'Target OS'
+    required: true
+  target_os_version:
+    description: 'Target OS version'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: Restore SHA image from cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+
+    - name: Load SHA image
+      shell: bash
+      run: |
+        docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
