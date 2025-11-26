@@ -86,3 +86,101 @@ jobs:
               apt-get update && \
               { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
               apt-get install -f -y"
+
+  upload-to-release:
+    # Triggered only on tag, but must not break if test-docker job was skipped
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build-deb
+      - test-docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for release creation
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for tag resolution
+
+      - name: Fetch all tags
+        # Ensures detached tags are also fetched
+        run: git fetch --tags --force
+
+      - name: Download deb artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deb-packages
+          path: deb-packages
+
+      - name: Determine tag information
+        id: tags
+        run: |
+          REF="${{ github.ref }}"
+          TAG="${REF#refs/tags/}"
+
+          # Get all semantic version tags for this major version
+          SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
+          LATEST_SEMANTIC_TAG=$(echo "$SEMANTIC_TAGS" | tail -n 1)
+
+          if [[ "$TAG" == "$LATEST_SEMANTIC_TAG" ]]; then
+            IS_LATEST="true"
+            echo "Current tag $TAG is the latest semantic tag"
+          else
+            IS_LATEST="false"
+            echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "is_latest=$IS_LATEST" >> $GITHUB_OUTPUT
+          echo "TAG: $TAG"
+          echo "IS_LATEST: $IS_LATEST"
+
+      - name: List downloaded files
+        run: find deb-packages -type f -name "*.deb" -o -name "*.ddeb"
+
+      - name: Delete release if exists
+        # Remove both release object and tag to avoid conflicts
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        run: |
+          gh release delete "${{ steps.tags.outputs.tag }}" -y || true
+          gh api repos/${{ github.repository }}/releases/tags/${{ steps.tags.outputs.tag }} -X DELETE || true
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        with:
+          tag_name: ${{ steps.tags.outputs.tag }}
+          release_name: Release ${{ steps.tags.outputs.tag }}
+          draft: false
+          prerelease: false
+          body: |
+            GreengageDB ${{ steps.tags.outputs.tag }} for ${{ inputs.target_os }}
+            
+            Built from commit: ${{ github.sha }}
+            Workflow run: ${{ github.run_number }}
+
+      - name: Upload Debian packages to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        run: |
+          for file in deb-packages/*.deb deb-packages/*.ddeb; do
+            [ -e "$file" ] || continue
+            echo "Uploading $file"
+            gh release upload "${{ steps.tags.outputs.tag }}" "$file" --clobber
+          done
+
+      - name: Upload as latest if applicable
+        if: steps.tags.outputs.is_latest == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+        run: |
+          for file in deb-packages/*.deb deb-packages/*.ddeb; do
+            [ -e "$file" ] || continue
+            echo "Uploading as latest: $file"
+            BASENAME=$(basename "$file")
+            gh release upload "${{ steps.tags.outputs.tag }}" "$file#latest-${{ inputs.target_os }}-$BASENAME" --clobber
+          done
