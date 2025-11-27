@@ -53,21 +53,21 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.ghcr_token }}
-      run: |
-        tag="${{ steps.tag.outputs.tag }}"
-        gh release delete "$tag" -y --cleanup-tag || true
+        TAG: ${{ steps.tag.outputs.tag }}
+      run: gh release delete "$TAG" -y --cleanup-tag || true
 
     - name: Create fresh release
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+        TAG: ${{ steps.tag.outputs.tag }}
+        PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
-        tag="${{ steps.tag.outputs.tag }}"
-        package_name="${{ inputs.package_name }}"
-        : "${package_name:=${GITHUB_REPOSITORY#*/}}"
-        gh release create "$tag" \
-          --title "Release $tag" \
-          --notes "$package_name $tag
+        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
+
+        gh release create "$TAG" \
+          --title "Release $TAG" \
+          --notes "$PACKAGE_NAME $TAG
           Built from commit: ${{ github.sha }}
           Workflow run: ${{ github.run_number }}"
 
@@ -75,10 +75,10 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+        TAG: ${{ steps.tag.outputs.tag }}
+        PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
-        tag="${{ steps.tag.outputs.tag }}"
-        package_name="${{ inputs.package_name }}"
-        : "${package_name:=${GITHUB_REPOSITORY#*/}}"
+        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
 
         for ext in ${{ inputs.extensions }}; do
           files=("${{ inputs.artifact_path }}"/*.$ext)
@@ -87,8 +87,8 @@ runs:
             exit 1
           fi
 
-          target="${{ inputs.artifact_path }}/$package_name${{ inputs.version }}.$ext"
+          target="${{ inputs.artifact_path }}/$PACKAGE_NAME${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
-          gh release upload "$tag" "$target" --clobber
+          gh release upload "$TAG" "$target" --clobber
         done
