@@ -1,0 +1,93 @@
+name: Upload Packages to GitHub Release
+description: "Create or replace a GitHub release and upload packages with fixed names"
+
+inputs:
+  ghcr_token:
+    description: 'Token with repo permissions (GITHUB_TOKEN or personal token)'
+    required: true
+  artifact_path:
+    description: 'Local path to downloaded artifacts'
+    required: false
+    default: 'deb-packages'
+  package_name:
+    description: 'Base package name, defaults to repository name'
+    required: false
+    default: ''
+  version:
+    description: 'Version string to append to package name'
+    required: false
+    default: ''
+  extensions:
+    description: 'Space-separated list of package file extensions'
+    required: false
+    default: 'deb ddeb'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ${{ inputs.artifact_path }}
+
+    - name: Determine tag
+      shell: bash
+      id: tag
+      run: |
+        tag="${GITHUB_REF#refs/tags/}"
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        echo "Using tag: $tag"
+
+    - name: List downloaded files
+      shell: bash
+      run: |
+        find "${{ inputs.artifact_path }}" -type f
+
+    - name: Delete existing release if exists
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+      run: |
+        tag="${{ steps.tag.outputs.tag }}"
+        gh release delete "$tag" -y --cleanup-tag || true
+
+    - name: Create fresh release
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+      run: |
+        tag="${{ steps.tag.outputs.tag }}"
+        package_name="${{ inputs.package_name }}"
+        : "${package_name:=${GITHUB_REPOSITORY#*/}}"
+        gh release create "$tag" \
+          --title "Release $tag" \
+          --notes "$package_name $tag
+          Built from commit: ${{ github.sha }}
+          Workflow run: ${{ github.run_number }}"
+
+    - name: Move and upload packages
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+      run: |
+        tag="${{ steps.tag.outputs.tag }}"
+        package_name="${{ inputs.package_name }}"
+        : "${package_name:=${GITHUB_REPOSITORY#*/}}"
+
+        for ext in ${{ inputs.extensions }}; do
+          files=("${{ inputs.artifact_path }}"/*.$ext)
+          if [ ${#files[@]} -ne 1 ]; then
+            echo "Expected exactly one *.$ext file, found ${#files[@]}"
+            exit 1
+          fi
+
+          target="${{ inputs.artifact_path }}/$package_name${{ inputs.version }}.$ext"
+          mv -f "${files[0]}" "$target"
+          echo "Uploading $target"
+          gh release upload "$tag" "$target" --clobber
+        done
