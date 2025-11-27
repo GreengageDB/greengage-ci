@@ -134,14 +134,23 @@ jobs:
             Built from commit: ${{ github.sha }}
             Workflow run: ${{ github.run_number }}"
 
-      - name: Copy packages to fixed names
+      - name: Move packages to fixed names
         run: |
-          for file in deb-packages/*.deb; do
-            cp -f "$file" "deb-packages/greengage${{ inputs.version }}.deb"
-          done
-          for file in deb-packages/*.ddeb; do
-            cp -f "$file" "deb-packages/greengage${{ inputs.version }}.ddeb"
-          done
+          # Ensure exactly one .deb file
+          DEB_FILES=(deb-packages/*.deb)
+          if [ ${#DEB_FILES[@]} -ne 1 ]; then
+            echo "Expected exactly one .deb file, found ${#DEB_FILES[@]}"
+            exit 1
+          fi
+          mv -f "${DEB_FILES[0]}" "deb-packages/greengage${{ inputs.version }}.deb"
+
+          # Ensure exactly one .ddeb file
+          DDEB_FILES=(deb-packages/*.ddeb)
+          if [ ${#DDEB_FILES[@]} -ne 1 ]; then
+            echo "Expected exactly one .ddeb file, found ${#DDEB_FILES[@]}"
+            exit 1
+          fi
+          mv -f "${DDEB_FILES[0]}" "deb-packages/greengage${{ inputs.version }}.ddeb"
 
       - name: Upload Debian packages
         env:
