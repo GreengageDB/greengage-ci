@@ -134,20 +134,20 @@ jobs:
             Built from commit: ${{ github.sha }}
             Workflow run: ${{ github.run_number }}"
 
-      - name: Create symlinks for fixed package names
-        run: |
-          for file in deb-packages/*.deb; do
-            ln -sf "$file" "deb-packages/greengage${{ inputs.version }}.deb"
-          done
-          for file in deb-packages/*.ddeb; do
-            ln -sf "$file" "deb-packages/greengage${{ inputs.version }}.ddeb"
-          done
-
-      - name: Upload Debian packages
+      - name: Upload Debian packages with fixed names
         env:
           GITHUB_TOKEN: ${{ secrets.ghcr_token }}
         run: |
-          for pkg in deb-packages/*; do
-            echo "Uploading: $pkg"
-            gh release upload "${{ steps.tag.outputs.tag }}" "$pkg" --clobber
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          # Upload all .deb files
+          for pkg in deb-packages/*.deb; do
+            echo "Uploading $pkg as greengage${{ inputs.version }}.deb"
+            gh release upload "$TAG" "$pkg" --clobber --name "greengage${{ inputs.version }}.deb"
+          done
+
+          # Upload all .ddeb files
+          for pkg in deb-packages/*.ddeb; do
+            echo "Uploading $pkg as greengage${{ inputs.version }}.ddeb"
+            gh release upload "$TAG" "$pkg" --clobber --name "greengage${{ inputs.version }}.ddeb"
           done
