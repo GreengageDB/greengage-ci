@@ -134,20 +134,18 @@ jobs:
             Built from commit: ${{ github.sha }}
             Workflow run: ${{ github.run_number }}"
 
-      - name: Upload Debian packages with fixed names
-        env:
-          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
+      - name: Copy packages to fixed names
         run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-
-          # Upload all .deb files
-          for pkg in deb-packages/*.deb; do
-            echo "Uploading $pkg as greengage${{ inputs.version }}.deb"
-            gh release upload "$TAG" "$pkg" --clobber --name "greengage${{ inputs.version }}.deb"
+          for file in deb-packages/*.deb; do
+            cp -f "$file" "deb-packages/greengage${{ inputs.version }}.deb"
+          done
+          for file in deb-packages/*.ddeb; do
+            cp -f "$file" "deb-packages/greengage${{ inputs.version }}.ddeb"
           done
 
-          # Upload all .ddeb files
-          for pkg in deb-packages/*.ddeb; do
-            echo "Uploading $pkg as greengage${{ inputs.version }}.ddeb"
-            gh release upload "$TAG" "$pkg" --clobber --name "greengage${{ inputs.version }}.ddeb"
+      - name: Upload Debian packages
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          for pkg in deb-packages/*.deb deb-packages/*.ddeb; do
+            gh release upload "$TAG" "$pkg" --clobber
           done
