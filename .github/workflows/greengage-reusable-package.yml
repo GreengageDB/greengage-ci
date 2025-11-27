@@ -144,6 +144,8 @@ jobs:
           done
 
       - name: Upload Debian packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
           for pkg in deb-packages/*.deb deb-packages/*.ddeb; do
