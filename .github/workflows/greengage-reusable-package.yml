@@ -134,29 +134,21 @@ jobs:
             Built from commit: ${{ github.sha }}
             Workflow run: ${{ github.run_number }}"
 
-      - name: Move packages to fixed names
-        run: |
-          # Ensure exactly one .deb file
-          DEB_FILES=(deb-packages/*.deb)
-          if [ ${#DEB_FILES[@]} -ne 1 ]; then
-            echo "Expected exactly one .deb file, found ${#DEB_FILES[@]}"
-            exit 1
-          fi
-          mv -f "${DEB_FILES[0]}" "deb-packages/greengage${{ inputs.version }}.deb"
-
-          # Ensure exactly one .ddeb file
-          DDEB_FILES=(deb-packages/*.ddeb)
-          if [ ${#DDEB_FILES[@]} -ne 1 ]; then
-            echo "Expected exactly one .ddeb file, found ${#DDEB_FILES[@]}"
-            exit 1
-          fi
-          mv -f "${DDEB_FILES[0]}" "deb-packages/greengage${{ inputs.version }}.ddeb"
-
-      - name: Upload Debian packages
+      - name: Move and upload packages
         env:
           GITHUB_TOKEN: ${{ secrets.ghcr_token }}
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
-          for pkg in deb-packages/*.deb deb-packages/*.ddeb; do
-            gh release upload "$TAG" "$pkg" --clobber
+
+          for ext in deb ddeb; do
+            FILES=(deb-packages/*.$ext)
+            if [ ${#FILES[@]} -ne 1 ]; then
+              echo "Expected exactly one *.$ext file, found ${#FILES[@]}"
+              exit 1
+            fi
+
+            TARGET="deb-packages/greengage${{ inputs.version }}.$ext"
+            mv -f "${FILES[0]}" "$TARGET"
+            echo "Uploading $TARGET"
+            gh release upload "$TAG" "$TARGET" --clobber
           done
