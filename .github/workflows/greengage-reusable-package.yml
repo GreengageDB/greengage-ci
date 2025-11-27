@@ -94,61 +94,11 @@ jobs:
     permissions:
       contents: write  # Required for release creation
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Upload packages to release
+        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@ADBDEV-8877
         with:
-          submodules: recursive
-
-      - name: Download deb artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: deb-packages
-          path: deb-packages
-
-      - name: Determine tag
-        id: tag
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Using tag: $TAG"
-
-      - name: List downloaded files
-        run: find deb-packages -type f
-
-      # Delete existing release if exists (re-run safe)
-      - name: Delete existing release if exists
-        env:
-          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          gh release delete "$TAG" -y --cleanup-tag || true
-
-      - name: Create fresh release
-        env:
-          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          gh release create "$TAG" \
-            --title "Release $TAG" \
-            --notes "GreengageDB $TAG for ${{ inputs.target_os }}
-            Built from commit: ${{ github.sha }}
-            Workflow run: ${{ github.run_number }}"
-
-      - name: Move and upload packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.ghcr_token }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-
-          for ext in deb ddeb; do
-            FILES=(deb-packages/*.$ext)
-            if [ ${#FILES[@]} -ne 1 ]; then
-              echo "Expected exactly one *.$ext file, found ${#FILES[@]}"
-              exit 1
-            fi
-
-            TARGET="deb-packages/greengage${{ inputs.version }}.$ext"
-            mv -f "${FILES[0]}" "$TARGET"
-            echo "Uploading $TARGET"
-            gh release upload "$TAG" "$TARGET" --clobber
-          done
+          ghcr_token: ${{ secrets.ghcr_token }}
+          artifact_path: deb-packages       # optional, defaults to deb-packages
+          package_name: greengage           # optional, defaults to repo name
+          version: ${{ inputs.version }}    # optional, defaults empty
+          extensions: "deb ddeb"            # optional, space-separated list of extensions
