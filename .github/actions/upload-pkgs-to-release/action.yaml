@@ -49,14 +49,7 @@ runs:
       run: |
         find "${{ inputs.artifact_path }}" -type f
 
-    - name: Delete existing release if exists
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
-        TAG: ${{ steps.tag.outputs.tag }}
-      run: gh release delete "$TAG" -y --cleanup-tag || true
-
-    - name: Create fresh release
+    - name: Create release if not exists
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.ghcr_token }}
@@ -65,11 +58,16 @@ runs:
       run: |
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
 
-        gh release create "$TAG" \
-          --title "Release $TAG" \
-          --notes "$PACKAGE_NAME $TAG
-          Built from commit: ${{ github.sha }}
-          Workflow run: ${{ github.run_number }}"
+        # Check if release exists
+        if ! gh release view "$TAG" > /dev/null 2>&1; then
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --notes "$PACKAGE_NAME $TAG
+          Built from commit: $GITHUB_SHA
+          Workflow run: $GITHUB_RUN_NUMBER"
+        else
+          echo "Release $TAG already exists, skipping creation."
+        fi
 
     - name: Move and upload packages
       shell: bash
