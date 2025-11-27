@@ -88,7 +88,7 @@ runs:
             exit 1
           fi
 
-          target="${{ inputs.artifact_path }}/$PACKAGE_NAME${{ inputs.version }}.$ext"
+          target="${{ inputs.artifact_path }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
           gh release upload "$RELEASE_NAME" "$target" --clobber
