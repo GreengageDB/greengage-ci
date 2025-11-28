@@ -98,7 +98,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@ADBDEV-8877
         with:
           ghcr_token: ${{ secrets.ghcr_token }}
-          artifact_path: deb-packages       # optional, defaults to deb-packages
-          package_name: greengage           # optional, defaults to repo name
-          version: ${{ inputs.version }}    # optional, defaults empty
-          extensions: "deb ddeb"            # optional, space-separated list of extensions
+          # version: ${{ inputs.version }}    # optional, defaults empty
+          # artifact_path: deb-packages       # optional, defaults to deb-packages
+          # package_name: greengage           # optional, defaults to repo name
+          # extensions: "deb ddeb"            # optional, space-separated list of extensions
