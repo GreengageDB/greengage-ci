@@ -61,7 +61,7 @@ runs:
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
-
+        set -x
         if ! gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
           gh release create "$RELEASE_NAME" \
             --title "Release $RELEASE_NAME" \
