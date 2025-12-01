@@ -99,6 +99,6 @@ jobs:
         with:
           ghcr_token: ${{ secrets.ghcr_token }}
           version: ${{ inputs.version }}    # optional, defaults empty
-          artifact_path: deb-packages       # optional, defaults to deb-packages
+          artifact_name: deb-packages       # optional, defaults to deb-packages
           package_name: greengage           # optional, defaults to repo name
           extensions: "deb ddeb"            # optional, space-separated list of extensions

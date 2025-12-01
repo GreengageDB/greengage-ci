@@ -9,7 +9,7 @@ does not already exist, and safely uploads files with replacement if necessary.
 | Name           | Required | Default        | Description |
 |----------------|----------|----------------|-------------|
 | `ghcr_token`   | yes      | —              | Token with repository permissions (GITHUB_TOKEN or personal token) |
-| `artifact_path`| no       | `deb-packages` | Path where artifacts are downloaded |
+| `artifact_name`| no       | `deb-packages` | Path where artifacts are downloaded |
 | `package_name` | no       | repository name| Base package name to use for uploaded files |
 | `version`      | no       | empty          | Version string appended to package name |
 | `extensions`   | no       | `deb ddeb`     | Space-separated list of package file extensions |
@@ -34,7 +34,7 @@ jobs:
 
 ## Behavior
 
-* Downloads artifacts from a previous job into `artifact_path`
+* Downloads artifacts from a previous job into `artifact_name`
 * Determines the release name from `GITHUB_REF`:
   * Uses tag name if the workflow was triggered by a tag
   * Uses branch name if not a tag

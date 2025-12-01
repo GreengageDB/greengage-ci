@@ -5,7 +5,7 @@ inputs:
   ghcr_token:
     description: 'Token with repo permissions (GITHUB_TOKEN or personal token)'
     required: true
-  artifact_path:
+  artifact_name:
     description: 'Local path to downloaded artifacts'
     required: false
     default: 'deb-packages'
@@ -33,8 +33,8 @@ runs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.artifact_path }}
-        path: ${{ inputs.artifact_path }}
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.artifact_name }}
 
     - name: Determine release name
       shell: bash
@@ -51,7 +51,7 @@ runs:
     - name: List downloaded files
       shell: bash
       run: |
-        find "${{ inputs.artifact_path }}" -type f
+        find "${{ inputs.artifact_name }}" -type f
 
     - name: Create release if not exists
       shell: bash
@@ -84,13 +84,13 @@ runs:
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
 
         for ext in ${{ inputs.extensions }}; do
-          files=("${{ inputs.artifact_path }}"/*.$ext)
+          files=("${{ inputs.artifact_name }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
             echo "Expected exactly one *.$ext file, found ${#files[@]}"
             exit 1
           fi
 
-          target="${{ inputs.artifact_path }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
+          target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
           gh release upload "$RELEASE_NAME" "$target" --clobber
