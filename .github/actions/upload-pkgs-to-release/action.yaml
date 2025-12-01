@@ -2,9 +2,6 @@ name: Upload Packages to GitHub Release
 description: "Create or update a GitHub release and upload packages with fixed names"
 
 inputs:
-  ghcr_token:
-    description: 'Token with repo permissions (GITHUB_TOKEN or personal token)'
-    required: true
   artifact_name:
     description: 'Local path to downloaded artifacts'
     required: false
@@ -56,7 +53,7 @@ runs:
     - name: Create release if not exists
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+        GH_TOKEN: ${{ github.token }}
         RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
@@ -75,7 +72,7 @@ runs:
     - name: Move and upload packages
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.ghcr_token }}
+        GH_TOKEN: ${{ github.token }}
         RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
