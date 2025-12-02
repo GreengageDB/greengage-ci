@@ -3,9 +3,9 @@ description: "Create or update a GitHub release and upload packages with fixed n
 
 inputs:
   artifact_name:
-    description: 'Local path to downloaded artifacts'
+    description: 'Artifact name for download'
     required: false
-    default: 'deb-packages'
+    default: 'Packages'
   package_name:
     description: 'Base package name, defaults to repository name'
     required: false
@@ -17,7 +17,7 @@ inputs:
   extensions:
     description: 'Space-separated list of package file extensions'
     required: false
-    default: 'deb ddeb'
+    default: 'deb ddeb rpm'
 
 runs:
   using: "composite"
@@ -58,7 +58,7 @@ runs:
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
-        set -x
+
         if ! gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
           gh release create "$RELEASE_NAME" \
             --title "Release $RELEASE_NAME" \

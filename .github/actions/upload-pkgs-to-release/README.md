@@ -6,12 +6,12 @@ does not already exist, and safely uploads files with replacement if necessary.
 
 ## Inputs
 
-| Name            | Required | Default             | Description |
-|-----------------|----------|---------------------|-------------|
-| `artifact_name` | no       | `deb-packages`      | Path where artifacts are downloaded |
-| `package_name`  | no       | repository name     | Base package name to use for uploaded files (derived from repo name if empty) |
-| `version`       | no       | empty               | Version string appended to package name (e.g., `6` makes `packagename6.deb`) |
-| `extensions`    | no       | `deb ddeb`          | Space-separated list of package file extensions to process |
+| Name            | Required | Default         | Description |
+|-----------------|----------|-----------------|-------------|
+| `artifact_name` | no       | `Packages`      | Path where artifacts are downloaded |
+| `package_name`  | no       | repository name | Base package name to use for uploaded files (derived from repo name if empty) |
+| `version`       | no       | empty           | Version string appended to package name (e.g., `6` makes `packagename6.deb`) |
+| `extensions`    | no       | `deb ddeb rpm`  | Space-separated list of package file extensions to process |
 
 ## Usage
 
