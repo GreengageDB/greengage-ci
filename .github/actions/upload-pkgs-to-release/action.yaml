@@ -1,0 +1,92 @@
+name: Upload Packages to GitHub Release
+description: "Create or update a GitHub release and upload packages with fixed names"
+
+inputs:
+  artifact_name:
+    description: 'Artifact name for download'
+    required: false
+    default: 'Packages'
+  package_name:
+    description: 'Base package name, defaults to repository name'
+    required: false
+    default: ''
+  version:
+    description: 'Version string to append to package name'
+    required: false
+    default: ''
+  extensions:
+    description: 'Space-separated list of package file extensions'
+    required: false
+    default: 'deb ddeb rpm'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.artifact_name }}
+
+    - name: Determine release name
+      shell: bash
+      id: release_name
+      run: |
+        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          RELEASE_NAME="${GITHUB_REF#refs/tags/}"
+        else
+          RELEASE_NAME="${GITHUB_REF#refs/heads/}"
+        fi
+        echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+        echo "Using release: $RELEASE_NAME"
+
+    - name: List downloaded files
+      shell: bash
+      run: |
+        find "${{ inputs.artifact_name }}" -type f
+
+    - name: Create release if not exists
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
+        PACKAGE_NAME: ${{ inputs.package_name }}
+      run: |
+        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
+
+        if ! gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
+          gh release create "$RELEASE_NAME" \
+            --title "Release $RELEASE_NAME" \
+            --notes "$PACKAGE_NAME $RELEASE_NAME
+        Built from commit: $GITHUB_SHA
+        Workflow run: $GITHUB_RUN_NUMBER"
+        else
+          echo "Release $RELEASE_NAME already exists, skipping creation."
+        fi
+
+    - name: Move and upload packages
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
+        PACKAGE_NAME: ${{ inputs.package_name }}
+      run: |
+        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
+
+        for ext in ${{ inputs.extensions }}; do
+          files=("${{ inputs.artifact_name }}"/*.$ext)
+          if [ ${#files[@]} -ne 1 ]; then
+            echo "Expected exactly one *.$ext file, found ${#files[@]}"
+            exit 1
+          fi
+
+          target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
+          mv -f "${files[0]}" "$target"
+          echo "Uploading $target"
+          gh release upload "$RELEASE_NAME" "$target" --clobber
+        done
