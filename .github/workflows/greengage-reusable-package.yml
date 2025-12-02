@@ -95,7 +95,7 @@ jobs:
       contents: write  # Required for release creation
     steps:
       - name: Upload packages to release
-        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@ADBDEV-8877
+        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@main
         with:
           version: ${{ inputs.version }}    # optional, defaults empty
           artifact_name: deb-packages       # optional, defaults to Packages
