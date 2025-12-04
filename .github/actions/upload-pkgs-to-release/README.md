@@ -1,17 +1,19 @@
 # Upload Packages to GitHub Release
 
 This composite GitHub Action uploads package files (e.g. `.deb`,`.ddeb`,`.rpm`)
-to a GitHub release. It ensures fixed package names, creates release only if it
-does not already exist, and safely uploads files with replacement if necessary.
+to an existing GitHub release. It ensures fixed package names, optionally creates
+releases, and safely uploads files with replacement if necessary.
 
 ## Inputs
 
 | Name            | Required | Default         | Description |
 |-----------------|----------|-----------------|-------------|
-| `artifact_name` | no       | `Packages`      | Path where artifacts are downloaded |
-| `package_name`  | no       | repository name | Base package name to use for uploaded files (derived from repo name if empty) |
+| `artifact_name` | no       | `Packages`      | Artifact name to download from previous jobs |
+| `package_name`  | no       | repository name | Base package name for uploaded files (derived from repo name if empty) |
+| `release_name`  | no       | current tag     | Target release name (defaults to tag from `GITHUB_REF`) |
 | `version`       | no       | empty           | Version string appended to package name (e.g., `6` makes `packagename6.deb`) |
 | `extensions`    | no       | `deb ddeb rpm`  | Space-separated list of package file extensions to process |
+| `create_force`  | no       | empty           | Set to force release creation if it doesn't exist |
 
 ## Usage
 
@@ -29,7 +31,7 @@ jobs:
         with:
           package_name: greengage
           version: 6
-          extensions: "deb ddeb rpm"
+          extensions: "deb ddeb"
 ```
 
 **Important**: Ensure your workflow has the `contents: write` permission as
@@ -38,13 +40,12 @@ shown above.
 ## Behavior
 
 * **Downloads artifacts** from a previous job into the `artifact_name` directory
-* **Determines release name** from `GITHUB_REF`:
-  * Uses tag name if the workflow was triggered by a tag (e.g., `v1.0.0`)
-  * Uses branch name if not a tag (e.g., `main`)
-* **Creates a GitHub release** only if it does not already exist
+* **Determines release name** from `GITHUB_REF` tag or `release_name` input
+* **Creates a GitHub release** only if `create_force` is set and release doesn't exist
+* **Checks release existence** before attempting upload
 * **Renames files** to fixed naming pattern: exactly one file per extension is
   renamed to `${PACKAGE_NAME}${VERSION}.$ext`
-* **Uploads files** to the release, replacing existing files with `--clobber`
+* **Uploads files** to the release only if it exists, replacing existing files with `--clobber`
 * **Supports multiple file extensions** (e.g., `.deb`, `.ddeb`, `.rpm`)
 
 ## Example Result
@@ -60,8 +61,9 @@ the uploaded files will be named:
 
 * The action uses the GitHub CLI (`gh`) internally, which authenticates
   automatically using `github.token`
-* If a release already exists, it will not be recreated (only files will be
-  uploaded)
-* The action expects exactly **one file per extension** in the artifact
-  directory
+* By default, the action **does not create releases** - they must exist beforehand
+* Set `create_force: true` to enable automatic release creation
+* The upload step **skips automatically** if the target release doesn't exist
+* The action expects exactly **one file per extension** in the artifact directory
 * Release notes include commit SHA and workflow run number for traceability
+* Works with both tag push events and release events (where `GITHUB_REF` contains the tag)
