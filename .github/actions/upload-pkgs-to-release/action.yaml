@@ -10,6 +10,10 @@ inputs:
     description: 'Base package name, defaults to repository name'
     required: false
     default: ''
+  release_name:
+    description: 'Target release name, defaults to current tag'
+    required: false
+    default: ''
   version:
     description: 'Version string to append to package name'
     required: false
@@ -18,6 +22,10 @@ inputs:
     description: 'Space-separated list of package file extensions'
     required: false
     default: 'deb ddeb rpm'
+  create_force:
+    description: 'Force create the release if not exists, defaults false'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -33,31 +41,27 @@ runs:
         name: ${{ inputs.artifact_name }}
         path: ${{ inputs.artifact_name }}
 
-    - name: Determine release name
-      shell: bash
-      id: release_name
-      run: |
-        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-          RELEASE_NAME="${GITHUB_REF#refs/tags/}"
-        else
-          RELEASE_NAME="${GITHUB_REF#refs/heads/}"
-        fi
-        echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
-        echo "Using release: $RELEASE_NAME"
-
     - name: List downloaded files
       shell: bash
-      run: |
-        find "${{ inputs.artifact_name }}" -type f
+      run: find "${{ inputs.artifact_name }}" -type f
 
     - name: Create release if not exists
+      if: inputs.create_force != ''
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
+        RELEASE_NAME: ${{ inputs.release_name }}
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
+        RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
+
+        for var in PACKAGE_NAME RELEASE_NAME ; do
+          if [ -z "${!var}" ] ; then
+            echo "Can't determine $var"
+            exit 1
+          fi
+        done
 
         if ! gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
           gh release create "$RELEASE_NAME" \
@@ -73,11 +77,22 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        RELEASE_NAME: ${{ steps.release_name.outputs.release_name }}
+        RELEASE_NAME: ${{ inputs.release_name }}
         PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
         PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
+        RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
 
+        for var in PACKAGE_NAME RELEASE_NAME ; do
+          if [ -z "${!var}" ] ; then
+            echo "Can't determine $var"
+            exit 1
+          fi
+        done
+
+        # Fix: Enable nullglob for empty directory case
+        shopt -s nullglob
+        
         for ext in ${{ inputs.extensions }}; do
           files=("${{ inputs.artifact_name }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
