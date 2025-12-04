@@ -78,10 +78,14 @@ runs:
       id: check_release
       env:
         GH_TOKEN: ${{ github.token }}
+        RELEASE_NAME: ${{ inputs.release_name }}
       run: |
         RELEASE_NAME="${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}"
         if gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
+          echo "Release '$RELEASE_NAME' exists, proceeding with upload"
           echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "Release '$RELEASE_NAME' not found, skipping upload"
         fi
 
     - name: Move and upload packages
