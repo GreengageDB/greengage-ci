@@ -26,6 +26,10 @@ inputs:
     description: 'Force create the release if not exists, defaults false'
     required: false
     default: ''
+  clobber:
+    description: 'Overwrite existing assets if they exist. Defaults to false (skip if exists)'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -118,5 +122,5 @@ runs:
           target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
-          gh release upload "$RELEASE_NAME" "$target" --clobber
+          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' }}
         done
