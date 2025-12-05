@@ -87,17 +87,17 @@ jobs:
               { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
               apt-get install -f -y"
 
-  upload-to-release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-deb, test-docker]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required for release creation
-    steps:
-      - name: Upload packages to release
-        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@main
-        with:
-          version: ${{ inputs.version }}    # optional, defaults empty
-          artifact_name: deb-packages       # optional, defaults to Packages
-          package_name: greengage           # optional, defaults to repo name
-          extensions: "deb ddeb"            # optional, space-separated list of extensions
+  # upload-to-release:
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: [build-deb, test-docker]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write  # Required for release creation
+  #   steps:
+  #     - name: Upload packages to release
+  #       uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@main
+  #       with:
+  #         version: ${{ inputs.version }}    # optional, defaults empty
+  #         artifact_name: deb-packages       # optional, defaults to Packages
+  #         package_name: greengage           # optional, defaults to repo name
+  #         extensions: "deb ddeb"            # optional, space-separated list of extensions
