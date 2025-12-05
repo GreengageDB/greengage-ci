@@ -39,11 +39,17 @@ runs:
       with:
         submodules: recursive
 
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
+    - name: Restore Debian artifacts from cache
+      uses: actions/cache/restore@v4
       with:
-        name: ${{ inputs.artifact_name }}
         path: ${{ inputs.artifact_name }}
+        key:  ${{ inputs.artifact_name }}-${{ github.sha }}
+
+    # - name: Download artifacts
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: ${{ inputs.artifact_name }}
+    #     path: ${{ inputs.artifact_name }}
 
     - name: List downloaded files
       shell: bash

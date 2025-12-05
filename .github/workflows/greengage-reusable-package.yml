@@ -65,6 +65,12 @@ jobs:
           name: deb-packages
           path: deb-packages
 
+      - name: Cache Debian artifacts
+        uses: actions/cache/save@v4
+        with:
+          path: deb-packages
+          key: deb-packages-${{ github.sha }}
+
   test-docker:
     if: inputs.test_docker != ''
     env:
