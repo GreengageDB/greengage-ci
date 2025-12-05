@@ -128,5 +128,5 @@ runs:
           target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
-          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' }}
+          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' || '' }}
         done
