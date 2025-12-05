@@ -41,15 +41,31 @@ runs:
 
     - name: Restore Debian artifacts from cache
       uses: actions/cache/restore@v4
+      id: cache-restore
       with:
         path: ${{ inputs.artifact_name }}
         key:  ${{ inputs.artifact_name }}-${{ github.sha }}
 
-    # - name: Download artifacts
-    #   uses: actions/download-artifact@v4
-    #   with:
-    #     name: ${{ inputs.artifact_name }}
-    #     path: ${{ inputs.artifact_name }}
+    - name: Check build status if cache missed
+      if: failure() && steps.cache-restore.outcome == 'failure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        conclusion=$(gh run list --workflow "Greengage CI" --limit 100 \
+          --json conclusion,headSha,event,headBranch \
+          --jq 'map(select(.headSha == "'"${{ github.sha }}"'" and .event == "push" and .headBranch == "'"${{ github.event.release.tag_name }}"'")) \
+          | .[0].conclusion')
+
+        if [ -z "$conclusion" ] || [ "$conclusion" = "success" ]; then
+          echo "** WARNING: Cache miss. Triggering new build..."
+          gh workflow run ".github/workflows/greengage-ci.yml" --ref "${{ github.event.release.tag_name }}"
+          gh workflow run ".github/workflows/greengage-release.yml" --ref "${{ github.event.release.tag_name }}"
+          echo "** WARNING: Build and Release workflows queued. This workflow will fail. New release will run after build."
+        else
+          echo "** ERROR: Previous TAG Build failed: $conclusion. Fix it manually."
+        fi
+        exit 1
 
     - name: List downloaded files
       shell: bash
