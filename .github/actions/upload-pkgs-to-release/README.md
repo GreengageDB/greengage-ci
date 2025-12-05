@@ -1,27 +1,54 @@
 # Upload Packages to GitHub Release
 
-This composite GitHub Action uploads package files (e.g. `.deb`,`.ddeb`,`.rpm`)
-to an existing GitHub release. It ensures fixed package names, optionally creates
-releases, and safely uploads files with replacement if necessary.
+This composite GitHub Action manages package deployment through cache-based artifact
+restoration, automatic build recovery, and sequential workflow execution. It uploads
+package files (`.deb`, `.ddeb`, `.rpm`) to GitHub releases with fixed naming patterns.
+
+## Core Algorithm
+
+### Normal Flow (Cache Available)
+
+1. **Restore artifacts** from cache using commit SHA as key
+2. **Check release** existence and create if `create_force` specified
+3. **Rename packages** to fixed pattern: `${PACKAGE_NAME}${VERSION}.${EXT}`
+4. **Upload to release** with optional overwrite (`clobber` flag)
+
+### Cache Miss Scenarios
+
+#### A. No Previous Build or Previous Build Successful
+
+- **Trigger** new build workflow for the tag
+- **Queue** new release workflow for sequential execution  
+- **Fail** current workflow → User manually restarts after build completes
+
+#### B. Previous Build Failed
+
+- **Log error** with build status (`failure`, `cancelled`, `timed_out`)
+- **Fail** workflow → Requires manual intervention to fix build issues
+
+### Concurrency & Sequencing
+
+- **Shared concurrency group** prevents parallel execution of build/release workflows
+- **FIFO queuing** ensures proper order: Build → Release → Upload
+- **Deadlock prevention** through workflow termination and re-queuing
 
 ## Inputs
 
-| Name            | Required | Default         | Description |
-|-----------------|----------|-----------------|-------------|
-| `artifact_name` | no       | `Packages`      | Artifact name to download from previous jobs |
-| `package_name`  | no       | repository name | Base package name for uploaded files (derived from repo name if empty) |
-| `release_name`  | no       | current tag     | Target release name (defaults to tag from `GITHUB_REF`) |
-| `version`       | no       | empty           | Version string appended to package name (e.g., `6` makes `packagename6.deb`) |
-| `extensions`    | no       | `deb ddeb rpm`  | Space-separated list of package file extensions to process |
-| `create_force`  | no       | empty           | Set to force release creation if it doesn't exist |
+| Name | Required | Default | Description |
+|------|----------|---------|-------------|
+| `artifact_name` | no | `Packages` | Cache key prefix for artifact restoration |
+| `package_name` | no | repo name | Base package name for uploaded files |
+| `release_name` | no | current tag | Target release name (defaults to tag) |
+| `version` | no | empty | Version suffix for package names |
+| `extensions` | no | `deb ddeb rpm` | Space-separated package extensions |
+| `create_force` | no | empty | Force release creation if missing |
+| `clobber` | no | `false` | Overwrite existing release assets |
 
-## Usage
+## Usage Example
 
 ```yaml
 jobs:
-  upload-pkgs-to-release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-deb, test-docker]
+  upload-to-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Required for creating/updating releases
@@ -34,36 +61,27 @@ jobs:
           extensions: "deb ddeb"
 ```
 
-**Important**: Ensure your workflow has the `contents: write` permission as
-shown above.
+## Key Features
 
-## Behavior
+- **Cache-based restoration**: Uses GitHub Actions cache with commit-based keys
+- **Build auto-recovery**: Detects missing artifacts and triggers rebuilds
+- **Safe concurrency**: Prevents race conditions through shared execution groups
+- **Failure protection**: Avoids infinite loops by checking build history
+- **Idempotent uploads**: Optional file overwriting with `clobber` flag
 
-* **Downloads artifacts** from a previous job into the `artifact_name` directory
-* **Determines release name** from `GITHUB_REF` tag or `release_name` input
-* **Creates a GitHub release** only if `create_force` is set and release doesn't exist
-* **Checks release existence** before attempting upload
-* **Renames files** to fixed naming pattern: exactly one file per extension is
-  renamed to `${PACKAGE_NAME}${VERSION}.$ext`
-* **Uploads files** to the release only if it exists, replacing existing files with `--clobber`
-* **Supports multiple file extensions** (e.g., `.deb`, `.ddeb`, `.rpm`)
+## Error Recovery States
 
-## Example Result
-
-For a repository named `myapp`, with `package_name: myapp` and `version: 1.2`,
-the uploaded files will be named:
-
-* `myapp1.2.deb`
-* `myapp1.2.ddeb`
-* `myapp1.2.rpm`
+| Condition | Action | Outcome |
+|-----------|--------|---------|
+| Cache found | Upload packages | Success |
+| No previous build | Trigger build + queue release | Manual restart needed |
+| Previous successful build | Trigger rebuild + queue release | Auto-retry after build |
+| Previous failed build | Error message + fail | Manual fix required |
 
 ## Notes
 
-* The action uses the GitHub CLI (`gh`) internally, which authenticates
-  automatically using `github.token`
-* By default, the action **does not create releases** - they must exist beforehand
-* Set `create_force: true` to enable automatic release creation
-* The upload step **skips automatically** if the target release doesn't exist
-* The action expects exactly **one file per extension** in the artifact directory
-* Release notes include commit SHA and workflow run number for traceability
-* Works with both tag push events and release events (where `GITHUB_REF` contains the tag)
+- Requires `contents: write` permission for release operations
+- Uses shared concurrency groups for workflow sequencing
+- Expects exactly one file per extension in cache/artifact directory
+- Release notes include commit SHA and workflow run ID for traceability
+- Compatible with both tag push and release events
