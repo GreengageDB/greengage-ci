@@ -53,12 +53,13 @@ runs:
         GH_TOKEN: ${{ github.token }}
       run: |
         result=$(gh run list --workflow "Greengage CI" --limit 100 \
-          --json conclusion,headSha,event,headBranch,id \
+          --json conclusion,headSha,event,headBranch,databaseId,url \
           --jq 'map(select(.headSha == "'"${{ github.sha }}"'" and .event == "push" and .headBranch == "'"${{ github.event.release.tag_name }}"'")) |
           .[0]')
         
         conclusion=$(echo "$result" | jq -r '.conclusion')
-        run_id=$(echo "$result" | jq -r '.id')
+        run_id=$(echo "$result" | jq -r '.databaseId')
+        run_url=$(echo "$result" | jq -r '.url')
         
         if [ -z "$conclusion" ] || [ "$conclusion" = "success" ]; then
           echo "ERROR: Cache miss. No artifacts found for tag: ${{ github.event.release.tag_name }}"
@@ -67,11 +68,13 @@ runs:
             echo "Click 'Re-run all jobs' to rebuild cache"
           else
             echo "No CI workflow triggered for this tag"
-            echo "Possible causes:"
-            echo "  - CI workflow is disabled or misconfigured"
-            echo "  - GitHub Actions permissions are restricted"
-            echo ""
-            echo "Ensure 'Greengage CI' workflow runs successfully on tag: ${{ github.event.release.tag_name }}"
+            echo "Possible reasons:"
+            echo "  - Tag does not match workflow filter pattern (check 'tags:' in CI workflow)"
+            echo "  - GitHub Actions permissions prevent workflow execution"
+            echo "  - CI workflow configuration error"
+            echo "  - Other unexpected failures in workflow triggering"
+            echo -e "\nEnsure 'Greengage CI' workflow runs successfully on tag: ${{ github.event.release.tag_name }}"
+            echo "Check workflow configuration and permissions."
           fi
           echo -e "\nAfter successful build, restart this release workflow."
         else
