@@ -52,21 +52,34 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        conclusion=$(gh run list --workflow "Greengage CI" --limit 100 \
-          --json conclusion,headSha,event,headBranch \
+        result=$(gh run list --workflow "Greengage CI" --limit 100 \
+          --json conclusion,headSha,event,headBranch,id \
           --jq 'map(select(.headSha == "'"${{ github.sha }}"'" and .event == "push" and .headBranch == "'"${{ github.event.release.tag_name }}"'")) |
-          .[0].conclusion')
-
+          .[0]')
+        
+        conclusion=$(echo "$result" | jq -r '.conclusion')
+        run_id=$(echo "$result" | jq -r '.id')
+        
         if [ -z "$conclusion" ] || [ "$conclusion" = "success" ]; then
-          # echo "WARNING: Cache miss. Triggering new build..."
-          # gh workflow run ".github/workflows/greengage-ci.yml" --ref "${{ github.event.release.tag_name }}"
-          # gh workflow run ".github/workflows/greengage-release.yml" --ref "${{ github.event.release.tag_name }}"
-          # echo "WARNING: Build and Release workflows queued. This workflow will fail. New release will run after build."
-          echo "WARNING: The previous build for this tag succeeded, but the cache is missing."
-          echo "      1. Rerun the build workflow with event 'push' on tag '${{ github.event.release.tag_name }}'"
-          echo "      2. After the build completes, rerun this release workflow"
+          echo "ERROR: Cache miss. No artifacts found for tag: ${{ github.event.release.tag_name }}"
+          if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+            echo "Previous run: https://github.com/${{ github.repository }}/actions/runs/$run_id"
+            echo "Click 'Re-run all jobs' to rebuild cache"
+          else
+            echo "No CI workflow triggered for this tag"
+            echo "Possible causes:"
+            echo "  - CI workflow is disabled or misconfigured"
+            echo "  - GitHub Actions permissions are restricted"
+            echo ""
+            echo "Ensure 'Greengage CI' workflow runs successfully on tag: ${{ github.event.release.tag_name }}"
+          fi
+          echo -e "\nAfter successful build, restart this release workflow."
         else
-          echo "ERROR: Previous TAG Build failed: $conclusion. Fix it manually."
+          echo "ERROR: Previous build failed: $conclusion"
+          if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+            echo "Failed run: https://github.com/${{ github.repository }}/actions/runs/$run_id"
+            echo "Click 'Re-run all jobs' after fixing issues"
+          fi
         fi
         exit 1
 
