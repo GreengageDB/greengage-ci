@@ -47,7 +47,7 @@ runs:
         key:  ${{ inputs.artifact_name }}-${{ github.sha }}
 
     - name: Check build status if cache missed
-      if: failure() && steps.cache-restore.outcome == 'failure'
+      if: steps.cache-restore.outcome == 'failure'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
