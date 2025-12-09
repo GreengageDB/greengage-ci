@@ -16,7 +16,8 @@ This composite GitHub Action manages package deployment through cache-based arti
 #### A. No Previous Build or Previous Build Successful
 
 - **Check** the status of the last build for the tag
-- **Provide instructions** for manual build trigger
+- **If `fallback_to_artifacts` enabled**: Download artifacts from successful CI workflow run
+- **Otherwise provide instructions** for manual build trigger
 - **Fail** current workflow → User manually triggers build and restarts release workflow after build completes
 
 #### B. Previous Build Failed
@@ -42,6 +43,7 @@ This composite GitHub Action manages package deployment through cache-based arti
 | `extensions` | no | `deb ddeb rpm` | Space-separated package extensions |
 | `create_force` | no | empty | Force release creation if missing |
 | `clobber` | no | `false` | Overwrite existing release assets |
+| `fallback_to_artifacts` | no | `false` | Try to download artifacts from successful CI workflow if cache missed |
 
 ## Usage Example
 
@@ -58,12 +60,14 @@ jobs:
           package_name: greengage
           version: 6
           extensions: "deb ddeb"
+          fallback_to_artifacts: true
 ```
 
 ## Key Features
 
 - **Cache-based restoration**: Uses GitHub Actions cache with commit-based keys
-- **Manual build recovery**: Provides clear instructions when cache is missing
+- **Artifact fallback**: Optionally downloads artifacts from successful CI runs when cache is missing
+- **Manual build recovery**: Provides clear instructions when cache is missing and fallback is disabled
 - **Safe concurrency**: Prevents race conditions through shared execution groups
 - **Failure protection**: Avoids infinite loops by checking build history
 - **Idempotent uploads**: Optional file overwriting with `clobber` flag
@@ -73,8 +77,9 @@ jobs:
 | Condition | Action | Outcome |
 |-----------|--------|---------|
 | Cache found | Upload packages | Success |
-| Cache miss, no previous build | Provide instructions for manual build | Manual intervention required |
-| Cache miss, previous successful build | Provide link to previous run and instructions for rebuild | Manual intervention required |
+| Cache miss, fallback enabled, successful build | Download artifacts and upload | Success |
+| Cache miss, fallback disabled, no previous build | Provide instructions for manual build | Manual intervention required |
+| Cache miss, fallback disabled, previous successful build | Provide link to previous run and instructions for rebuild | Manual intervention required |
 | Cache miss, previous failed build | Provide link to failed run and instructions to fix | Manual intervention required |
 
 ## Notes
@@ -84,4 +89,4 @@ jobs:
 - Expects exactly one file per extension in cache/artifact directory
 - Release notes include commit SHA and workflow run ID for traceability
 - Compatible with both tag push and release events
-- When cache is missing, the action will fail with detailed recovery instructions instead of automatically triggering builds
+- When cache is missing, the action will attempt artifact fallback (if enabled) or fail with detailed recovery instructions

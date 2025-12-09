@@ -30,6 +30,10 @@ inputs:
     description: 'Overwrite existing assets if they exist. Defaults to false (skip if exists)'
     required: false
     default: ''
+  fallback_to_artifacts:
+    description: 'Try to download artifacts from successful CI workflow if cache missed'
+    required: false
+    default: 'true'
 
 runs:
   using: "composite"
@@ -46,8 +50,9 @@ runs:
         path: ${{ inputs.artifact_name }}
         key:  ${{ inputs.artifact_name }}-${{ github.sha }}
 
-    - name: Check build status if cache missed
+    - name: Get CI workflow run info
       if: steps.cache-restore.outputs.cache-hit != 'true'
+      id: get-run-info
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -60,6 +65,29 @@ runs:
         conclusion=$(echo "$result" | jq -r '.conclusion')
         run_id=$(echo "$result" | jq -r '.databaseId')
         run_url=$(echo "$result" | jq -r '.url')
+        
+        echo "conclusion=$conclusion" >> $GITHUB_OUTPUT
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+        echo "run_url=$run_url" >> $GITHUB_OUTPUT
+
+    - name: Try to restore packages from GitHub artifacts
+      if: steps.cache-restore.outputs.cache-hit != 'true' && inputs.fallback_to_artifacts == 'true' && steps.get-run-info.outputs.conclusion == 'success'
+      id: try-restore
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ steps.get-run-info.outputs.run_id }}
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.artifact_name }}
+
+    - name: Check build status if cache missed
+      if: steps.cache-restore.outputs.cache-hit != 'true' && (inputs.fallback_to_artifacts != 'true' || steps.get-run-info.outputs.conclusion != 'success')
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        conclusion="${{ steps.get-run-info.outputs.conclusion }}"
+        run_id="${{ steps.get-run-info.outputs.run_id }}"
+        run_url="${{ steps.get-run-info.outputs.run_url }}"
         
         if [ -z "$conclusion" ] || [ "$conclusion" = "success" ]; then
           echo "ERROR: Cache miss. No artifacts found for tag: ${{ github.event.release.tag_name }}"
