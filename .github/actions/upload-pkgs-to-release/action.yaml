@@ -43,6 +43,14 @@ runs:
       with:
         submodules: recursive
 
+    - name: Debug ref context ACTION
+      shell: bash
+      run: |
+        echo "Current ref: ${{ github.ref }}"
+        echo "Current ref_name: ${{ github.ref_name }}"
+        echo "Current sha: ${{ github.sha }}"
+        echo "Event name: ${{ github.event_name }}"
+
     - name: Restore Package artifacts from cache
       uses: actions/cache/restore@v4
       id: cache-restore
