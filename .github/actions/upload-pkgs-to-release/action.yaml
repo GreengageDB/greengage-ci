@@ -43,6 +43,31 @@ runs:
       with:
         submodules: recursive
 
+    - name: Check available caches COMPOSITE ACTION
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        matrix_combinations=(
+          "pxf-packages-6-devel"
+          "pxf-packages-6-stable"
+          "pxf-packages-7-devel"
+          "pxf-packages-7-stable"
+          "deb-packages"
+          "pxf-packages"
+          "Packages"
+        )
+        
+        for prefix in "${matrix_combinations[@]}"; do
+          key="${prefix}-${{ github.sha }}"
+          cache_info=$(gh cache list --key "$key" 2>/dev/null || true)
+          if [ -n "$cache_info" ] && [ "$cache_info" != "[]" ]; then
+            echo "Cache found: $key"
+          else
+            echo "Cache not found: $key"
+          fi
+        done
+
     - name: Restore Debian artifacts from cache
       uses: actions/cache/restore@v4
       id: cache-restore
