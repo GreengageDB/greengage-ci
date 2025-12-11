@@ -6,10 +6,6 @@ inputs:
     description: 'Artifact name for download'
     required: false
     default: 'Packages'
-  artifact_path:
-    description: 'Artifact path'
-    required: false
-    default: 'Packages'
   package_name:
     description: 'Base package name, defaults to repository name'
     required: false
@@ -55,7 +51,7 @@ runs:
       uses: actions/cache/restore@v4
       id: cache-restore
       with:
-        # path: ${{ inputs.artifact_path }}
+        path: ${{ inputs.artifact_name }}
         key:  ${{ inputs.artifact_name }}-${{ github.sha }}
 
     - name: Check build status if cache missed
