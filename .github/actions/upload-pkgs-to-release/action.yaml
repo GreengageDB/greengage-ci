@@ -171,5 +171,9 @@ runs:
           target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
           mv -f "${files[0]}" "$target"
           echo "Uploading $target"
-          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' || '' }}
+          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
         done
+        if [ -n "$not_uploaded" ] ; then
+          echo "The following extension(s) are not uploaded: $not_uploaded"
+          exit 1
+        fi
