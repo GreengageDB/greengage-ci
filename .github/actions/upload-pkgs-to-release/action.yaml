@@ -110,8 +110,8 @@ runs:
             continue
           fi
 
-          echo "ERROR: CI workflow failed or was skipped. Status: '$status'. Failed run url: '$run_url'"
-          echo "Result: '$result'"
+          echo "ERROR: CI workflow failed or was skipped. Failed run url: '$run_url'"
+          jq <<< "$result"
           exit 1
         done
 
