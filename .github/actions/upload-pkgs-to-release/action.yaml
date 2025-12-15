@@ -78,7 +78,7 @@ runs:
             exit 1
           fi
 
-          result=$(gh run list --workflow "$WORKFLOW" --limit 1 \
+          result=$(gh run list --workflow "$WORKFLOW" --limit 100 \
             --json conclusion,headSha,event,headBranch,url,status \
             --jq '
               map(select(
