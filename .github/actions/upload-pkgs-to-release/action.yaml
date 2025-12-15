@@ -104,7 +104,7 @@ runs:
             break
           fi
 
-          if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "waiting" ]; then
+          if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "waiting" ] || [ "$status" = "pending" ]; then
             echo "Current status: '$status'. Continue waiting... (${remaining}s remaining)"
             sleep $POLL_INTERVAL
             continue
