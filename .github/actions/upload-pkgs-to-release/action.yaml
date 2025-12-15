@@ -30,6 +30,18 @@ inputs:
     description: 'Overwrite existing assets if they exist. Defaults to false (skip if exists)'
     required: false
     default: ''
+  ci_wait_timeout:
+    description: 'Timeout in seconds to wait for CI workflow'
+    required: false
+    default: '14400'  # 4 hours
+  ci_poll_interval:
+    description: 'Poll interval in seconds to check CI workflow status'
+    required: false
+    default: '60'  # 1 minute
+  workflow_for_waiting:
+    description: 'Packages generation workflow name for waiting'
+    required: false
+    default: 'Greengage CI'
 
 runs:
   using: "composite"
@@ -39,13 +51,69 @@ runs:
       with:
         submodules: recursive
 
-    - name: Debug ref context RSETORE ACTION
+    - name: Debug ref context RESTORE ACTION
       shell: bash
       run: |
         echo "Current ref: ${{ github.ref }}"
         echo "Current ref_name: ${{ github.ref_name }}"
         echo "Current sha: ${{ github.sha }}"
         echo "Event name: ${{ github.event_name }}"
+
+    - name: Wait for package generation workflow completion
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        MAX_WAIT_SECONDS: ${{ inputs.ci_wait_timeout }}
+        POLL_INTERVAL: ${{ inputs.ci_poll_interval }}
+        WORKFLOW: ${{ inputs.workflow_for_waiting }}
+      run: |
+        start_time=$(date +%s)
+
+        while true; do
+          elapsed=$(($(date +%s) - start_time))
+          remaining=$((MAX_WAIT_SECONDS - elapsed))
+          
+          if [ $remaining -le 0 ]; then
+            echo "ERROR: Timeout waiting for CI workflow (waited ${MAX_WAIT_SECONDS}s)"
+            exit 1
+          fi
+
+          result=$(gh run list --workflow "$WORKFLOW" --limit 1 \
+            --json conclusion,headSha,event,headBranch,url,status \
+            --jq '
+              map(select(
+                .headSha == "'"${{ github.sha }}"'" and 
+                .event == "push" and 
+                .headBranch == "'"${{ github.event.release.tag_name }}"'"
+              )) |
+              .[0]
+            ')
+
+          if [ -z "$result" ] || [ "$result" = "null" ]; then
+            echo "CI workflow not found yet. Waiting... (${remaining}s remaining)"
+            sleep $POLL_INTERVAL
+            continue
+          fi
+
+          status=$(echo "$result" | jq -r '.status // empty')
+          conclusion=$(echo "$result" | jq -r '.conclusion // empty')
+          run_url=$(echo "$result" | jq -r '.url')
+
+          if [ "$status" = "completed" ] && [ "$conclusion" = "success" ]; then
+            echo "CI_WORKFLOW_URL=$run_url" >> $GITHUB_ENV
+            break
+          fi
+
+          if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "waiting" ] || [ "$status" = "pending" ]; then
+            echo "Current status: '$status'. Continue waiting... (${remaining}s remaining)"
+            sleep $POLL_INTERVAL
+            continue
+          fi
+
+          echo "ERROR: CI workflow failed or was skipped. Failed run url: '$run_url'"
+          jq <<< "$result"
+          exit 1
+        done
 
     - name: Restore Package artifacts from cache
       uses: actions/cache/restore@v4
@@ -54,44 +122,12 @@ runs:
         path: ${{ inputs.artifact_name }}
         key:  ${{ inputs.artifact_name }}-${{ github.sha }}
 
-    - name: Check build status if cache missed
+    - name: Handle cache miss or restore failure
       if: steps.cache-restore.outputs.cache-hit != 'true'
       shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
       run: |
-        result=$(gh run list --workflow "Greengage CI" --limit 100 \
-          --json conclusion,headSha,event,headBranch,databaseId,url \
-          --jq 'map(select(.headSha == "'"${{ github.sha }}"'" and .event == "push" and .headBranch == "'"${{ github.event.release.tag_name }}"'")) |
-          .[0]')
-        
-        conclusion=$(echo "$result" | jq -r '.conclusion')
-        run_id=$(echo "$result" | jq -r '.databaseId')
-        run_url=$(echo "$result" | jq -r '.url')
-        
-        if [ -z "$conclusion" ] || [ "$conclusion" = "success" ]; then
-          echo "ERROR: Cache miss. No artifacts found for tag: ${{ github.event.release.tag_name }}"
-          if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
-            echo "Previous run: https://github.com/${{ github.repository }}/actions/runs/$run_id"
-            echo "Click 'Re-run all jobs' to rebuild cache"
-          else
-            echo "No CI workflow triggered for this tag"
-            echo "Possible reasons:"
-            echo "  - Tag does not match workflow filter pattern (check 'tags:' in CI workflow)"
-            echo "  - GitHub Actions permissions prevent workflow execution"
-            echo "  - CI workflow configuration error"
-            echo "  - Other unexpected failures in workflow triggering"
-            echo -e "\nEnsure 'Greengage CI' workflow runs successfully on tag: ${{ github.event.release.tag_name }}"
-            echo "Check workflow configuration and permissions."
-          fi
-          echo -e "\nAfter successful build, restart this release workflow."
-        else
-          echo "ERROR: Previous build failed: $conclusion"
-          if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
-            echo "Failed run: https://github.com/${{ github.repository }}/actions/runs/$run_id"
-            echo "Click 'Re-run all jobs' after fixing issues"
-          fi
-        fi
+        echo "ERROR: Cache missed but last build succeeded. No artifacts found for tag: '${{ github.event.release.tag_name }}'"
+        echo "Please go to ${CI_WORKFLOW_URL:-the CI workflow run} and click 'Re-run all jobs' to rebuild cache"
         exit 1
 
     - name: List downloaded files
