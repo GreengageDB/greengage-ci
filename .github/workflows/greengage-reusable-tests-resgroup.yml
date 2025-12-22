@@ -192,7 +192,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: vm-home/logs
+          path: vm-home/logs*/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
