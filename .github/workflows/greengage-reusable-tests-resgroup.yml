@@ -101,10 +101,10 @@ jobs:
 
           # Extract test script from Image instaed of GIT
           docker create --name temp-container \$IMAGE
-          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash ./run_resgroup_test.bash
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci ./ci
           docker rm temp-container
 
-          source run_resgroup_test.bash
+          source ci/scripts/run_resgroup_test.bash
           EOF0
 
       - name: Create VM disk and cloud-init config
