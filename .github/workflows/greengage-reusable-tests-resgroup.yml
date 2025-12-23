@@ -104,8 +104,6 @@ jobs:
           docker cp temp-container:/home/gpadmin/gpdb_src/ci ./ci
           docker rm temp-container
 
-          pwd
-          ls -la ci/
           source ci/scripts/run_resgroup_test.bash
           EOF0
 
