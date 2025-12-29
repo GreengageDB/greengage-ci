@@ -79,15 +79,13 @@ jobs:
           export IMAGE=${IMAGE,,}
           docker run \
             -v $(pwd)/logs:/home/gpadmin/logs \
-            $IMAGE bash -c "
-              set -x
+            $IMAGE bash -c '
               set +e
               gpdb_src/concourse/scripts/unit_tests_gporca.bash
               exitcode=$?
-              echo "====== exitcode '$exitcode' ======="
               cp -rf gpdb_src/src/backend/gporca/build/Testing/Temporary/* logs/ 2>/dev/null
               exit $exitcode
-              "
+              '
 
       # Upload ORCA artifacts
       - name: Upload ORCA artifacts
