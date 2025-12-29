@@ -79,8 +79,11 @@ jobs:
           docker run \
             -v $(pwd)/logs:/home/gpadmin/logs \
             $IMAGE bash -c "
+              set +ex
               gpdb_src/concourse/scripts/unit_tests_gporca.bash
-              cp -rf gpdb_src/src/backend/gporca/build/Testing/Temporary/* logs/ 2>/dev/null || true
+              exitcode=$?
+              cp -rf gpdb_src/src/backend/gporca/build/Testing/Temporary/* logs/ 2>/dev/null
+              exit $exitcode
               "
 
       # Upload ORCA artifacts
