@@ -103,7 +103,7 @@ jobs:
 
       # Cache SHA image
       - name: Cache SHA image
-        uses: actions/cache@v4
+        uses: actions/cache/save@v4
         with:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
