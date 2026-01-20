@@ -91,6 +91,7 @@ jobs:
           # Run tests and save logs to a volume
           docker run -i --name $CONT_NAME \
             -v /mnt/logs:/logs \
+            -e DUMP_DB='${{ matrix.optimizer == 'postgres' && 'true' }}' \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
@@ -111,6 +112,7 @@ jobs:
             set -x
             cd /home/gpadmin/
             params=(
+              './ d sqldump'
               './ d gpAdminLogs'
               'gpdb_src/src/test/ d results'
               'gpdb_src/src/test/ f regression.diffs'
