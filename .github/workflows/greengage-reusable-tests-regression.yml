@@ -91,7 +91,6 @@ jobs:
           # Run tests and save logs to a volume
           docker run -i --name $CONT_NAME \
             -v /mnt/logs:/logs \
-            -e SKIP_TESTS='true' \
             -e DUMP_DB='${{ matrix.optimizer == 'postgres' && 'true' }}' \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world" \
