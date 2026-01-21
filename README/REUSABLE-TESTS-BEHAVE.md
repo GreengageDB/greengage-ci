@@ -29,6 +29,18 @@ The workflow executes Behave tests for the following features using a Docker ima
 
 It generates test artifacts (e.g., Allure reports, logs) and uploads them to GitHub Actions artifacts, with a final aggregated Allure report.
 
+### Execution and failure model
+
+Behave tests are executed as a matrix of independent jobs, one per feature.
+Failures in individual Behave jobs do not prevent the workflow from completing artifact collection.
+
+The final `collect-results` job:
+- always runs, even if one or more Behave jobs fail,
+- downloads all available artifacts,
+- generates a consolidated Allure report from partial results when applicable.
+
+The overall workflow status is determined by the Behave jobs.
+
 ## Usage
 
 To integrate this workflow into your pipeline:
