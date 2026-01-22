@@ -98,7 +98,6 @@ jobs:
           # Run tests and save logs to a volume
           docker run -i --name $CONT_NAME \
             -v /mnt/logs:/logs \
-            -e SKIP_TESTS='true' \
             -e DUMP_DB \
             -e TEST_OS \
             -e MAKE_TEST_COMMAND \
