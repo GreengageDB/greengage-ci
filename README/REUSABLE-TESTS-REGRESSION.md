@@ -2,9 +2,9 @@
 
 This workflow runs regression test suites for the Greengage project in a containerized environment. It is designed to be called from a parent CI pipeline, enabling users to execute automated regression tests with flexible version and operating system configurations.
 
-## Actual version `v14`
+## Actual version `v15`
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v14`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v15`
 
 ## Purpose
 
@@ -57,7 +57,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v14
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v15
       with:
         version: 7
         target_os: ubuntu
@@ -82,7 +82,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v14
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v15
       with:
         version: 7
         target_os: ${{ matrix.target_os }}
