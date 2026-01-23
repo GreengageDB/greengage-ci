@@ -2,13 +2,17 @@
 
 This workflow runs regression test suites for the Greengage project in a containerized environment. It is designed to be called from a parent CI pipeline, enabling users to execute automated regression tests with flexible version and operating system configurations.
 
+## Actual version `v14`
+
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v14`
+
 ## Purpose
 
 The workflow executes the following regression test using a Docker image built for the given Greengage version and target operating system:
 
 - `regression`
 
-It generates test artifacts (e.g., regression logs, `pg_log` directories, `gpAdminLogs`) and uploads them to GitHub Actions artifacts.
+It generates test artifacts (e.g., regression logs, `pg_log` directories, `gpAdminLogs`, SQL dumps) and uploads them to GitHub Actions artifacts.
 
 ## Usage
 
@@ -40,7 +44,7 @@ To integrate this workflow into your pipeline:
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
 - **Docker Image**: Ensure a Docker image exists in GHCR matching the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository`.
-- **Artifacts**: The workflow uploads artifacts (e.g., `regression_logs`, `pg_log`, `gpAdminLogs`) to GitHub Actions.
+- **Artifacts**: The workflow uploads artifacts (e.g., `regression_logs`, `pg_log`, `gpAdminLogs`, SQL dumps `sqldump`) to GitHub Actions.
 
 ### Examples
 
@@ -53,7 +57,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@v14
       with:
         version: 7
         target_os: ubuntu
@@ -68,6 +72,8 @@ To integrate this workflow into your pipeline:
   ```yaml
   jobs:
     regression-tests:
+      needs: build
+      if: github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/7.x'
       strategy:
         fail-fast: true
         matrix:
@@ -76,9 +82,9 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-regression-tests.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v14
       with:
-        version: 6
+        version: 7
         target_os: ${{ matrix.target_os }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -90,6 +96,7 @@ To integrate this workflow into your pipeline:
 - The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
 - Artifacts are uploaded with the name `regression_optimizer_<optimizer>`.
 - Ensure the regression test environment is configured correctly in the repository (e.g., `gpdb_src/concourse/scripts/ic_gpdb.bash`).
-- The workflow collects logs from multiple sources, including `pg_log` directories under `gpdb_src/gpAux/gpdemo/datadirs/`, `results`, `regression.diffs`, and `gpAdminLogs`, and archives them into tar files for upload.
+- The workflow collects logs from multiple sources, including `pg_log` directories under `gpdb_src/gpAux/gpdemo/datadirs/`, `results`, `regression.diffs`, `gpAdminLogs`, and SQL dumps `sqldump`.
+- SQL dumps are automatically collected on `push` events when using the Postgres planner (`optimizer off`). The test container receives the `DUMP_DB` environment variable set to `true` in this scenario.
 
 For further details, refer to the workflow file in the `.github/workflows/` directory.
