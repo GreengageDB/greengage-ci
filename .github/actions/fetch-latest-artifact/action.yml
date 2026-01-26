@@ -1,0 +1,73 @@
+name: "Fetch latest artifact from branch"
+description: "Finds and downloads the most recent artifact from specified branch"
+
+inputs:
+  branch:
+    description: 'Branch to search for artifacts'
+    required: true
+  artifact_name:
+    description: 'Name of the artifact to find and download'
+    required: true
+  extract_path:
+    description: 'Specific file or directory to extract from artifact (optional, extracts all if not specified)'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Find and download artifact
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        BRANCH: ${{ inputs.branch }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        EXTRACT_PATH: ${{ inputs.extract_path }}
+      run: |
+        set -euo pipefail
+        
+        echo "Searching for artifact: ${ARTIFACT_NAME}"
+        echo "In branch: ${BRANCH}"
+        
+        # Find the most recent successful workflow run in the specified branch
+        RUN_ID=$(gh api \
+          "/repos/${REPO}/actions/runs" \
+          -f branch="${BRANCH}" \
+          -f status=success \
+          -f per_page=1 \
+          --jq '.workflow_runs[0].id')
+        
+        if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+          echo "::error::No successful workflow runs found in branch ${BRANCH}"
+          exit 1
+        fi
+        
+        echo "Found workflow run ID: ${RUN_ID}"
+        
+        # Download artifact from this workflow run
+        gh run download "${RUN_ID}" \
+          --name "${ARTIFACT_NAME}" \
+          --repo "${REPO}"
+        
+        echo "Successfully downloaded artifact: ${ARTIFACT_NAME}"
+        
+        # Extract specific path if requested
+        if [ -n "${EXTRACT_PATH}" ]; then
+          echo "Extracting specific path: ${EXTRACT_PATH}"
+          
+          # Check if the path exists in downloaded artifact
+          if [ ! -e "${EXTRACT_PATH}" ]; then
+            echo "::error::Path ${EXTRACT_PATH} not found in artifact ${ARTIFACT_NAME}"
+            exit 1
+          fi
+          
+          # Move extracted content to current directory and cleanup
+          TEMP_EXTRACT=$(mktemp -d)
+          mv "${EXTRACT_PATH}" "${TEMP_EXTRACT}/"
+          rm -rf "${ARTIFACT_NAME}"
+          mv "${TEMP_EXTRACT}"/* ./
+          rmdir "${TEMP_EXTRACT}"
+          
+          echo "Successfully extracted: ${EXTRACT_PATH}"
+        fi
