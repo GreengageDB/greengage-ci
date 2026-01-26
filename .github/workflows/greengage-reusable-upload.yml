@@ -79,7 +79,7 @@ jobs:
 
       # Login to DockerHub for local PRs
       - name: Login to DockerHub
-        if: github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)
+        if: (github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)) && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         continue-on-error: true
         with:
@@ -115,7 +115,10 @@ jobs:
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
+            # Push to DockerHub only if secrets exist
+            if [[ '${{ secrets.DOCKERHUB_USERNAME }}' != '' && '${{ secrets.DOCKERHUB_TOKEN }}' != '' ]]; then
+              docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
+            fi
           else
             # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
             LATEST='testing'
@@ -128,7 +131,12 @@ jobs:
           [ -n "$TAG" ]    && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
 
           # If tag is really latest or testing
-          [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+          if [ -n "$LATEST" ]; then
+            # Push to DockerHub only if secrets exist
+            if [[ '${{ secrets.DOCKERHUB_USERNAME }}' != '' && '${{ secrets.DOCKERHUB_TOKEN }}' != '' ]]; then
+              docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+            fi
+          fi
 
       # - name: Delete GHCR tags except latest
       #   env:
