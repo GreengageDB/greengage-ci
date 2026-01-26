@@ -53,13 +53,15 @@ To integrate this workflow into your pipeline:
   ```yaml
   jobs:
     regression-tests:
+      needs: build
+      if: github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main'  # if PR or pushed to 'main' branch
       permissions:
         contents: read
         packages: read
         actions: write
       uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v15
       with:
-        version: 7
+        version: 6 # for 'main` branch
         target_os: ubuntu
         target_os_version: ''
         python3: ''
@@ -73,7 +75,7 @@ To integrate this workflow into your pipeline:
   jobs:
     regression-tests:
       needs: build
-      if: github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/7.x'
+      if: github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/7.x' # if PR or pushed to '7.x' branch
       strategy:
         fail-fast: true
         matrix:
@@ -84,7 +86,7 @@ To integrate this workflow into your pipeline:
         actions: write
       uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v15
       with:
-        version: 7
+        version: 7 # for '7.x` branch
         target_os: ${{ matrix.target_os }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
