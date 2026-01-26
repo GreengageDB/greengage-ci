@@ -108,7 +108,7 @@ jobs:
 
       # Fetch SQL dump for 'gpexpand' tests
       - name: Fetch regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_postgres for ${{ matrix.feature }}
-        if: ${{ matrix.feature }} == 'gpexpand'
+        if: matrix.feature == 'gpexpand'
         uses: greengagedb/greengage-ci/.github/actions/fetch-latest-artifact@ADBDEV-9130
         with:
           branch: ${{ inputs.version == '7' && '7.x' || 'main' }}
