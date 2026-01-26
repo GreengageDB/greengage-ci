@@ -2,6 +2,10 @@
 
 This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR) and optionally DockerHub. It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
 
+## Actual version `v16`
+
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v16`
+
 ## Purpose
 
 The workflow performs the following task using a Docker image built for the given Greengage version and target operating system:
@@ -26,29 +30,33 @@ The workflow processes a Docker image to retag and push it to GHCR and DockerHub
        - The version tag is derived from the git tag using `git describe --tags --abbrev=0`.
        - Slashes (`/`) in the tag are replaced with `_` to ensure a valid Docker tag.
        - If no tag is found or the tag is invalid, the fallback tag `unknown` is used.
-       - The `latest` tag is assigned for GHCR and DockerHub.
-       - Example: For a git tag `6.28.3`, the tags are `6.28.3` and `latest`.
+       - The workflow checks if this tag is the latest semantic tag for the given version (matching pattern `^<version>.<minor>.<patch>$`).
+       - For GHCR: the tag is always pushed.
+       - For DockerHub: the tag is pushed, and if it's the latest semantic tag for that version, it's also tagged as `latest`.
+       - Example: For a git tag `6.28.3`, the tag `6.28.3` is pushed to GHCR. For DockerHub, `6.28.3` is pushed, and if it's the latest semantic tag for version 6, then `latest` is also pushed.
      - **For push to a branch** (e.g., `main` or `6.x`):
-       - The branch tag is derived from `github.ref_name` (the branch name).
-       - The branch name is sanitized by replacing any characters not matching `[a-zA-Z0-9._-]` with `_` to ensure a valid Docker tag.
-       - If sanitization results in an empty or invalid tag, the fallback tag `unknown` is used.
-       - The `latest` tag is assigned for GHCR, and the `testing` tag is assigned for DockerHub.
-       - Example: For a branch `main`, the tags are `main` and `latest` for GHCR, and `testing` for DockerHub.
+       - For GHCR: only the `latest` tag is assigned and pushed.
+       - For DockerHub: only the `testing` tag is assigned and pushed.
+       - Example: For a branch `main`, the tag `latest` is pushed to GHCR, and `testing` to DockerHub.
 
 3. **Tagging and Pushing**:
    - For tagged pushes:
-     - The input image (`$GHCR_IMAGE:${{ github.sha }}`) is tagged with the version tag (`$GHCR_IMAGE:$TAG`) and `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
-     - The image is tagged with the version tag (`$DOCKERHUB_IMAGE:$TAG`) and `latest` (`$DOCKERHUB_IMAGE:latest`) and pushed to DockerHub (if secrets are provided).
-     - Example: For a tag `6.28.3`, the image `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:abcdef1234567890` is retagged as `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:6.28.3` and `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:latest` for GHCR, and `<username>/ggdb6_ubuntu:6.28.3` and `<username>/ggdb6_ubuntu:latest` for DockerHub.
+     - The input image (`$GHCR_IMAGE:${{ github.sha }}`) is tagged with the version tag (`$GHCR_IMAGE:$TAG`) and pushed to GHCR.
+     - **Only if DockerHub credentials are configured**: The image is tagged with the version tag (`$DOCKERHUB_IMAGE:$TAG`). If the tag is the latest semantic tag for that version, then it is also tagged as `latest` (`$DOCKERHUB_IMAGE:latest`) and pushed to DockerHub.
+     - Example: For a tag `6.28.3`, the image `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:abcdef1234567890` is retagged as `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:6.28.3` for GHCR. For DockerHub, if credentials are available, it's tagged as `<username>/ggdb6_ubuntu:6.28.3`. If it's the latest semantic tag for version 6, then it's also tagged as `<username>/ggdb6_ubuntu:latest`.
    - For branch pushes:
-     - The input image is tagged with the branch tag (`$GHCR_IMAGE:$TAG`) and `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
-     - The image is tagged with `testing` (`$DOCKERHUB_IMAGE:testing`) and pushed to DockerHub (if secrets are provided).
-     - Example: For a branch `main`, the image is retagged as `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:main` and `ghcr.io/greengagedb/greengage-ci/ggdb6_ubuntu:latest` for GHCR, and `<username>/ggdb6_ubuntu:testing` for DockerHub.
+     - The input image is tagged with `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
+     - **Only if DockerHub credentials are configured**: The image is tagged with `testing` (`$DOCKERHUB_IMAGE:testing`) and pushed to DockerHub.
+     - Example: For a branch `main`, the image is retagged as `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest` for GHCR, and `<username>/ggdb6_ubuntu:testing` for DockerHub (if credentials available).
 
-4. **Failure Conditions**:
+4. **DockerHub Conditional Processing**:
+   - DockerHub operations (login and push) are **only performed** when both `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are provided and non-empty.
+   - If either secret is missing or empty, the workflow skips all DockerHub operations entirely without errors.
+
+5. **Failure Conditions**:
    - If the input image does not exist in GHCR, the `docker pull` command will fail, causing the workflow to exit with an error.
-   - If the sanitized tag is invalid or empty (despite the `unknown` fallback), the `docker push` may fail if the tag does not conform to Docker’s tag requirements.
-   - If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub pushes are skipped, but GHCR pushes proceed.
+   - If the sanitized tag is invalid or empty (despite the `unknown` fallback), the `docker push` may fail if the tag does not conform to Docker's tag requirements.
+   - If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub operations are skipped without errors.
 
 ## Usage
 
@@ -66,7 +74,6 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String | -       |
 | `target_os_version` | Target OS version (e.g., `20`, `7`)              | No       | String | `''`    |
 | `python3`           | Python3 build argument (ignored)                 | No       | String | `''`    |
-| `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)  | No       | String | `''`    |
 
 ### Secrets
 
@@ -75,6 +82,8 @@ To integrate this workflow into your pipeline:
 | `ghcr_token`        | GitHub token for GHCR access        | Yes      |
 | `DOCKERHUB_USERNAME`| DockerHub username for authentication | No     |
 | `DOCKERHUB_TOKEN`   | DockerHub token for authentication  | No       |
+
+**Note:** DockerHub operations are only performed when **both** `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are provided and non-empty. If either is missing, the workflow skips DockerHub entirely.
 
 ### Requirements
 
@@ -89,49 +98,52 @@ To integrate this workflow into your pipeline:
 
   ```yaml
   jobs:
-    retag-upload:
+    upload:
       permissions:
-        contents: read
-        packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-docker-retag-upload.yml@main
+        contents: read  # Explicit for default behavior
+        packages: write # Required for GHCR access
+        actions:  write # Required for artifact upload
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v16
       with:
-        version: 7
+        version: 6
         target_os: ubuntu
         target_os_version: ''
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   ```
 
 - Matrix
 
   ```yaml
   jobs:
-    retag-upload:
+    upload:
+      if: github.event_name == 'push' # For push or tags
+      needs: build                    # After build only
       strategy:
         fail-fast: true
         matrix:
           target_os: [ubuntu, centos]
       permissions:
-        contents: read
-        packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-docker-retag-upload.yml@main
+        contents: read  # Explicit for default behavior
+        packages: write # Required for GHCR access
+        actions:  write # Required for artifact upload
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v16
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   ```
 
 ### Notes
 
-- If `ref` is not provided, the workflow checks out the default branch.
-- For push of a git tag (e.g., `6.28.3`), images are tagged with the version and `latest` and pushed to GHCR, and the version and `latest` are pushed to DockerHub (if secrets are provided).
-- For push to a branch (e.g., `main` or `6.x`), images are tagged with the branch name and `latest` for GHCR, and only `testing` for DockerHub (if secrets are provided).
+- For push of a git tag (e.g., `6.28.3`), images are tagged with the version and pushed to GHCR. For DockerHub, the version tag is always pushed (if credentials are available), and `latest` is only pushed if the tag is the latest semantic tag for that version.
+- For push to a branch (e.g., `main` or `6.x`), only the `latest` tag is pushed to GHCR, and only `testing` is pushed to DockerHub (if credentials are provided).
 - Tags are always fetched to ensure correct version resolution.
-- If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub pushes are skipped, but GHCR pushes proceed.
+- If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing or empty, DockerHub operations are completely skipped without errors.
 - For further details, refer to the workflow file in the `.github/workflows/` directory.
