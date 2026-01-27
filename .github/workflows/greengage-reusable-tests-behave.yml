@@ -49,7 +49,7 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon|gpexpand" | sed 's/\.feature$//')
+          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
@@ -143,7 +143,7 @@ jobs:
           set +e
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
             -e FEATURE="$FEATURE" \
-            -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
+            -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER --tags "~skipped" \
               -f behave_utils.ci.formatter:CustomFormatter \
               -o non-existed-output \
               -f allure_behave.formatter:AllureFormatter \
