@@ -129,22 +129,3 @@ jobs:
 
           # If tag is really latest or testing
           [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
-
-      # - name: Delete GHCR tags except latest
-      #   env:
-      #     IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-      #   run: |
-      #     tags=$(gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions -H "Accept: application/vnd.github+json" | jq -r '.[].metadata.container.tags[] | select(. != "latest")' || true)
-      #     if [ -z "$tags" ]; then
-      #       echo "No tags found for ${IMAGE} (excluding latest) or failed to fetch tags. Skipping deletion."
-      #       exit 0
-      #     fi
-      #     for tag in $tags; do
-      #       version_id=$(gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions -H "Accept: application/vnd.github+json" | jq -r --arg tag "$tag" '.[] | select(.metadata.container.tags[] == $tag) | .id' || true)
-      #       if [ -n "$version_id" ]; then
-      #         echo "Deleting ${IMAGE}:$version_id"
-      #         gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions/$version_id -X DELETE || echo "Failed to delete tag $tag (version $version_id). Continuing."
-      #       else
-      #         echo "Version ID for tag $tag not found. Skipping."
-      #       fi
-      #     done
