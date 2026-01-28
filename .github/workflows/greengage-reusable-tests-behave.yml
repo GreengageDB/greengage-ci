@@ -49,7 +49,7 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon|gpexpand" | sed 's/\.feature$//')
+          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
