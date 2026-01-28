@@ -97,6 +97,7 @@ jobs:
         env:
           REF: ${{ github.ref }}
           IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          DHCR_LOGGED_IN: ${{ steps.dhcr_login.outcome == 'success' && 'true' || '' }}
         run: |
           GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
           DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
@@ -116,7 +117,7 @@ jobs:
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
             TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
+            [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
             # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
             LATEST='testing'
@@ -128,5 +129,5 @@ jobs:
           # If image was tagged
           [ -n "$TAG" ]    && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
 
-          # If tag is really latest or testing
-          [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+          # If tag is really latest or testing and DockerHub logged in
+          [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
