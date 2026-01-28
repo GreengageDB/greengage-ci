@@ -27,7 +27,7 @@ runs:
     - name: Regression Tests for ${{ inputs.target_os }} with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
       shell: bash
       env:
-        IMAGE: ${{ github.image }}
+        IMAGE: ${{ inputs.image }}
         TEST_OS: ${{ inputs.target_os }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
