@@ -1,0 +1,72 @@
+# .github/actions/tests/regression/action.yml
+name: "Regression Tests"
+description: "Run regression tests with specified optimizer"
+
+inputs:
+  image:
+    description: 'Greengage image for tests'
+    required: true
+  target_os:
+    description: 'Target OS for test (e.g., ubuntu, centos)'
+    required: true
+  optimizer:
+    description: 'Optimizer for tests (e.g., postgres, orca)'
+    required: true
+  log_dir:
+    description: 'Output logs directory for mount in container'
+    required: false
+    default: '/mnt/logs'
+  dump_db:
+    description: 'Dump datatbase after tests'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Regression Tests for ${{ inputs.target_os }} with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
+      shell: bash
+      env:
+        IMAGE: ${{ github.image }}
+        TEST_OS: ${{ inputs.target_os }}
+        DUMP_DB: ${{ inputs.dump_db }}
+        MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
+
+      run: |
+        docker run -i --rm \
+          -v ${{ inputs.log_dir }}:/logs \
+          -e DUMP_DB \
+          -e TEST_OS \
+          -e MAKE_TEST_COMMAND \
+          --sysctl 'kernel.sem=500 1024000 200 4096' \
+          ${IMAGE,,} \
+          /bin/bash << 'END_OF_SCRIPT'
+        set -x
+        logs=(
+          './ d sqldump'
+          './ d gpAdminLogs'
+          'gpdb_src/src/test/ d results'
+          'gpdb_src/src/test/ f regression.diffs'
+          'gpdb_src/gpAux/gpdemo/datadirs/ d log'
+          'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
+        )
+        script='gpdb_src/concourse/scripts/ic_gpdb.bash'
+
+        ssh-keygen -A
+        /usr/sbin/sshd
+
+        cd /home/gpadmin || exit 1
+
+        exit_code=0
+        bash $script || exit_code=1
+        echo "Script $script finished with $exit_code"
+
+        for log in "${logs[@]}"; do
+          echo "Collect logs for $log"
+          read -r path type name <<< "$log"
+          find $path -name $name -type $type -exec tar -rf "/logs/${{ inputs.target_os }}_${{ inputs.optimizer }}_$name.tar" {} \;
+        done
+        chmod -R a+rwX /logs
+
+        exit $exit_code
+        END_OF_SCRIPT
