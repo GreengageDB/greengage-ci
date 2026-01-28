@@ -41,6 +41,25 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
+      # Login to GHCR is mandatory - failure will stop the workflow
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      # Login to DockerHub is conditional
+      # For greengagedb/greengage: mandatory (failure will stop workflow)
+      # For other repos: optional (failure is allowed)
+      - name: Login to DockerHub
+        id: dhcr_login
+        continue-on-error: ${{ github.repository != 'greengagedb/greengage' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Move Docker storage to /mnt/docker
         run: |
           sudo bash -c '
@@ -67,24 +86,6 @@ jobs:
 
       - name: Fetch all tags
         run: git fetch --tags --force
-
-      # Login to GitHub Container Registry for local PRs
-      - name: Login to GitHub Container Registry
-        if: github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ghcr_token }}
-
-      # Login to DockerHub for local PRs
-      - name: Login to DockerHub
-        if: github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)
-        uses: docker/login-action@v3
-        continue-on-error: true
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore & Load SHA image
         uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
