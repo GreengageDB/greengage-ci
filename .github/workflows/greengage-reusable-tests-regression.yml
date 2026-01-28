@@ -62,7 +62,6 @@ jobs:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
 
-      # Checkout repository with shallow clone
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
         with:
@@ -70,69 +69,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
-      # Run Regression tests
-      - name: Regression test ${{ github.job }} ${{ matrix.optimizer }}
-        env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
+      - name: Regression tests with optimizer '${{ matrix.optimizer }}'
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@ADBDEV-9100
+        with:
+          image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          optimizer: ${{ matrix.optimizer }}
+          target_os: ${{ inputs.target_os }}
 
-          # Docker environment variables for send to test container
-          TEST_OS: ${{ inputs.target_os }}
-          DUMP_DB: ${{ github.event_name == 'push' && matrix.optimizer == 'postgres' && 'true' || '' }}
-          MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ matrix.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
-
-        run: |
-          export IMAGE=${IMAGE,,}
-          cat > regression_${{ github.job }}_${{ matrix.optimizer }}.bash << EOF
-          set -x
-          cd /home/gpadmin/
-          ssh-keygen -A
-          /usr/sbin/sshd
-          EXIT_CODE=0
-          bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
-          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
-          exit \$EXIT_CODE
-          EOF
-
-          # Run tests and save logs to a volume
-          docker run -i --name $CONT_NAME \
-            -v /mnt/logs:/logs \
-            -e DUMP_DB \
-            -e TEST_OS \
-            -e MAKE_TEST_COMMAND \
-            --sysctl 'kernel.sem=500 1024000 200 4096' \
-            $IMAGE \
-            /bin/bash < ./regression_${{ github.job }}_${{ matrix.optimizer }}.bash
-          status=$?
-
-          exit ${status:-1} # error if not known
-
-      # Run Regression tests
-      - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
-        if: always()
-        env:
-          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
-        run: |
-          docker start $CONT_NAME
-          docker exec $CONT_NAME bash -c "
-            set -x
-            cd /home/gpadmin/
-            params=(
-              './ d sqldump'
-              './ d gpAdminLogs'
-              'gpdb_src/src/test/ d results'
-              'gpdb_src/src/test/ f regression.diffs'
-              'gpdb_src/gpAux/gpdemo/datadirs/ d log'
-              'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
-            )
-            for param in \"\${params[@]}\"; do
-              read -r path type name <<< \"\$param\"
-              find \$path -name \$name -type \$type -exec tar -rf \"/logs/${{ matrix.optimizer }}_\$name.tar\" {} \;
-            done
-            chmod -R a+rwX /logs
-          "
-
-      # Upload regression artifacts
       - name: Upload regression ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
