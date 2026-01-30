@@ -49,7 +49,7 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon|gpexpand" | sed 's/\.feature$//')
+          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
@@ -193,6 +193,7 @@ jobs:
 
   collect-results:
     needs: behave
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read  # Explicit for default behavior
@@ -201,7 +202,6 @@ jobs:
     steps:
       # Download artifacts from behave jobs
       - name: Download feature artifacts
-        if: always()
         uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -210,7 +210,6 @@ jobs:
 
       # Install Allure CLI
       - name: Install Allure CLI
-        if: always()
         run: |
           # Download Allure .deb package
           curl -o allure_2.34.0-1_all.deb -L https://github.com/allure-framework/allure2/releases/download/2.34.0/allure_2.34.0-1_all.deb
@@ -225,14 +224,12 @@ jobs:
 
       # Generate Allure report
       - name: Generate Allure report
-        if: always()
         run: |
           cd artifacts
           [ -d allure-results ] && allure generate allure-results -o allure-report --clean || echo "No allure-results to generate report"
 
       # Upload final artifact
       - name: Upload final artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}_all_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}

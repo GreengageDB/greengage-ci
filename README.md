@@ -4,8 +4,8 @@
 
 - The inputs `target_os_version`, `python3`, and `ref` are optional and retained for backward compatibility. The `target_os_version` and `python3` inputs are for CentOS7 and Python2 support, while `ref` is for manual testing workflows. These inputs have no practical use in regular operations, are treated as empty (`''`), and will be removed in future versions.
 
-- Any changes to the list of **names of required jobs**—including **adding, removing, or renaming jobs**—must be made **only after prior agreement with the administrators of all downstream repositories** that use these workflows.  
-After such changes, you must coordinate with those administrators to update their **Branch Protection Rules** accordingly.  
+- Any changes to the list of **names of required jobs**—including **adding, removing, or renaming jobs**—must be made **only after prior agreement with the administrators of all downstream repositories** that use these workflows.
+After such changes, you must coordinate with those administrators to update their **Branch Protection Rules** accordingly.
 Failing to do so may cause Pull Requests in downstream repositories to bypass required checks or fail validation incorrectly.
 
 ---
