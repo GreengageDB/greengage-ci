@@ -31,10 +31,12 @@ runs:
         TEST_OS: ${{ inputs.target_os }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
+        CI: 'true'
 
       run: |
         docker run -i --rm \
           -v ${{ inputs.log_dir }}:/logs \
+          -e CI \
           -e DUMP_DB \
           -e TEST_OS \
           -e MAKE_TEST_COMMAND \
