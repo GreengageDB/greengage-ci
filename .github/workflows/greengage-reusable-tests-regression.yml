@@ -71,7 +71,7 @@ jobs:
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@ADBDEV-9100
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
