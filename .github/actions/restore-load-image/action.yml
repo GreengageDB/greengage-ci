@@ -19,7 +19,9 @@ runs:
       shell: bash
       continue-on-error: true
       id: pull
-      run: docker pull ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+      env:
+        IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+      run: docker pull ${IMAGE,,}
 
     - name: Restore SHA image from cache
       if: steps.pull.outcome == 'failure'
