@@ -123,7 +123,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ env.SQLDUMP_RUN_ID }}
-          name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          # name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
 
       - name: DEBUG SQL dump artifacts for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
