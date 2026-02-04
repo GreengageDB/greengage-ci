@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: ''
+      skip_unittests:
+        description: 'Skip Unit tests before building'
+        required: false
+        type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -78,14 +83,11 @@ jobs:
       - name: Build Docker image
         id: build_image
         env:
-          EVENT: ${{ github.event_name }}
+          SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
-
-          # Run unit tests only in PRs
-          [[ "${EVENT}" == "pull_request" ]] && unset SKIP_UNITTESTS || export SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
           docker build \
