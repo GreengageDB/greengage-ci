@@ -107,13 +107,25 @@ jobs:
           fi
 
       # Fetch SQL dump for 'gpexpand' tests
-      - name: Fetch regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_postgres for ${{ matrix.feature }}
+      - name: Determine SQL dump Run_ID for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
-        uses: greengagedb/greengage-ci/.github/actions/fetch-latest-artifact@ADBDEV-9130
+        run: |
+          sqldump_run_id=$(gh run list --workflow "Greengage SQL Dump" \
+            --limit 100 \
+            --json conclusion,headBranch,status,databaseId \
+            --jq 'map(select(.status=="completed" and .conclusion=="success" and .headBranch=="${{ inputs.version == '7' && '7.x' || 'main' }}")) | .[0].databaseId')
+          [[ "$sqldump_run_id" =~ ^[0-9]+$ ]] && echo "SQLDUMP_RUN_ID=$sqldump_run_id" >> $GITHUB_ENV || exit 1
+ 
+      - name: Download SQL dump artifacts for ${{ matrix.feature }}
+        if: matrix.feature == 'gpexpand'
+        uses: actions/download-artifact@v4
         with:
-          branch: ${{ inputs.version == '7' && '7.x' || 'main' }}
-          artifact_name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_optimizer_postgres
-          extract_path: sqldump/dump.sql
+          run-id: ${{ env.SQLDUMP_RUN_ID }}
+          name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+
+      - name: DEBUG SQL dump artifacts for ${{ matrix.feature }}
+        if: matrix.feature == 'gpexpand'
+        run: ls -lah ./*
 
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
