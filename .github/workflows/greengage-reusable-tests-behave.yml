@@ -109,6 +109,8 @@ jobs:
       # Fetch SQL dump for 'gpexpand' tests
       - name: Determine SQL dump Run_ID for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           sqldump_run_id=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \
