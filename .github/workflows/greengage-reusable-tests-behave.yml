@@ -116,14 +116,11 @@ jobs:
             --limit 100 \
             --json conclusion,headBranch,status,databaseId \
             --jq 'map(select(.status=="completed" and .conclusion=="success" and .headBranch=="${{ inputs.version == '7' && '7.x' || 'main' }}")) | .[0].databaseId')
-          [[ "$sqldump_run_id" =~ ^[0-9]+$ ]] && echo "SQLDUMP_RUN_ID=$sqldump_run_id" >> $GITHUB_ENV || exit 1
- 
-      - name: Download SQL dump artifacts for ${{ matrix.feature }}
-        if: matrix.feature == 'gpexpand'
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ env.SQLDUMP_RUN_ID }}
-          # name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          [[ "$sqldump_run_id" =~ ^[0-9]+$ ]] && \
+           gh run download $sqldump_run_id --name sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }} \
+           || exit 1
+          tar -xf ${{ inputs.target_os }}_postgres_sqldump.tar
+          rm -f ${{ inputs.target_os }}_postgres_sqldump.tar
 
       - name: DEBUG SQL dump artifacts for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
