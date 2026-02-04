@@ -7,20 +7,25 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 The workflow executes Behave tests for the following features using a Docker image built for the given Greengage version and target operating system:
 
 - `analyzedb`
+- `cross_subnet`
 - `gpactivatestandby`
 - `gpaddmirrors`
 - `gp_bash_functions`
 - `gpcheckcat`
 - `gpcheckperf`
 - `gpconfig`
+- `gpexpand`
 - `gpinitstandby`
 - `gpinitsystem`
 - `gplogfilter`
 - `gpmovemirrors`
+- `gpperfmon`
 - `gppkg`
 - `gprecoverseg`
 - `gprecoverseg_newhost`
 - `gpreload`
+- `gpssh_exkeys`
+- `gpssh`
 - `gpstart`
 - `gpstate`
 - `gpstop`
