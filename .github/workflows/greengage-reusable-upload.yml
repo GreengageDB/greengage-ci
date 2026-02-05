@@ -1,3 +1,4 @@
+# .github/workflows/greengage-reusable-upload.yml
 name: Greengage Reusable Docker Retag and Upload Workflow
 
 on:
@@ -104,6 +105,8 @@ jobs:
 
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "$REF" =~ ^refs/tags/ ]]; then
+            # Current Git tag
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
             # All HEAD ref tags
             SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
             # Get the latest semantic tag
@@ -116,12 +119,10 @@ jobs:
               LATEST=''
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
-            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
             [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
-            # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
+            # For push to branch (e.g., main or 7.x) TAG is sanitized branch name
             LATEST='testing'
-            unset TAG
             # Update latest at GHCR for master pushes only
             docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
           fi
