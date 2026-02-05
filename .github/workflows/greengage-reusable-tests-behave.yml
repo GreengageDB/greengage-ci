@@ -163,11 +163,7 @@ jobs:
           set +e
           $DOCKER_COMPOSE -p $PROJECT -f ci/docker-compose.yaml exec -T \
             -e FEATURE="$FEATURE" \
-            -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER \
-              -f behave_utils.ci.formatter:CustomFormatter \
-              -o non-existed-output \
-              -f allure_behave.formatter:AllureFormatter \
-              -o /tmp/allure-results" \
+            -e BEHAVE_FLAGS="--tags $FEATURE --tags=$CLUSTER" \
             cdw gpdb_src/ci/scripts/behave_gpdb.bash
           status=$?
 
