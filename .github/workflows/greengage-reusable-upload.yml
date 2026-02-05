@@ -121,7 +121,7 @@ jobs:
             fi
             [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
-            # For push to branch (e.g., main or 7.x) TAG is sanitized branch name
+            # For push to branch (e.g., main or 7.x) TAG is 'latest' for GHCR and 'testing' for DHCR
             LATEST='testing'
             # Update latest at GHCR for master pushes only
             docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
