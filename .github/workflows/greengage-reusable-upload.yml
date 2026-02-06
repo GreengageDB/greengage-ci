@@ -1,3 +1,4 @@
+# .github/workflows/greengage-reusable-upload.yml
 name: Greengage Reusable Docker Retag and Upload Workflow
 
 on:
@@ -41,6 +42,25 @@ jobs:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
     steps:
+      # Login to GHCR is mandatory - failure will stop the workflow
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
+
+      # Login to DockerHub is conditional
+      # For greengagedb/greengage: mandatory (failure will stop workflow)
+      # For other repos: optional (failure is allowed)
+      - name: Login to DockerHub
+        id: dhcr_login
+        continue-on-error: ${{ github.repository != 'greengagedb/greengage' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Move Docker storage to /mnt/docker
         run: |
           sudo bash -c '
@@ -68,24 +88,6 @@ jobs:
       - name: Fetch all tags
         run: git fetch --tags --force
 
-      # Login to GitHub Container Registry for local PRs
-      - name: Login to GitHub Container Registry
-        if: github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ghcr_token }}
-
-      # Login to DockerHub for local PRs
-      - name: Login to DockerHub
-        if: github.event_name == 'push' || (github.head_ref != '' && github.event.pull_request.head.repo.full_name == github.event.repository.full_name)
-        uses: docker/login-action@v3
-        continue-on-error: true
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Restore & Load SHA image
         uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
         with:
@@ -96,12 +98,15 @@ jobs:
         env:
           REF: ${{ github.ref }}
           IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          DHCR_LOGGED_IN: ${{ steps.dhcr_login.outcome == 'success' && 'true' || '' }}
         run: |
           GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
           DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
 
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "$REF" =~ ^refs/tags/ ]]; then
+            # Current Git tag
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
             # All HEAD ref tags
             SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
             # Get the latest semantic tag
@@ -114,12 +119,10 @@ jobs:
               LATEST=''
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
-            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
-            docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
+            [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
-            # For push to branch (e.g., main or 6.x) TAG is sanitized branch name
+            # For push to branch (e.g., main or 7.x) TAG is 'latest' for GHCR and 'testing' for DHCR
             LATEST='testing'
-            unset TAG
             # Update latest at GHCR for master pushes only
             docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
           fi
@@ -127,24 +130,5 @@ jobs:
           # If image was tagged
           [ -n "$TAG" ]    && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
 
-          # If tag is really latest or testing
-          [ -n "$LATEST" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
-
-      # - name: Delete GHCR tags except latest
-      #   env:
-      #     IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-      #   run: |
-      #     tags=$(gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions -H "Accept: application/vnd.github+json" | jq -r '.[].metadata.container.tags[] | select(. != "latest")' || true)
-      #     if [ -z "$tags" ]; then
-      #       echo "No tags found for ${IMAGE} (excluding latest) or failed to fetch tags. Skipping deletion."
-      #       exit 0
-      #     fi
-      #     for tag in $tags; do
-      #       version_id=$(gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions -H "Accept: application/vnd.github+json" | jq -r --arg tag "$tag" '.[] | select(.metadata.container.tags[] == $tag) | .id' || true)
-      #       if [ -n "$version_id" ]; then
-      #         echo "Deleting ${IMAGE}:$version_id"
-      #         gh api repos/${{ github.repository }}/packages/container/${IMAGE}/versions/$version_id -X DELETE || echo "Failed to delete tag $tag (version $version_id). Continuing."
-      #       else
-      #         echo "Version ID for tag $tag not found. Skipping."
-      #       fi
-      #     done
+          # If tag is really latest or testing and DockerHub logged in
+          [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
