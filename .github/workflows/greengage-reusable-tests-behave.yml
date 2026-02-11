@@ -122,10 +122,6 @@ jobs:
           tar -xf ${{ inputs.target_os }}_postgres_sqldump.tar
           rm -f ${{ inputs.target_os }}_postgres_sqldump.tar
 
-      - name: DEBUG SQL dump artifacts for ${{ matrix.feature }}
-        if: matrix.feature == 'gpexpand'
-        run: ls -lah ./*
-
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
