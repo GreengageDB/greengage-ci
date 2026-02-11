@@ -56,7 +56,7 @@ jobs:
 
       - name: Build Debian packages
         env:
-          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
+          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
           docker run --rm \
             -v ./deb-packages:/home/gpadmin/gpdb_src/Package \
