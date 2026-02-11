@@ -11,6 +11,11 @@ on:
         description: 'Target OS'
         required: true
         type: string
+      target_os_version:
+        description: 'Target OS version'
+        required: false
+        type: string
+        default: ''
       rebuild_builder:
         description: 'Rebuild builder image required'
         required: false
