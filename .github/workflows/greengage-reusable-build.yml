@@ -92,7 +92,7 @@ jobs:
             --build-arg OS_VERSION \
             --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE}:${{ github.sha }} \
-            -f ci/Dockerfile.${{ inputs.target_os }}${{ inputs.target_os_version }} \
+            -f ci/Dockerfile.${{ inputs.target_os }} \
             .
 
       # Save Docker image
