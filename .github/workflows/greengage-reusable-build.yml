@@ -71,9 +71,9 @@ jobs:
         id: build_image
         env:
           EVENT: ${{ github.event_name }}
+          OS_VERSION: ${{ inputs.target_os_version }}
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
-          # Construct image name with version and OS
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
 
           # Run unit tests only in PRs
