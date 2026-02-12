@@ -35,7 +35,7 @@ jobs:
       actions: write  # Required for cache
     steps:
       - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/move-docker/action.yml@feat/mv-docker
+        uses: greengagedb/greengage-ci/.github/actions/move-docker@feat/mv-docker
 
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
