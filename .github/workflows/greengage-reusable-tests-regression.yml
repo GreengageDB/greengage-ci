@@ -46,8 +46,8 @@ jobs:
       packages: read  # Explicit for GHCR access clarity
       actions: write  # Required for cache and artifact upload
     steps:
-      - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/mv-docker@feat/mv-docker
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@feat/maximize-disk-space
 
       - name: Restore & Load SHA image
         uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
