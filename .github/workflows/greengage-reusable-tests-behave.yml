@@ -123,6 +123,7 @@ jobs:
           name: ${{ github.job }}_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           path: |
             allure-results
+            logs
             logs_cdw
             logs_sdw1
             logs_sdw2
