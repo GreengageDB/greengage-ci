@@ -40,7 +40,7 @@ jobs:
       actions: write  # Required for cache and artifact upload
     steps:
       - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/mv-docker@feat/mv-docker
+        uses: greengagedb/greengage-ci/.github/actions/mv-docker@main
 
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo
