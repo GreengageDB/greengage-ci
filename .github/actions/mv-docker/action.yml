@@ -8,8 +8,13 @@ runs:
       shell: bash
       run: |
           sudo bash -c '
+            set -e
+            echo "===== Free space before moving ====="
+            df -h
             systemctl stop docker
             mv /var/lib/docker /mnt/docker
+            echo "===== Free space after moving ====="
+            df -h
             echo "{ \"data-root\": \"/mnt/docker\" }" > /etc/docker/daemon.json
             systemctl start docker
           '
