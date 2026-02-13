@@ -45,6 +45,7 @@ jobs:
             lsblk
             mount -l | grep "/dev"
             df -h
+            lsof | grep "docker"
           '
       - name: Move Docker storage to /mnt/docker
         uses: greengagedb/greengage-ci/.github/actions/move-docker@feat/mv-docker
@@ -73,6 +74,8 @@ jobs:
             lsblk
             mount -l | grep "/dev"
             df -h
+            ls -lah /var/lib/docker || true
+            lsof | grep "docker"
           '
 
       - name: Set up Docker Buildx
