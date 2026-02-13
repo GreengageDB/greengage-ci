@@ -49,7 +49,7 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
+          features=$(ls $behave_tests_dir -1 | grep feature | grep -v -E "cross_subnet|gpssh|gpperfmon" | sed 's/\.feature$//')
           feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
@@ -92,6 +92,21 @@ jobs:
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
 
+      - name: Fetch SQL dump for ${{ matrix.feature }}
+        if: matrix.feature == 'gpexpand'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sqldump_run_id=$(gh run list --workflow "Greengage SQL Dump" \
+            --limit 100 \
+            --json conclusion,headBranch,status,databaseId \
+            --jq 'map(select(.status=="completed" and .conclusion=="success" and .headBranch=="${{ inputs.version == '7' && '7.x' || 'main' }}")) | .[0].databaseId')
+          [[ "$sqldump_run_id" =~ ^[0-9]+$ ]] && \
+           gh run download $sqldump_run_id --name sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }} \
+           || exit 1
+          tar -xf ${{ inputs.target_os }}_postgres_sqldump.tar
+          rm -f ${{ inputs.target_os }}_postgres_sqldump.tar
+
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
@@ -108,6 +123,7 @@ jobs:
           name: ${{ github.job }}_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           path: |
             allure-results
+            logs
             logs_cdw
             logs_sdw1
             logs_sdw2

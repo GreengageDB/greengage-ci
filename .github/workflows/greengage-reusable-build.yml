@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: ''
+      skip_unittests:
+        description: 'Skip Unit tests before building'
+        required: false
+        type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -34,15 +39,23 @@ jobs:
       packages: write # Required to push to GHCR
       actions: write  # Required for cache
     steps:
-      - name: Move Docker storage to /mnt/docker
+      - name: Info before
         run: |
           sudo bash -c '
-            set -e
-            systemctl stop docker
-            mkdir -p /mnt/docker
-            rsync -a /var/lib/docker/ /mnt/docker
-            echo "{ \"data-root\": \"/mnt/docker\" }" > /etc/docker/daemon.json
-            systemctl start docker
+            lsblk
+            mount -l | grep "/dev"
+            df -h
+            lsof | grep "docker"
+          '
+      - name: Move Docker storage to /mnt/docker
+        uses: greengagedb/greengage-ci/.github/actions/mv-docker@feat/mv-docker
+
+      - name: Info after Docker move
+        run: |
+          sudo bash -c '
+            lsblk
+            mount -l | grep "/dev"
+            df -h
           '
 
       # Checkout default branch if no ref is specified
@@ -54,6 +67,16 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
           filter: blob:none # without BLOBs
+
+      - name: Info after Git Clone
+        run: |
+          sudo bash -c '
+            lsblk
+            mount -l | grep "/dev"
+            df -h
+            ls -lah /var/lib/docker || true
+            lsof | grep "docker"
+          '
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -78,14 +101,11 @@ jobs:
       - name: Build Docker image
         id: build_image
         env:
-          EVENT: ${{ github.event_name }}
+          SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
         run: |
           # Construct image name with version and OS
           IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           IMAGE=${IMAGE,,}
-
-          # Run unit tests only in PRs
-          [[ "${EVENT}" == "pull_request" ]] && unset SKIP_UNITTESTS || export SKIP_UNITTESTS=1
 
           # Build from Dockerfile specific to target OS with SHA tag
           docker build \
@@ -127,3 +147,12 @@ jobs:
             docker push ${IMAGE}:$DEV_TAG
           fi
           docker push ${IMAGE}:${{ github.sha }}
+
+      - name: Info at the end
+        if: always()
+        run: |
+          sudo bash -c '
+            lsblk
+            mount -l | grep "/dev"
+            df -h
+          '
