@@ -1,0 +1,15 @@
+# .github/actions/mv-docker/action.yml
+name: "Move Docker storage"
+description: "Move Docker storage to /mnt/docker"
+runs:
+  using: "composite"
+  steps:
+    - name: Move Docker storage to /mnt/docker
+      shell: bash
+      run: |
+          sudo bash -c '
+            set -e
+            systemctl stop docker
+            mv /var/lib/docker /mnt/docker
+            systemctl start docker
+          '

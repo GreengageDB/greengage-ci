@@ -62,15 +62,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Move Docker storage to /mnt/docker
-        run: |
-          sudo bash -c '
-            systemctl stop docker
-            mkdir -p /mnt/docker
-            rsync -a /var/lib/docker/ /mnt/docker
-            chown -R docker:docker /mnt/docker
-            echo "{ \"data-root\": \"/mnt/docker\" }" > /etc/docker/daemon.json
-            systemctl start docker
-          '
+        uses: greengagedb/greengage-ci/.github/actions/mv-docker@main
 
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
