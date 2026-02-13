@@ -11,6 +11,5 @@ runs:
             set -e
             systemctl stop docker
             mv /var/lib/docker /mnt/docker
-            echo "===== Free space after moving ====="
             systemctl start docker
           '
