@@ -48,7 +48,7 @@ jobs:
             lsof | grep "docker"
           '
       - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/move-docker@feat/mv-docker
+        uses: greengagedb/greengage-ci/.github/actions/mv-docker@feat/mv-docker
 
       - name: Info after Docker move
         run: |
