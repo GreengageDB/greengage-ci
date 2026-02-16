@@ -40,7 +40,7 @@ jobs:
       actions: write  # Required for cache and artifact upload
     steps:
       - name: Maximize disk space
-        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@feat/maximize-disk-space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@main # Strongly recommended to use current caller workflow tag. Not `main`!
 
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo

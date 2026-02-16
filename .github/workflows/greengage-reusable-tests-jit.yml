@@ -46,7 +46,7 @@ jobs:
       actions: write  # Required for cache and artifact upload
     steps:
       - name: Maximize disk space
-        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@feat/maximize-disk-space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@main # Strongly recommended to use current caller workflow tag. Not `main`!
 
       - name: Restore & Load SHA image
         uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
