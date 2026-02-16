@@ -50,17 +50,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Login to DockerHub is conditional
-      # For greengagedb/greengage: mandatory (failure will stop workflow)
-      # For other repos: optional (failure is allowed)
-      - name: Login to DockerHub
-        id: dhcr_login
-        continue-on-error: ${{ github.repository != 'greengagedb/greengage' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
@@ -85,6 +74,17 @@ jobs:
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+
+      # Login to DockerHub is conditional
+      # For greengagedb/greengage: mandatory (failure will stop workflow)
+      # For other repos: optional (failure is allowed)
+      - name: Login to DockerHub
+        id: dhcr_login
+        continue-on-error: ${{ github.repository != 'magf/greengage' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Tag and push Docker image
         env:
@@ -124,3 +124,4 @@ jobs:
 
           # If tag is really latest or testing and DockerHub logged in
           [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
+
