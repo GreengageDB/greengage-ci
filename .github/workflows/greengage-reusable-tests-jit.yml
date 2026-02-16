@@ -49,7 +49,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@main # Strongly recommended to use current caller workflow tag. Not `main`!
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended to use current caller workflow tag. Not `main`!
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
