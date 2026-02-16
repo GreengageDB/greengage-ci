@@ -61,8 +61,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/mv-docker@main
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@main # Strongly recommended to use current caller workflow tag. Not `main`!
 
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
@@ -81,7 +81,7 @@ jobs:
         run: git fetch --tags --force
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended to use current caller workflow tag. Not `main`!
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}

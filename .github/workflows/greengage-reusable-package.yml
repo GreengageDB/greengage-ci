@@ -44,7 +44,7 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended to use current caller workflow tag. Not `main`!
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -101,7 +101,7 @@ jobs:
   #     contents: write  # Required for release creation
   #   steps:
   #     - name: Upload packages to release
-  #       uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@main
+  #       uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@main # Strongly recommended to use current caller workflow tag. Not `main`!
   #       with:
   #         version: ${{ inputs.version }}    # optional, defaults empty
   #         artifact_name: deb-packages       # optional, defaults to Packages

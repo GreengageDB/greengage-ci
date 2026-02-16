@@ -34,8 +34,8 @@ jobs:
       packages: write # Required to push to GHCR
       actions: write  # Required for cache
     steps:
-      - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/mv-docker@main
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@main # Strongly recommended to use current caller workflow tag. Not `main`!
 
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
