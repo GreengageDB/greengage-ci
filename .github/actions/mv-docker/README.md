@@ -11,6 +11,10 @@ Relocates Docker storage from `/var/lib/docker` to `/mnt/docker` to free up spac
 
 **Recommendation:** Use the current caller workflow tag for stability.
 
+## Actual version
+
+- `greengagedb/greengage-ci/.github/actions/mv-docker/action.yml@v19`
+
 ## What it does
 
 1. **Stops Docker daemon** - Ensures safe relocation

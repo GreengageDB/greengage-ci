@@ -10,7 +10,7 @@ runs:
       run:   df -h / /mnt
 
     - name: Move Docker storage to /mnt/docker
-      uses: greengagedb/greengage-ci/.github/actions/mv-docker@main # Strongly recommended use current caller workflow tag!
+      uses: greengagedb/greengage-ci/.github/actions/mv-docker@v19
 
     - name: Remove unused tools
       shell: bash
