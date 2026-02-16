@@ -1,0 +1,29 @@
+# .github/actions/maximize-disk-space/action.yml
+# Strongly recommended use current caller workflow tag!
+name: "Maximize disk space"
+description: "Maximize disk space"
+runs:
+  using: "composite"
+  steps:
+    - name:  Space usage before cleanup
+      shell: bash
+      run:   df -h / /mnt
+
+    - name: Move Docker storage to /mnt/docker
+      uses: greengagedb/greengage-ci/.github/actions/mv-docker@main # Strongly recommended use current caller workflow tag!
+
+    - name: Remove unused tools
+      shell: bash
+      run: |
+        sudo bash -c '
+          set -e
+          rm -rf /usr/lib/jvm
+          rm -rf /usr/local/.ghcup
+          rm -rf /usr/local/lib/android
+          rm -rf /usr/local/share/powershell
+          rm -rf /usr/share/dotnet
+          rm -rf /usr/share/swift
+        '
+    - name:  Space usage after cleanup
+      shell: bash
+      run:   df -h / /mnt
