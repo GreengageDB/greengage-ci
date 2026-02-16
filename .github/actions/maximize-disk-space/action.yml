@@ -1,4 +1,5 @@
 # .github/actions/maximize-disk-space/action.yml
+# Strongly recommended use current caller workflow tag!
 name: "Maximize disk space"
 description: "Maximize disk space"
 runs:
@@ -9,7 +10,7 @@ runs:
       run:   df -h / /mnt
 
     - name: Move Docker storage to /mnt/docker
-      uses: greengagedb/greengage-ci/.github/actions/mv-docker@main
+      uses: greengagedb/greengage-ci/.github/actions/mv-docker@main # Strongly recommended use current caller workflow tag!
 
     - name: Remove unused tools
       shell: bash
