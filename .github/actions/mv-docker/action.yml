@@ -1,4 +1,5 @@
 # .github/actions/mv-docker/action.yml
+ # Strongly recommended use current caller workflow tag!
 name: "Move Docker storage"
 description: "Move Docker storage to /mnt/docker"
 runs:
