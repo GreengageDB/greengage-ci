@@ -178,14 +178,14 @@ jobs:
           sudo chmod -R a+rwX vm-home/ vm-work/
           ls -lah vm-home/* vm-work/* || true
           ls -lah vm-home/logs/cdw/ vm-home/logs/sdw1/ || true
-          tar -czf logs.tar.gz vm-home/logs
+          tar -cf logs.tar vm-home/logs
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v4
         with:
           name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: logs.tar.gz
+          path: logs.tar
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
