@@ -148,6 +148,7 @@ jobs:
           cloud-localds seed.img user-data meta-data
 
       - name: Start QEMU VM with shared volume and cgroups v1
+        timeout-minutes: 12
         run: |
           set -eux
           rm -f vm-home/logs/.exitcode
