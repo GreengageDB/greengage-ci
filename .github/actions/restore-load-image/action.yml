@@ -1,3 +1,4 @@
+# .github/actions/restore-load-image/action.yml
 name: "Restore and load SHA image from cache"
 description: "Restores a Docker image tarball from cache and loads it"
 
