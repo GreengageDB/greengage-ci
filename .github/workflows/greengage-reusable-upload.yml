@@ -124,4 +124,3 @@ jobs:
 
           # If tag is really latest or testing and DockerHub logged in
           [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true
-
