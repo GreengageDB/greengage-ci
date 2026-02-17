@@ -177,8 +177,7 @@ jobs:
         run: |
           sudo chmod -R a+rwX vm-home/ vm-work/
           ls -lah vm-home/* vm-work/* || true
-          ls -lah vm-home/logs/cdw/ vm-home/logs/sdw1/ || true
-          tar -cf logs.tar vm-home/logs
+          tar -cf logs.tar vm-home/logs*
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
