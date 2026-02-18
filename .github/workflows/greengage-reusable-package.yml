@@ -11,6 +11,11 @@ on:
         description: 'Target OS'
         required: true
         type: string
+      target_os_version:
+        description: 'Target OS version'
+        required: false
+        type: string
+        default: ''
       rebuild_builder:
         description: 'Rebuild builder image required'
         required: false
@@ -48,10 +53,11 @@ jobs:
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Build Debian packages
         env:
-          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
+          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
           docker run --rm \
             -v ./deb-packages:/home/gpadmin/gpdb_src/Package \
