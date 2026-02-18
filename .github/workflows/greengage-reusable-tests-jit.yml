@@ -76,22 +76,10 @@ jobs:
           cd /home/gpadmin/
           ssh-keygen -A
           /usr/sbin/sshd
-          EXIT_CODE=0
-          bash gpdb_src/concourse/scripts/ic_gpdb.bash || EXIT_CODE=1
-          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$EXIT_CODE"
-          params=(
-            "./ d gpAdminLogs"
-            "gpdb_src/src/test/ d results"
-            "gpdb_src/src/test/ f regression.diffs"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d log"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
-          )
-          for param in "\${params[@]}"; do
-            read -r path type name <<< "\$param"
-            find \$path -name \$name -type \$type -exec tar -rf "/logs/${LOG_NAME}_${ARCH}_\$name.tar" "{}" \;
-          done
-          chmod -R a+rwX /logs
-          exit \$EXIT_CODE
+          bash gpdb_src/concourse/scripts/ic_gpdb.bash
+          exit_code=\$?
+          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$exit_code"
+          exit \$exit_code
           EOF
 
           # Run tests and save logs to a volume
@@ -105,6 +93,15 @@ jobs:
           status=$?
 
           exit ${status:-1} # error if not known
+
+      - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v16
+        with:
+          container_name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
+          log_prefix: ${{ matrix.optimizer }}
+          target_os: ${{ inputs.target_os }}
+          log_dir: '/mnt/logs'
 
       # Upload JIT artifacts
       - name: Upload JIT ${{ github.job }} ${{ matrix.optimizer }} artifacts
