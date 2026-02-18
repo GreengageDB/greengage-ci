@@ -1,0 +1,47 @@
+# .github/actions/collect-logs/action.yml
+name: "Collect Logs from Docker Container"
+description: "Collects logs from a Docker container after test execution"
+
+inputs:
+  container_name:
+    description: 'Name of the Docker container to collect logs from'
+    required: true
+  log_dir:
+    description: 'Directory to mount for logs collection'
+    required: false
+    default: '/mnt/logs'
+  log_prefix:
+    description: 'Prefix for log file names (e.g., optimizer name)'
+    required: true
+  target_os:
+    description: 'Target OS for log file naming'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Collect logs from container ${{ inputs.container_name }}
+      shell: bash
+      env:
+        CONT_NAME: ${{ inputs.container_name }}
+        LOG_PREFIX: ${{ inputs.log_prefix }}
+        TARGET_OS: ${{ inputs.target_os }}
+        LOG_DIR: ${{ inputs.log_dir }}
+      run: |
+        docker start $CONT_NAME || true
+        docker exec $CONT_NAME bash -c "
+          set -x
+          cd /home/gpadmin/
+          params=(
+            './ d gpAdminLogs'
+            'gpdb_src/src/test/ d results'
+            'gpdb_src/src/test/ f regression.diffs'
+            'gpdb_src/gpAux/gpdemo/datadirs/ d log'
+            'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
+          )
+          for param in \"\${params[@]}\"; do
+            read -r path type name <<< \"\$param\"
+            find \$path -name \$name -type \$type -exec tar -rf \"${LOG_DIR}/${TARGET_OS}_${LOG_PREFIX}_\$name.tar\" {} \;
+          done
+          chmod -R a+rwX ${LOG_DIR}
+        " || true

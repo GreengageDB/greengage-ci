@@ -34,7 +34,8 @@ runs:
         CI: 'true'
 
       run: |
-        docker run -i --rm \
+        # Container name is passed from workflow via environment
+        docker run -i --name $CONT_NAME \
           -v ${{ inputs.log_dir }}:/logs \
           -e CI \
           -e DUMP_DB \
@@ -44,31 +45,14 @@ runs:
           ${IMAGE,,} \
           /bin/bash << 'END_OF_SCRIPT'
         set -x
-        logs=(
-          './ d sqldump'
-          './ d gpAdminLogs'
-          'gpdb_src/src/test/ d results'
-          'gpdb_src/src/test/ f regression.diffs'
-          'gpdb_src/gpAux/gpdemo/datadirs/ d log'
-          'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
-        )
-        script='gpdb_src/concourse/scripts/ic_gpdb.bash'
-
         ssh-keygen -A
         /usr/sbin/sshd
 
         cd /home/gpadmin || exit 1
 
         exit_code=0
-        bash $script || exit_code=1
-        echo "Script $script finished with $exit_code"
-
-        for log in "${logs[@]}"; do
-          echo "Collect logs for $log"
-          read -r path type name <<< "$log"
-          find $path -name $name -type $type -exec tar -rf "/logs/${{ inputs.target_os }}_${{ inputs.optimizer }}_$name.tar" {} \;
-        done
-        chmod -R a+rwX /logs
+        bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
+        echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
 
         exit $exit_code
         END_OF_SCRIPT
