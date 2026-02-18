@@ -49,10 +49,11 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v16
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-5242
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Build Debian packages
         env:
