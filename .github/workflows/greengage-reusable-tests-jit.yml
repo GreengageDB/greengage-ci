@@ -96,7 +96,7 @@ jobs:
 
       - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v16
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@feat/collect-logs
         with:
           container_name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
           log_prefix: ${{ matrix.optimizer }}

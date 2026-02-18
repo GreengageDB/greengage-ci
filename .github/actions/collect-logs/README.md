@@ -6,7 +6,7 @@ Collects logs from a Docker container after test execution. This action is desig
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@main # Strongly recommended use current caller workflow tag!
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@feat/collect-logs # Strongly recommended use current caller workflow tag!
   with:
     container_name: 'ggdb6_ubuntu22.04_test_postgres'
     log_prefix: 'postgres'
@@ -56,7 +56,7 @@ Example pattern:
 
 - name: Collect logs
   if: always()
-  uses: ./.github/actions/collect-logs@v16
+  uses: ./.github/actions/collect-logs@feat/collect-logs
   with:
     container_name: ${{ env.CONT_NAME }}
     log_prefix: ${{ matrix.optimizer }}
