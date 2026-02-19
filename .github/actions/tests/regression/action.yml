@@ -44,15 +44,17 @@ runs:
         LOG_NAME: ${{ inputs.log_name }}
 
       run: |
-        # Sanitize LOG_NAME - allow only alphanumeric, underscore, hyphen
-        if [[ ! "$LOG_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-          echo "::error::LOG_NAME contains invalid characters. Only alphanumeric, underscore, and hyphen are allowed."
+        # Sanitize LOG_NAME - remove all except alphanumeric, underscore, hyphen
+        LOG_NAME=$(echo "$LOG_NAME" | sed 's/[^a-zA-Z0-9_-]//g')
+        if [ -z "$LOG_NAME" ]; then
+          echo "::error::LOG_NAME is empty after sanitization"
           exit 1
         fi
 
-        # Sanitize LOG_DIR - must be valid path, no special chars
-        if [[ ! "$LOG_DIR" =~ ^[./a-zA-Z0-9_/-]+$ ]]; then
-          echo "::error::LOG_DIR contains invalid characters. Only alphanumeric, slash, dot, hyphen, and underscore are allowed."
+        # Sanitize LOG_DIR - remove all except alphanumeric, slash, dot, hyphen, underscore
+        LOG_DIR=$(echo "$LOG_DIR" | sed 's/[^a-zA-Z0-9_./-]//g')
+        if [ -z "$LOG_DIR" ]; then
+          echo "::error::LOG_DIR is empty after sanitization"
           exit 1
         fi
 
