@@ -37,6 +37,7 @@ runs:
       env:
         CI: 'true'
         IMAGE: ${{ inputs.image }}
+        TEST_OS: ${{ inputs.target_os }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
