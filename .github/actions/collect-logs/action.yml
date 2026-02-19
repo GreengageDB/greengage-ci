@@ -21,6 +21,18 @@ runs:
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
       run: |
+        # Sanitize LOG_NAME - allow only alphanumeric, underscore, hyphen
+        if [[ ! "$LOG_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+          echo "::error::LOG_NAME contains invalid characters. Only alphanumeric, underscore, and hyphen are allowed."
+          exit 1
+        fi
+
+        # Sanitize LOG_DIR - must be absolute path, no special chars
+        if [[ ! "$LOG_DIR" =~ ^/[a-zA-Z0-9/_.-]+$ ]]; then
+          echo "::error::LOG_DIR must be an absolute path with only alphanumeric, slash, dot, hyphen, and underscore."
+          exit 1
+        fi
+
         docker start $LOG_NAME || true
         docker exec  $LOG_NAME bash -c "
           set -x
