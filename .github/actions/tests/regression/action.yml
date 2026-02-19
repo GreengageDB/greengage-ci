@@ -9,6 +9,9 @@ inputs:
   target_os:
     description: 'Target OS for test (e.g., ubuntu, centos)'
     required: true
+  target_os_version:
+    description: 'Target OS version (e.g., 22, 24)'
+    required: true
   optimizer:
     description: 'Optimizer for tests (e.g., postgres, orca)'
     required: true
@@ -24,7 +27,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Regression Tests for ${{ inputs.target_os }} with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
+    - name: Regression Tests for ${{ inputs.target_os }}${{ inputs.target_os_version }} with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
       shell: bash
       env:
         IMAGE: ${{ inputs.image }}
@@ -66,7 +69,7 @@ runs:
         for log in "${logs[@]}"; do
           echo "Collect logs for $log"
           read -r path type name <<< "$log"
-          find $path -name $name -type $type -exec tar -rf "/logs/${{ inputs.target_os }}_${{ inputs.optimizer }}_$name.tar" {} \;
+          find $path -name $name -type $type -exec tar -rf "/logs/${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ inputs.optimizer }}_$name.tar" {} \;
         done
         chmod -R a+rwX /logs
 
