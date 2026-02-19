@@ -54,6 +54,7 @@ jobs:
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -68,6 +69,7 @@ jobs:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Upload regression ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()
