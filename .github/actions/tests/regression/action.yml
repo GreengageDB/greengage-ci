@@ -44,19 +44,11 @@ runs:
         LOG_NAME: ${{ inputs.log_name }}
 
       run: |
-        # Sanitize LOG_NAME - remove all except alphanumeric, underscore, hyphen
-        LOG_NAME=$(echo "$LOG_NAME" | sed 's/[^a-zA-Z0-9_-]//g')
-        if [ -z "$LOG_NAME" ]; then
-          echo "::error::LOG_NAME is empty after sanitization"
-          exit 1
-        fi
+        # Sanitize LOG_NAME - replace invalid chars with underscore
+        LOG_NAME=$(sed 's/[^a-zA-Z0-9_-]/_/g' <<< "$LOG_NAME")
 
-        # Sanitize LOG_DIR - remove all except alphanumeric, slash, dot, hyphen, underscore
-        LOG_DIR=$(echo "$LOG_DIR" | sed 's/[^a-zA-Z0-9_./-]//g')
-        if [ -z "$LOG_DIR" ]; then
-          echo "::error::LOG_DIR is empty after sanitization"
-          exit 1
-        fi
+        # Sanitize LOG_DIR - replace invalid chars with underscore
+        LOG_DIR=$(sed 's/[^a-zA-Z0-9_./-]/_/g' <<< "$LOG_DIR")
 
         docker run -i --name $LOG_NAME \
           -v $LOG_DIR:/logs \
