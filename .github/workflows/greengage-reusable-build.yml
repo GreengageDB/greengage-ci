@@ -8,11 +8,11 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS'
+        description: 'Target OS (e.g., ubuntu, centos, rockylinux)'
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version'
+        description: 'Target OS version (e.g., 22, 24)'
         required: false
         type: string
         default: ''
