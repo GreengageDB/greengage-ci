@@ -50,9 +50,9 @@ runs:
           exit 1
         fi
 
-        # Sanitize LOG_DIR - must be absolute path, no special chars
-        if [[ ! "$LOG_DIR" =~ ^/[a-zA-Z0-9/_.-]+$ ]]; then
-          echo "::error::LOG_DIR must be an absolute path with only alphanumeric, slash, dot, hyphen, and underscore."
+        # Sanitize LOG_DIR - must be valid path, no special chars
+        if [[ ! "$LOG_DIR" =~ ^[./a-zA-Z0-9_/-]+$ ]]; then
+          echo "::error::LOG_DIR contains invalid characters. Only alphanumeric, slash, dot, hyphen, and underscore are allowed."
           exit 1
         fi
 
