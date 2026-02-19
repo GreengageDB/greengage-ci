@@ -47,6 +47,7 @@ runs:
         docker run -i --name $LOG_NAME \
           -v $LOG_DIR:/logs \
           -e CI \
+          -e TEST_OS \
           -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
