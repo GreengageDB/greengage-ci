@@ -66,9 +66,8 @@ jobs:
       - name: JIT test ${{ github.job }} ${{ matrix.optimizer }}
         env:
           ARCH: 'x86-64'
-          LOG_NAME: '${{ matrix.optimizer }}'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-          CONT_NAME: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer}}
+          LOG_NAME: 'jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}'
         run: |
           export IMAGE=${IMAGE,,}
           cat > jit_${{ github.job }}_${{ matrix.optimizer }}.bash << EOF
@@ -83,7 +82,7 @@ jobs:
           EOF
 
           # Run tests and save logs to a volume
-          docker run -i --name $CONT_NAME \
+          docker run -i --name $LOG_NAME \
             -v /mnt/logs:/logs \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c jit=on -c optimizer=${{ matrix.optimizer == 'orca' && 'on -c optimizer_jit_above_cost=0' || 'off' }} -c jit_above_cost=0 -c gp_explain_jit=off' installcheck" \
@@ -98,17 +97,14 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@feat/collect-logs
         with:
-          container_name: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
-          log_prefix: ${{ matrix.optimizer }}
-          target_os: ${{ inputs.target_os }}
-          log_dir: '/mnt/logs'
+          log_name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 
       # Upload JIT artifacts
       - name: Upload JIT ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
+          name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           path: /mnt/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found

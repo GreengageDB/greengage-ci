@@ -3,33 +3,26 @@ name: "Collect Logs from Docker Container"
 description: "Collects logs from a Docker container after test execution"
 
 inputs:
-  container_name:
-    description: 'Name of the Docker container to collect logs from'
-    required: true
   log_dir:
-    description: 'Directory to mount for logs collection'
+    description: 'Directory where logs are stored'
     required: false
     default: '/mnt/logs'
-  log_prefix:
-    description: 'Prefix for log file names (e.g., optimizer name)'
-    required: true
-  target_os:
-    description: 'Target OS for log file naming'
-    required: true
+  log_name:
+    description: 'Container name for log collection'
+    required: false
+    default: 'ggdb_test'
 
 runs:
   using: "composite"
   steps:
-    - name: Collect logs from container ${{ inputs.container_name }}
+    - name: Collect logs from ${{ inputs.log_name }}
       shell: bash
       env:
-        CONT_NAME: ${{ inputs.container_name }}
-        LOG_PREFIX: ${{ inputs.log_prefix }}
-        TARGET_OS: ${{ inputs.target_os }}
-        LOG_DIR: ${{ inputs.log_dir }}
+        LOG_DIR:  ${{ inputs.log_dir  }}
+        LOG_NAME: ${{ inputs.log_name }}
       run: |
-        docker start $CONT_NAME || true
-        docker exec $CONT_NAME bash -c "
+        docker start $LOG_NAME || true
+        docker exec  $LOG_NAME bash -c "
           set -x
           cd /home/gpadmin/
           params=(
@@ -41,7 +34,7 @@ runs:
           )
           for param in \"\${params[@]}\"; do
             read -r path type name <<< \"\$param\"
-            find \$path -name \$name -type \$type -exec tar -rf \"${LOG_DIR}/${TARGET_OS}_${LOG_PREFIX}_\$name.tar\" {} \;
+            find \$path -name \$name -type \$type -exec tar -rf \"\${LOG_DIR}/\${LOG_NAME}_\$name.tar\" {} \;
           done
-          chmod -R a+rwX ${LOG_DIR}
+          chmod -R a+rwX \${LOG_DIR}
         " || true

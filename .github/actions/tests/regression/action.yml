@@ -6,40 +6,47 @@ inputs:
   image:
     description: 'Greengage image for tests'
     required: true
-  target_os:
-    description: 'Target OS for test (e.g., ubuntu, centos)'
-    required: true
   optimizer:
     description: 'Optimizer for tests (e.g., postgres, orca)'
     required: true
-  log_dir:
-    description: 'Output logs directory for mount in container'
-    required: false
-    default: '/mnt/logs'
-  dump_db:
-    description: 'Dump datatbase after tests'
+  target_os:
+    description: 'Target OS for test (e.g., ubuntu, centos)'
+    required: true
+  target_os_version:
+    description: 'Target OS version (e.g., 22.04)'
     required: false
     default: ''
+  dump_db:
+    description: 'Dump database after tests'
+    required: false
+    default: ''
+  log_dir:
+    description: 'Directory for logs mount in container'
+    required: false
+    default: '/mnt/logs'
+  log_name:
+    description: 'Container name for log collection'
+    required: false
+    default: 'ggdb_test'
 
 runs:
   using: "composite"
   steps:
-    - name: Regression Tests for ${{ inputs.target_os }} with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
+    - name: Regression Tests with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
       shell: bash
       env:
+        CI: 'true'
         IMAGE: ${{ inputs.image }}
-        TEST_OS: ${{ inputs.target_os }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
-        CI: 'true'
+        LOG_DIR:  ${{ inputs.log_dir  }}
+        LOG_NAME: ${{ inputs.log_name }}
 
       run: |
-        # Container name is passed from workflow via environment
-        docker run -i --name $CONT_NAME \
-          -v ${{ inputs.log_dir }}:/logs \
+        docker run -i --name $LOG_NAME \
+          -v $LOG_DIR:/logs \
           -e CI \
           -e DUMP_DB \
-          -e TEST_OS \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
