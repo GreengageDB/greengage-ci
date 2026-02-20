@@ -32,6 +32,7 @@ runs:
           set -x
           cd /home/gpadmin/
           params=(
+            './ d sqldump'
             './ d gpAdminLogs'
             'gpdb_src/src/test/ d results'
             'gpdb_src/src/test/ f regression.diffs'
