@@ -13,7 +13,7 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22, 24)'
-        required: false
+        required: true
         type: string
         default: ''
       python3:
