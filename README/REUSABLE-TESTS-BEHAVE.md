@@ -4,7 +4,7 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v19`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23`
 
 ## Purpose
 
@@ -92,7 +92,7 @@ Name         | Description                  | Required
       permissions:
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
       with:
         version: 7
         target_os: ubuntu
@@ -118,7 +118,7 @@ Name         | Description                  | Required
       permissions:
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

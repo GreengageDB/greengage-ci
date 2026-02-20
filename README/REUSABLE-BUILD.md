@@ -4,7 +4,7 @@ This workflow builds Docker images for the Greengage project and caches them for
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v19`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23`
 
 ## Purpose
 
@@ -54,7 +54,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v19
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
       with:
         version: 7
         target_os: ubuntu
@@ -81,7 +81,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v19
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
