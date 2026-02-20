@@ -40,7 +40,7 @@ runs:
           )
           for param in \"\${params[@]}\"; do
             read -r path type name <<< \"\$param\"
-            find \$path -name \$name -type \$type -exec tar -rf \"\${LOG_DIR}/\${LOG_NAME}_\$name.tar\" {} \;
+            find \$path -name \$name -type \$type -exec tar -rf \"${LOG_DIR}/${LOG_NAME}_\$name.tar\" {} \;
           done
-          chmod -R a+rwX \${LOG_DIR}
+          chmod -R a+rwX ${LOG_DIR}
         " || true
