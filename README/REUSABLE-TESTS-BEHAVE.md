@@ -2,6 +2,10 @@
 
 This workflow runs Behave test suites for the Greengage project in a containerized environment. It is designed to be called from a parent CI pipeline, enabling users to execute automated behavioral tests with flexible version and operating system configurations.
 
+## Actual version
+
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v19`
+
 ## Purpose
 
 The workflow executes Behave tests for the following features using a Docker image built for the given Greengage version and target operating system:
@@ -36,10 +40,10 @@ It generates test artifacts (e.g., Allure reports, logs) and uploads them to Git
 
 ### Execution and failure model
 
-Behave tests are executed as a matrix of independent jobs, one per feature.
-Failures in individual Behave jobs do not prevent the workflow from completing artifact collection.
+Behave tests are executed as a matrix of independent jobs, one per feature. Failures in individual Behave jobs do not prevent the workflow from completing artifact collection.
 
 The final `collect-results` job:
+
 - always runs, even if one or more Behave jobs fail,
 - downloads all available artifacts,
 - generates a consolidated Allure report from partial results when applicable.
@@ -56,19 +60,19 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                      | Required | Type   | Default |
-|---------------------|--------------------------------------------------|----------|--------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`, `rockylinux`) | Yes    | String | -       |
-| `target_os_version` | Target OS version (e.g., `20`, `7`, `8`)        | No       | String | `''`    |
-| `python3`           | Python3 build argument (ignored)                 | No       | String | `''`    |
-| `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)  | No       | String | `''`    |
+Name                | Description                                                      | Required | Type   | Default
+------------------- | ---------------------------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)                             | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`, `centos`, `rockylinux`) | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `20.04`, `22.04`, `7`, `8`)             | Yes      | String | -
+`python3`           | Python3 build argument (ignored)                                 | No       | String | `''`
+`ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)                  | No       | String | `''`
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
 ### Requirements
 
@@ -92,7 +96,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: ''
+        target_os_version: '22.04'
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -106,7 +110,11 @@ To integrate this workflow into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         packages: read
         actions: write
@@ -114,6 +122,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
