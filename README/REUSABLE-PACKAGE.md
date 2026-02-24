@@ -89,7 +89,7 @@ Name         | Description                  | Required
 
 - **Permissions**: The job requires `contents: read`, `packages: write`, and `actions: write` permissions to access repository contents, push images to GHCR, and upload artifacts.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
-- **Docker Image**: The workflow builds or pulls a builder image matching `ghcr.io/<repo>/ggdb<version>_<target_os>:builder`.
+- **Docker Image**: The workflow builds or pulls a builder image matching `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:builder`.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository` with submodules and full history.
 
 ### Examples

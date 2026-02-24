@@ -10,7 +10,7 @@ inputs:
     description: 'Target OS for test (e.g., ubuntu, centos)'
     required: true
   target_os_version:
-    description: 'Target OS version (e.g., 22, 24)'
+    description: 'Target OS version (e.g., 22.04, 24.04)'
     required: true
   optimizer:
     description: 'Optimizer for tests (e.g., postgres, orca)'

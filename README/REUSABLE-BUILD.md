@@ -51,7 +51,7 @@ Name         | Description                  | Required
 
 - **Permissions**: The job requires `contents: read`, `packages: write`, and `actions: write` permissions to checkout the repository, push images to GHCR, and manage caching, respectively.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
-- **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os><target_os_version>` (e.g., `ci/Dockerfile.ubuntu`, `ci/Dockerfile.centos7`).
+- **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`, `ci/Dockerfile.centos`).
 - **Repository Access**: The workflow checks out the current branch of the repository specified in `github.repository`. For PRs, it uses `github.event.pull_request.head.sha`; otherwise, it uses `github.ref`.
 - **Disk Space**: The workflow uses the `greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24` action to maximize available disk space before building.
 - **Docker Buildx**: The workflow uses `docker/setup-buildx-action@v3` to set up Docker Buildx for building images.

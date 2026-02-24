@@ -21,19 +21,19 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                      | Required | Type   | Default |
-|---------------------|--------------------------------------------------|----------|--------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String | -       |
-| `target_os_version` | Target OS version (e.g., `20`, `7`)              | No       | String | `''`    |
-| `python3`           | Python3 build argument (ignored)                 | No       | String | `''`    |
-| `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)  | No       | String | `''`    |
+Name                | Description                                        | Required | Type   | Default
+------------------- | -------------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)               | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `20`, `7`)                | Yes      | String | -
+`python3`           | Python3 build argument (ignored)                   | No       | String | `''`
+`ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)    | No       | String | `''`
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
 ### Requirements
 
@@ -54,11 +54,11 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: ''
+        target_os_version: '22.04'
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,15 +72,20 @@ To integrate this workflow into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
