@@ -2,6 +2,10 @@
 
 This workflow runs resource groups test suites for the Greengage project using QEMU virtualization. It is designed to be called from a parent CI pipeline, enabling users to execute automated resource groups tests with flexible version and operating system configurations.
 
+## Actual version
+
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v22`
+
 ## Purpose
 
 The workflow executes resource groups tests using a Docker image built for the given Greengage version and target operating system. It runs tests for different optimizers (ORCA and Postgres) depending on the Greengage version:
@@ -81,7 +85,7 @@ The workflow automatically configures the following environment variables based 
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v22
       with:
         version: 7
         target_os: ubuntu
@@ -103,7 +107,7 @@ The workflow automatically configures the following environment variables based 
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v22
       with:
         version: 7
         target_os: ${{ matrix.target_os }}

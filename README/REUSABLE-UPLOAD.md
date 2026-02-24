@@ -7,7 +7,7 @@ tags with flexible version and operating system configurations.
 
 ## Actual version `v17`
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v17`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v21`
 
 ## Purpose
 

@@ -39,24 +39,8 @@ jobs:
       packages: write # Required to push to GHCR
       actions: write  # Required for cache
     steps:
-      - name: Info before
-        run: |
-          sudo bash -c '
-            lsblk
-            mount -l | grep "/dev"
-            df -h
-            lsof | grep "docker"
-          '
-      - name: Move Docker storage to /mnt/docker
-        uses: greengagedb/greengage-ci/.github/actions/mv-docker@feat/mv-docker
-
-      - name: Info after Docker move
-        run: |
-          sudo bash -c '
-            lsblk
-            mount -l | grep "/dev"
-            df -h
-          '
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
       # Checkout default branch if no ref is specified
       - name: Checkout Greengage repo
@@ -67,16 +51,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # Full history for tag resolution
           filter: blob:none # without BLOBs
-
-      - name: Info after Git Clone
-        run: |
-          sudo bash -c '
-            lsblk
-            mount -l | grep "/dev"
-            df -h
-            ls -lah /var/lib/docker || true
-            lsof | grep "docker"
-          '
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -147,12 +121,3 @@ jobs:
             docker push ${IMAGE}:$DEV_TAG
           fi
           docker push ${IMAGE}:${{ github.sha }}
-
-      - name: Info at the end
-        if: always()
-        run: |
-          sudo bash -c '
-            lsblk
-            mount -l | grep "/dev"
-            df -h
-          '
