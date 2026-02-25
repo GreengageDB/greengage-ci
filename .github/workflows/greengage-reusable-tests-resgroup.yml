@@ -82,6 +82,9 @@ jobs:
           export STATEMENT_MEM=${STATEMENT_MEM}
           export IMAGE=${IMAGE_REPO,,}/${IMAGE_NAME}:${IMAGE_SHA}
 
+          # Force Docker client API version
+          export DOCKER_API_VERSION=1.41
+
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh --version 20.10
           systemctl enable --now docker
