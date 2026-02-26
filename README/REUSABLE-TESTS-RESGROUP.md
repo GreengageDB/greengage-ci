@@ -4,7 +4,7 @@ This workflow runs resource groups test suites for the Greengage project using Q
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v22`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v23`
 
 ## Purpose
 
@@ -73,6 +73,7 @@ The workflow automatically configures the following environment variables based 
 - `STATEMENT_MEM`: `125MB` for v7, `250MB` for v6
 - `TEST_OS`: Target operating system
 - `OPTIMIZER`: `on` for ORCA, `off` for Postgres
+- `DOCKER_API_VERSION`: `1.41` — Docker client API compatibility fix (Error: client version 1.53 is too new)
 
 ### Examples
 
@@ -85,7 +86,7 @@ The workflow automatically configures the following environment variables based 
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v22
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v23
       with:
         version: 7
         target_os: ubuntu
@@ -107,7 +108,7 @@ The workflow automatically configures the following environment variables based 
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v22
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v23
       with:
         version: 7
         target_os: ${{ matrix.target_os }}
