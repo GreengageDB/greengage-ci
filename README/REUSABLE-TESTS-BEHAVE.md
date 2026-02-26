@@ -71,7 +71,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v24
       with:
         version: 7
         target_os: ubuntu
@@ -94,7 +94,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v24
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
