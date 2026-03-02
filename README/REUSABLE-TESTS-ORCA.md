@@ -27,7 +27,7 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String | -       |
 | `target_os_version` | Target OS version (e.g., `20`, `7`)              | No       | String | `''`    |
 | `python3`           | Python3 build argument (ignored)                 | No       | String | `''`    |
-| `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)  | No       | String | `''`    |
+| `ref`               | Branch or tag to checkout                        | No       | String | `''`    |
 
 ### Secrets
 

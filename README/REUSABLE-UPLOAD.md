@@ -55,7 +55,7 @@ DockerHub based on specific conditions. Below is the detailed algorithm:
          tag.
        - Example: For a git tag `6.28.3`, the tags are `6.28.3` and possibly
          `latest`.
-     - **For push to a branch** (e.g., `main` or `7.x`):
+     - **For push to a branch**:
        - No version tag is assigned. Developer's branch tags pushed via Build.
        - The `latest` tag is assigned for GHCR.
        - The `testing` tag is assigned for DockerHub when logged in.
@@ -172,7 +172,7 @@ To integrate this workflow into your pipeline:
   and possibly `latest` (if it's the latest semantic version) and pushed to
   GHCR. If DockerHub login is successful, the version tag is also pushed to
   DockerHub.
-- For push to a branch (e.g., `main` or `7.x`), images are tagged as `latest`
+- For push to a branch, images are tagged as `latest`
   for GHCR, and as `testing` for DockerHub (if login is successful).
 - Tags are always fetched to ensure correct version resolution.
 - DockerHub pushes only occur if login was successful.
