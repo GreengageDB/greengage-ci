@@ -4,7 +4,7 @@ This workflow builds and packages Debian (.deb) packages for the Greengage proje
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v19`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v23`
 
 ## Purpose
 
@@ -103,7 +103,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v23
       with:
         version: 6
         target_os: ubuntu
@@ -132,7 +132,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
