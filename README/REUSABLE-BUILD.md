@@ -20,6 +20,7 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
+<<<<<<< HEAD
 | Name                | Description                                      | Required | Type   | Default |
 |---------------------|--------------------------------------------------|----------|--------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
@@ -27,12 +28,20 @@ To integrate this workflow into your pipeline:
 | `target_os_version` | Target OS version (e.g., `22`, `7`)              | No       | String | `''`    |
 | `python3`           | Python3 build argument for the Dockerfile        | No       | String | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No     | String | `''`    |
+=======
+Name                | Description                                        | Required | Type   | Default
+------------------- | -------------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)               | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`)    | Yes      | String | -
+`python3`           | Python3 build argument for the Dockerfile          | No       | String | `''`
+>>>>>>> 62104dc (fix readme)
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
 ### Requirements
 
@@ -59,7 +68,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: ''
+        target_os_version: '22.04'
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -73,7 +82,11 @@ To integrate this workflow into your pipeline:
       strategy:
         fail-fast: true  # Stop on any failure in the matrix
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         contents: read
         packages: write
@@ -82,6 +95,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
