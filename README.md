@@ -4,11 +4,9 @@
 
 - The inputs `target_os_version`, `python3`, and `ref` are optional and retained for backward compatibility. The `target_os_version` and `python3` inputs are for CentOS7 and Python2 support, while `ref` is for manual testing workflows. These inputs have no practical use in regular operations, are treated as empty (`''`), and will be removed in future versions.
 
-- Any changes to the list of **names of required jobs**—including **adding, removing, or renaming jobs**—must be made **only after prior agreement with the administrators of all downstream repositories** that use these workflows.
-After such changes, you must coordinate with those administrators to update their **Branch Protection Rules** accordingly.
-Failing to do so may cause Pull Requests in downstream repositories to bypass required checks or fail validation incorrectly.
+- Any changes to the list of **names of required jobs**--including **adding, removing, or renaming jobs**--must be made **only after prior agreement with the administrators of all downstream repositories** that use these workflows. After such changes, you must coordinate with those administrators to update their **Branch Protection Rules** accordingly. Failing to do so may cause Pull Requests in downstream repositories to bypass required checks or fail validation incorrectly.
 
----
+--------------------------------------------------------------------------------
 
 ## Greengage CI Workflows
 
@@ -26,44 +24,57 @@ The repository provides the following reusable workflows, each performing specif
 ### Algorithm Overview
 
 1. **`build`**:
-   - Builds a GGDB Docker image using `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`) without pulling a base image or using caching.
-   - Tags the image with the full commit SHA (e.g., `ghcr.io/<repo>/ggdb6_ubuntu:abcdef1234567890`).
-   - Pushes the image to GHCR.
-   - Uses inputs: `version`, `target_os`.
+
+  - Builds a GGDB Docker image using `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`) without pulling a base image or using caching.
+  - Tags the image with the full commit SHA (e.g., `ghcr.io/<repo>/ggdb6_ubuntu:abcdef1234567890`).
+  - Pushes the image to GHCR.
+  - Uses inputs: `version`, `target_os`.
 
 2. **`tests-behave`**:
-   - Runs Behave tests for features like `analyzedb`, `gpactivatestandby`, etc., in a Docker container.
-   - Generates artifacts (`allure-results`, `logs_cdw`, `logs_sdw1`) and an aggregated Allure report.
-   - Uses a matrix strategy to test multiple features.
-   - Uses inputs: `version`, `target_os`.
+
+  - Runs Behave tests for features like `analyzedb`, `gpactivatestandby`, etc., in a Docker container.
+  - Generates artifacts (`allure-results`, `logs_cdw`, `logs_sdw1`) and an aggregated Allure report.
+  - Uses a matrix strategy to test multiple features.
+  - Uses inputs: `version`, `target_os`.
 
 3. **`tests-orca`**:
-   - Executes ORCA linter and unit tests in a Docker container.
-   - Builds a linter image using `ci/Dockerfile.linter` and runs unit tests with `unit_tests_gporca.bash`.
-   - Uploads artifacts (`gpAux/ext`).
-   - Uses inputs: `version`, `target_os`.
+
+  - Executes ORCA linter and unit tests in a Docker container.
+  - Builds a linter image using `ci/Dockerfile.linter` and runs unit tests with `unit_tests_gporca.bash`.
+  - Uploads artifacts (`gpAux/ext`).
+  - Uses inputs: `version`, `target_os`.
 
 4. **`regression-tests`**:
-   - Runs regression tests in a Docker container with optimizer settings (`on`, `off`) using the command `installcheck-world` and the environment variable `PGOPTIONS='-c optimizer=<on|off>'`.
-     - `optimizer=on` : Enables ORCA optimization, using ORCA query optimizer for query execution.
-     - `optimizer=off`: Uses PostgreSQL's native query optimizer for query execution.
-   - Generates log artifacts (`regression_logs`) stored in a volume and copied to the host.
-   - Uses a matrix strategy to test both optimizer settings.
-   - Uses inputs: `version`, `target_os`.
+
+  - Runs regression tests in a Docker container with optimizer settings (`on`, `off`) using the command `installcheck-world` and the environment variable `PGOPTIONS='-c optimizer=<on|off>'`.
+
+    - `optimizer=on` : Enables ORCA optimization, using ORCA query optimizer for query execution.
+    - `optimizer=off`: Uses PostgreSQL's native query optimizer for query execution.
+
+  - Generates log artifacts (`regression_logs`) stored in a volume and copied to the host.
+
+  - Uses a matrix strategy to test both optimizer settings.
+
+  - Uses inputs: `version`, `target_os`.
 
 5. **`resgroup-tests`**:
-   - Executes resource groups tests in a Docker container using a Lima VM for Docker setup.
-   - Generates log artifacts (`logs_cdw`, `logs_sdw1`).
-   - Uses inputs: `version`, `target_os`.
+
+  - Executes resource groups tests in a Docker container using a Lima VM for Docker setup.
+  - Generates log artifacts (`logs_cdw`, `logs_sdw1`).
+  - Uses inputs: `version`, `target_os`.
 
 6. **`docker-retag-upload`**:
-   - Pulls an existing GGDB image from GHCR (e.g., `ghcr.io/<repo>/ggdb6_ubuntu:abcdef1234567890`).
-   - Retags it based on the event:
-     - For `pull_request`: Uses sanitized branch name (e.g., `feature_test`).
-     - For tagged push: Uses git tag (e.g., `6.28.0`).
-     - Exits with an error for other events.
-   - Pushes the retagged image to GHCR.
-   - Uses inputs: `version`, `target_os`.
+
+  - Pulls an existing GGDB image from GHCR (e.g., `ghcr.io/<repo>/ggdb6_ubuntu:abcdef1234567890`).
+  - Retags it based on the event:
+
+    - For `pull_request`: Uses sanitized branch name (e.g., `feature_test`).
+    - For tagged push: Uses git tag (e.g., `6.28.0`).
+    - Exits with an error for other events.
+
+  - Pushes the retagged image to GHCR.
+
+  - Uses inputs: `version`, `target_os`.
 
 ## Usage
 
@@ -75,30 +86,35 @@ To integrate these workflows into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                      | Required | Type   |
-|---------------------|--------------------------------------------------|----------|--------|
-| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String |
-| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String |
+Name                | Description                                | Required | Type
+------------------- | ------------------------------------------ | -------- | ------
+`version`           | Greengage version (e.g., `6` or `7`)       | Yes      | String
+`target_os`         | Target operating system (e.g., `ubuntu`)   | Yes      | String
+`target_os_version` | Target OS version (e.g., `22.04`, `24.04`) | Yes      | String
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
 ### Requirements
 
 - **Permissions**:
-  - `packages: read`  (for pulling images from GHCR in test workflows).
+
+  - `packages: read` (for pulling images from GHCR in test workflows).
   - `packages: write` (for pushing images to GHCR in `build` and `docker-retag-upload`).
-  - `actions: write`  (for uploading artifacts in test workflows).
+  - `actions: write` (for uploading artifacts in test workflows).
+
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
+
 - **Docker Image**: For test and retag workflows, ensure a Docker image exists in GHCR matching the format `ghcr.io/<repo>/ggdb<version>_<target_os>:<full-sha>`.
+
 - **Repository Access**: Workflows check out the repository specified in `github.repository`.
+
 - **Required Files Structure**:
 
   ```text
-
   ci/
     ├── Dockerfile.centos
     ├── Dockerfile.ubuntu
@@ -116,7 +132,6 @@ To integrate these workflows into your pipeline:
     │   ├── ic_gpdb.bash
     │   ├── setup_gpadmin_user.bash
     │   ├── unit_tests_gporca.bash
-
   ```
 
 - **Artifacts**: Test workflows (`tests-behave`, `tests-orca`, `regression-tests`, `resgroup-tests`) upload artifacts (e.g., `allure-results`, `logs_cdw`, `regression_logs`).
@@ -128,12 +143,21 @@ To integrate these workflows into your pipeline:
   ```yaml
   jobs:
     build:
+      strategy:
+        fail-fast: true
+        matrix:
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
       with:
         version: 6
-        target_os: ubuntu
+        target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -146,14 +170,19 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -178,13 +207,18 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true  # Stop on any failure in the matrix
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         packages: write  # Required for GHCR access
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Custom token for pushing image with commit SHA tag
 
@@ -193,11 +227,16 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@main
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Token for test environment access
 
@@ -206,11 +245,16 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@main
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Token for test environment access
 
@@ -219,11 +263,16 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@main
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Token for test environment access
 
@@ -232,11 +281,16 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@main
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Token for test environment access
 
@@ -245,27 +299,31 @@ To integrate these workflows into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         packages: write  # Required for GHCR access
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@main
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v23
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}  # Custom token for retagging and pushing final image
-
   ```
 
 ### Notes
 
 - Workflows assume the default branch is checked out unless specified otherwise in testing scenarios.
-- Docker images are tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
+- Docker images are tagged with the full commit SHA and target OS version (e.g., `ghcr.io/<owner>/<repo>/ggdb6_<target_os><target_os_version>:<full-sha>`).
 - The `docker-retag-upload` workflow only runs for `pull_request` or tagged push events, exiting otherwise.
 - The `resgroup-tests` workflow uses Lima, requiring significant resources (4 CPUs, 8GB memory), which may need a self-hosted runner.
 - The `regression-tests` workflow uses custom `sysctl` settings.
 - Ensure the CI directory structure and required scripts (e.g., `run_resgroup_test.bash`, `ic_gpdb.bash`) are present in the repository.
-- Artifacts are uploaded with names like `<job>_ggdb<version>_<target_os>` (e.g., `regression_ggdb6_ubuntu_opt_on`).
+- Artifacts are uploaded with names like `<job>_ggdb<version>_<target_os><target_os_version>` (e.g., `regression_ggdb6_ubuntu_opt_on`).
 
 ## Contributing
 

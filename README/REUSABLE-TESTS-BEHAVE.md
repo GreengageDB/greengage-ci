@@ -47,6 +47,7 @@ To integrate this workflow into your pipeline:
 ### Inputs
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 | Name                | Description                                      | Required | Type   | Default |
 |---------------------|--------------------------------------------------|----------|--------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
@@ -62,6 +63,15 @@ Name                | Description                                               
 `python3`           | Python3 build argument (ignored)                                 | No       | String | `''`
 `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)                  | No       | String | `''`
 >>>>>>> 62104dc (fix readme)
+=======
+Name                | Description                                     | Required | Type   | Default
+------------------- | ----------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)            | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)        | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `20.04`, `22.04`)      | Yes      | String | -
+`python3`           | Python3 build argument (ignored)                | No       | String | `''`
+`ref`               | Branch or tag to checkout (e.g., `main`, `7.x`) | No       | String | `''`
+>>>>>>> 73a26ab (fix readme)
 
 ### Secrets
 

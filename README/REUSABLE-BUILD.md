@@ -25,6 +25,7 @@ To integrate this workflow into your pipeline:
 ### Inputs
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 | Name                | Description                                      | Required | Type   | Default |
 |---------------------|--------------------------------------------------|----------|--------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
@@ -40,6 +41,14 @@ Name                | Description                                        | Requi
 `target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`)    | Yes      | String | -
 `python3`           | Python3 build argument for the Dockerfile          | No       | String | `''`
 >>>>>>> 62104dc (fix readme)
+=======
+Name                | Description                                | Required | Type   | Default
+------------------- | ------------------------------------------ | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)       | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)   | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22.04`, `24.04`) | Yes      | String | -
+`python3`           | Python3 build argument for the Dockerfile  | No       | String | `''`
+>>>>>>> 73a26ab (fix readme)
 
 ### Secrets
 
@@ -51,7 +60,7 @@ Name         | Description                  | Required
 
 - **Permissions**: The job requires `contents: read`, `packages: write`, and `actions: write` permissions to checkout the repository, push images to GHCR, and manage caching, respectively.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
-- **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`, `ci/Dockerfile.centos`).
+- **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`).
 - **Repository Access**: The workflow checks out the current branch of the repository specified in `github.repository`. For PRs, it uses `github.event.pull_request.head.sha`; otherwise, it uses `github.ref`.
 - **Disk Space**: The workflow uses the `greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24` action to maximize available disk space before building.
 - **Docker Buildx**: The workflow uses `docker/setup-buildx-action@v3` to set up Docker Buildx for building images.

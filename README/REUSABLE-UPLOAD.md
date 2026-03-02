@@ -82,12 +82,12 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-Name                | Description                                        | Required | Type   | Default
-------------------- | -------------------------------------------------- | -------- | ------ | -------
-`version`           | Version derived from tag (e.g., `6` or `7`)        | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`)    | Yes      | String | -
-`python3`           | Python3 build argument (ignored)                   | No       | String | `''`
+Name                | Description                                 | Required | Type   | Default
+------------------- | ------------------------------------------- | -------- | ------ | -------
+`version`           | Version derived from tag (e.g., `6` or `7`) | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)    | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22.04`, `24.04`)  | Yes      | String | -
+`python3`           | Python3 build argument (ignored)            | No       | String | `''`
 
 ### Secrets
 

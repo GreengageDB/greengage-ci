@@ -20,11 +20,11 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-Name                | Description                                        | Required | Type   | Default
-------------------- | -------------------------------------------------- | -------- | ------ | -------
-`version`           | Greengage version (e.g., `6` or `7`)               | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`)    | Yes      | String | -
+Name                | Description                                | Required | Type   | Default
+------------------- | ------------------------------------------ | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)       | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)   | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22.04`, `24.04`) | Yes      | String | -
 
 ### Secrets
 
