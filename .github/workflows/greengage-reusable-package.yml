@@ -11,6 +11,10 @@ on:
         description: 'Target OS'
         required: true
         type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 22.04, 24.04)'
+        required: true
+        type: string
       rebuild_builder:
         description: 'Rebuild builder image required'
         required: false
@@ -44,14 +48,15 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v16
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Build Debian packages
         env:
-          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}
+          BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
           docker run --rm \
             -v ./deb-packages:/home/gpadmin/gpdb_src/Package \

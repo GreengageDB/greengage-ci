@@ -6,26 +6,26 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended use current caller workflow tag!
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
   with:
     version: '6' # or '7'
     target_os: 'ubuntu'
-    target_os_version: '22.04' # optional
+    target_os_version: '22.04'
 ```
 
 **Recommendation:** Use the current caller workflow tag for stability.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v16`
+- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v25`
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `version` | Version derived from tag (e.g., 6 or 7) | Yes | - |
-| `target_os` | Target OS (e.g., ubuntu, centos) | Yes | - |
-| `target_os_version` | Target OS version (e.g., 22.04) | No | `''` |
+Input               | Description                             | Required | Default
+------------------- | --------------------------------------- | -------- | -------
+`version`           | Version derived from tag (e.g., 6 or 7) | Yes      | -
+`target_os`         | Target OS (e.g., ubuntu, centos)        | Yes      | -
+`target_os_version` | Target OS version (e.g., 22.04)         | Yes      | `''`
 
 ## What it does
 

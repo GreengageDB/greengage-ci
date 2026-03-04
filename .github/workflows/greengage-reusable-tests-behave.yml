@@ -18,10 +18,9 @@ on:
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 22, 7, 8)'
-        required: false
+        description: 'Target OS version (e.g., 22.04, 24.04)'
+        required: true
         type: string
-        default: ''
       python3:
         description: 'Python3 build argument (ignored)'
         required: false
@@ -69,10 +68,11 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v16
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -90,6 +90,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          artifact_archive_name="${{ inputs.target_os }}${{ inputs.target_os_version }}_postgres_sqldump.tar"
 
           run_ids=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \
@@ -103,9 +104,9 @@ jobs:
             fi
           done
 
-          if tar -xf ${{ inputs.target_os }}_postgres_sqldump.tar 2>/dev/null ; then
-            rm -f ${{ inputs.target_os }}_postgres_sqldump.tar
-            echo "SQL Dump ${{ inputs.target_os }}_postgres_sqldump.tar sucessfully unpacked and removed"
+          if tar -xf $artifact_archive_name 2>/dev/null ; then
+            rm -f $artifact_archive_name
+            echo "SQL Dump $artifact_archive_name sucessfully unpacked and removed"
           else
             echo "::error::Artifact '$artifact_name' not found in any completed workflow run"
             exit 1

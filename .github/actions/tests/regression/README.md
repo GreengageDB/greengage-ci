@@ -4,7 +4,7 @@ This composite action runs regression test suites for the Greengage project in a
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/regression@v16
+- `greengagedb/greengage-ci/.github/actions/tests/regression@v25`
 
 ## Purpose
 
@@ -26,13 +26,14 @@ To integrate this action into your workflow:
 
 ### Inputs
 
-| Name        | Description                                           | Required | Type   | Default     |
-|-------------|-------------------------------------------------------|----------|--------|-------------|
-| `image`     | Greengage Docker image for tests                      | Yes      | String | -           |
-| `target_os` | Target operating system (e.g., `ubuntu`, `centos`)    | Yes      | String | -           |
-| `optimizer` | Optimizer for tests (`postgres` or `orca`)            | Yes      | String | -           |
-| `log_dir`   | Output logs directory for mount in container          | No       | String | `/mnt/logs` |
-| `dump_db`   | Dump database after tests (set to `true` to enable)   | No       | String | `''`        |
+Name                | Description                                         | Required | Type   | Default
+------------------- | --------------------------------------------------- | -------- | ------ | -----------
+`image`             | Greengage Docker image for tests                    | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)            | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22`, `7`)                 | Yes      | String | `''`
+`optimizer`         | Optimizer for tests (`postgres` or `orca`)          | Yes      | String | -
+`log_dir`           | Output logs directory for mount in container        | No       | String | `/mnt/logs`
+`dump_db`           | Dump database after tests (set to `true` to enable) | No       | String | `''`
 
 ### Requirements
 
@@ -47,22 +48,24 @@ To integrate this action into your workflow:
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_centos:abc123
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
-      target_os: centos
+      target_os: ubuntu
+      target_os_version: '22.04'
   ```
 
 - With database dump (typically used with Postgres optimizer)
 
   ```yaml
   - name: Run regression tests with DB dump
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu:def456
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
       target_os: ubuntu
+      target_os_version: '22.04'
       dump_db: 'true'
   ```
 
@@ -70,11 +73,12 @@ To integrate this action into your workflow:
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v16
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22:ghi789
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
       target_os: ubuntu
+      target_os_version: '22.04'
       log_dir: /tmp/test-logs
   ```
 

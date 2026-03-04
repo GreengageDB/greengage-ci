@@ -13,10 +13,9 @@ on:
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version'
-        required: false
+        description: 'Target OS version (e.g., 22.04, 24.04)'
+        required: true
         type: string
-        default: ''
       python3:
         description: 'Python3 build argument'
         required: false
@@ -70,10 +69,11 @@ jobs:
         run: git fetch --tags --force
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v16
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       # Login to DockerHub is conditional
       # For greengagedb/greengage: mandatory (failure will stop workflow)
