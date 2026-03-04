@@ -4,7 +4,7 @@ This workflow runs resource groups test suites for the Greengage project using Q
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v23`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v25`
 
 ## Purpose
 
@@ -90,7 +90,7 @@ jobs:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v25
       with:
         version: 7
         target_os: ubuntu
@@ -116,7 +116,7 @@ jobs:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v25
       with:
         version: 7
         target_os: ${{ matrix.target_os }}

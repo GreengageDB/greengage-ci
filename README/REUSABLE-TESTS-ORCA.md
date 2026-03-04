@@ -2,6 +2,10 @@
 
 This workflow runs ORCA test suites for the Greengage project in a containerized environment. It is designed to be called from a parent CI pipeline, enabling users to execute automated ORCA linter and unit tests with flexible version and operating system configurations.
 
+## Actual version
+
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25`
+
 ## Purpose
 
 The workflow executes the following ORCA tests using a Docker image built for the given Greengage version and target operating system:
@@ -54,7 +58,7 @@ Name         | Description                  | Required
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v25
       with:
         version: 7
         target_os: ubuntu
@@ -81,7 +85,7 @@ Name         | Description                  | Required
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

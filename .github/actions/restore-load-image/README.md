@@ -6,11 +6,11 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended use current caller workflow tag!
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
   with:
     version: '6' # or '7'
     target_os: 'ubuntu'
-    target_os_version: '22.04' # optional
+    target_os_version: '22.04'
 ```
 
 **Recommendation:** Use the current caller workflow tag for stability.
@@ -21,11 +21,11 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `version` | Version derived from tag (e.g., 6 or 7) | Yes | - |
-| `target_os` | Target OS (e.g., ubuntu, centos) | Yes | - |
-| `target_os_version` | Target OS version (e.g., 22.04) | No | `''` |
+Input               | Description                             | Required | Default
+------------------- | --------------------------------------- | -------- | -------
+`version`           | Version derived from tag (e.g., 6 or 7) | Yes      | -
+`target_os`         | Target OS (e.g., ubuntu, centos)        | Yes      | -
+`target_os_version` | Target OS version (e.g., 22.04)         | Yes      | `''`
 
 ## What it does
 
@@ -46,11 +46,11 @@ This dual-mechanism approach was chosen to handle **pull requests from fork repo
 
 - **Fork PRs** have no access to GHCR (GitHub Container Registry)
 - **Fork PRs** can use GitHub Actions cache for passing images through the pipeline
-- **For the upstream repository** the caching mechanism is redundant — GHCR works directly
+- **For the upstream repository** the caching mechanism is redundant -- GHCR works directly
 
 This composite action provides a unified solution:
 
-- **Primary**: Pull from GHCR (fast, no cache overhead) — works for upstream/own repo
-- **Fallback**: Restore from cache — works for fork PRs where GHCR is unavailable
+- **Primary**: Pull from GHCR (fast, no cache overhead) -- works for upstream/own repo
+- **Fallback**: Restore from cache -- works for fork PRs where GHCR is unavailable
 
 This avoids GHCR access issues for fork PRs while keeping the workflow simple and efficient for the main repository.

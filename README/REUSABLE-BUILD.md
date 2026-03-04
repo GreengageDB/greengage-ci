@@ -4,11 +4,7 @@ This workflow builds Docker images for the Greengage project and caches them for
 
 ## Actual version
 
-<<<<<<< HEAD
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v24`
-=======
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23`
->>>>>>> f7502c7 (fix readme)
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v25`
 
 ## Purpose
 
@@ -24,31 +20,13 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-| Name                | Description                                      | Required | Type   | Default |
-|---------------------|--------------------------------------------------|----------|--------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes    | String | -       |
-| `target_os_version` | Target OS version (e.g., `22`, `7`)              | No       | String | `''`    |
-| `python3`           | Python3 build argument for the Dockerfile        | No       | String | `''`    |
-| `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No     | String | `''`    |
-=======
-Name                | Description                                        | Required | Type   | Default
-------------------- | -------------------------------------------------- | -------- | ------ | -------
-`version`           | Greengage version (e.g., `6` or `7`)               | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`, `centos`) | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`)    | Yes      | String | -
-`python3`           | Python3 build argument for the Dockerfile          | No       | String | `''`
->>>>>>> 62104dc (fix readme)
-=======
-Name                | Description                                | Required | Type   | Default
-------------------- | ------------------------------------------ | -------- | ------ | -------
-`version`           | Greengage version (e.g., `6` or `7`)       | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`)   | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`) | Yes      | String | -
-`python3`           | Python3 build argument for the Dockerfile  | No       | String | `''`
->>>>>>> 73a26ab (fix readme)
+Name                | Description                                       | Required | Type   | Default
+------------------- | ------------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `22`, `7`)               | Yes      | String | `''`
+`python3`           | Python3 build argument for the Dockerfile         | No       | String | `''`
+`skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String | `''`
 
 ### Secrets
 
@@ -77,11 +55,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-<<<<<<< HEAD
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v24
-=======
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
->>>>>>> f7502c7 (fix readme)
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v25
       with:
         version: 7
         target_os: ubuntu
@@ -108,11 +82,7 @@ Name         | Description                  | Required
         contents: read
         packages: write
         actions: write
-<<<<<<< HEAD
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v24
-=======
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
->>>>>>> f7502c7 (fix readme)
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

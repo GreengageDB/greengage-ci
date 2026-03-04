@@ -4,7 +4,7 @@ This workflow retags and uploads Docker images for the Greengage project to the 
 
 ## Actual version `v22`
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v22`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v25`
 
 ## Purpose
 
@@ -114,7 +114,7 @@ Name                 | Description                           | Required
       permissions:
         contents: read
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v25
       with:
         version: 7
         target_os: ubuntu
@@ -142,7 +142,7 @@ Name                 | Description                           | Required
       permissions:
         contents: read
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

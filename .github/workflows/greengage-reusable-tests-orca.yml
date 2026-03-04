@@ -50,7 +50,7 @@ jobs:
           submodules: recursive
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-5242
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
