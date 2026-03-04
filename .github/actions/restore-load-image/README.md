@@ -17,7 +17,7 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v16`
+- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v25`
 
 ## Inputs
 
