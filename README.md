@@ -153,7 +153,7 @@ Name         | Description                  | Required
               target_os_version: '24.04'
       permissions:
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -178,7 +178,7 @@ Name         | Description                  | Required
       permissions:
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -214,7 +214,7 @@ Name         | Description                  | Required
               target_os_version: '24.04'
       permissions:
         packages: write  # Required for GHCR access
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -232,7 +232,7 @@ Name         | Description                  | Required
               target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -250,7 +250,7 @@ Name         | Description                  | Required
               target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -268,7 +268,7 @@ Name         | Description                  | Required
               target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -286,7 +286,7 @@ Name         | Description                  | Required
               target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -306,7 +306,7 @@ Name         | Description                  | Required
               target_os_version: '24.04'
       permissions:
         packages: write  # Required for GHCR access
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v23
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
