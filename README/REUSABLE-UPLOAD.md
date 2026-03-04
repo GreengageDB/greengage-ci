@@ -2,7 +2,7 @@
 
 This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR) and optionally DockerHub. It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
 
-## Actual version `v22`
+## Actual version
 
 - `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v25`
 
