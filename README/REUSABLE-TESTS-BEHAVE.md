@@ -8,7 +8,7 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 
 ## Purpose
 
-The workflow executes Behave tests using a Docker image built for the given Greengage version and target operating system. Test features are dynamically discovered from the `gpMgmt/test/behave/mgmt_utils` directory -- each `.feature` file found is executed as a separate job in a matrix strategy.
+The workflow executes Behave tests using a Docker image built for the given Greengage version and target operating system. Test features are dynamically discovered from the `gpMgmt/test/behave/mgmt_utils` directory — each `.feature` file found is executed as a separate job in a matrix strategy.
 
 > **Note**: Test filtering is handled via `@skip` tags within individual test files. The workflow itself does not apply any filters or exclusions to the discovered features.
 
@@ -46,7 +46,7 @@ Name                | Description                                               
 `python3`           | Python3 build argument (ignored)                                 | No       | String | `''`
 `ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)                  | No       | String | `''`
 
-## Secrets
+### Secrets
 
 Name         | Description                  | Required
 ------------ | ---------------------------- | --------
@@ -111,7 +111,7 @@ Name         | Description                  | Required
 ## Notes
 
 - The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
-- Test features are dynamically discovered from `gpMgmt/test/behave/mgmt_utils` -- each `.feature` file is executed as a separate matrix job.
+- Test features are dynamically discovered from `gpMgmt/test/behave/mgmt_utils` — each `.feature` file is executed as a separate matrix job.
 - Test filtering is handled via `@skip` tags within individual test files, not by the workflow.
 - For the `gpexpand` feature, ensure a SQL dump artifact is available from a previous "Greengage SQL Dump" workflow run.
 - Artifacts are uploaded with names like `behave_<feature>_ggdb<version>_<target_os><target_os_version>_results`, and a final aggregated report is named `behave_all_ggdb<version>_<target_os><target_os_version>`.

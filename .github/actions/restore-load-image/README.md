@@ -46,11 +46,11 @@ This dual-mechanism approach was chosen to handle **pull requests from fork repo
 
 - **Fork PRs** have no access to GHCR (GitHub Container Registry)
 - **Fork PRs** can use GitHub Actions cache for passing images through the pipeline
-- **For the upstream repository** the caching mechanism is redundant -- GHCR works directly
+- **For the upstream repository** the caching mechanism is redundant — GHCR works directly
 
 This composite action provides a unified solution:
 
-- **Primary**: Pull from GHCR (fast, no cache overhead) -- works for upstream/own repo
-- **Fallback**: Restore from cache -- works for fork PRs where GHCR is unavailable
+- **Primary**: Pull from GHCR (fast, no cache overhead) — works for upstream/own repo
+- **Fallback**: Restore from cache — works for fork PRs where GHCR is unavailable
 
 This avoids GHCR access issues for fork PRs while keeping the workflow simple and efficient for the main repository.
