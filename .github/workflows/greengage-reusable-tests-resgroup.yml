@@ -58,12 +58,11 @@ jobs:
           wget -q -O ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
-      - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+      - name: Restore SHA image from cache
+        uses: actions/cache/restore@v4
         with:
-          version: ${{ inputs.version }}
-          target_os: ${{ inputs.target_os }}
-          target_os_version: ${{ inputs.target_os_version }}
+          path: ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}.tar
+          key:  ${{ env.IMAGE_NAME }}_${{ env.IMAGE_SHA }}
 
       - name: Create cloud-init script
         env:
