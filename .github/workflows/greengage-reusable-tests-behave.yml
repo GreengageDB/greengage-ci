@@ -85,7 +85,7 @@ jobs:
         uses: docker/setup-compose-action@v1
 
       - name: Fetch SQL dump for ${{ matrix.feature }}
-        if: matrix.feature == 'gpexpand'
+        if: matrix.feature == 'gpexpand' && matrix.target_os_version == '22.04'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
