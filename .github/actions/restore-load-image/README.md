@@ -25,13 +25,14 @@ Input               | Description                             | Required | Defau
 ------------------- | --------------------------------------- | -------- | -------
 `version`           | Version derived from tag (e.g., 6 or 7) | Yes      | -
 `target_os`         | Target OS (e.g., ubuntu, centos)        | Yes      | -
-`target_os_version` | Target OS version (e.g., 22.04)         | Yes      | `''`
+`target_os_version` | Target OS version (e.g., 22.04)         | Yes      | -
+`save_tar`          | Save tar file after load (set to any value to keep) | No | `''`
 
 ## What it does
 
 1. **Try pull from GHCR** - Attempts to pull the image from GitHub Container Registry
 2. **Restore from cache** - If pull fails, restores the image tarball from GitHub Actions cache
-3. **Load Docker image** - Loads the image into Docker and cleans up the tarball
+3. **Load Docker image** - Loads the image into Docker; removes tarball unless `save_tar` is set
 
 ## When to use this
 
