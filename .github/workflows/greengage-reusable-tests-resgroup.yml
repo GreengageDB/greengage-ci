@@ -1,3 +1,4 @@
+# .github/workflows/greengage-reusable-tests-resgroup.yml
 name: Greengage Reusable resource groups Tests
 
 # Trigger for reusable workflow
@@ -58,8 +59,8 @@ jobs:
           wget -q -O ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
-      - name: Restore SHA image from cache
-        uses: actions/cache/restore@v4
+      - name: Restore & Load SHA image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v26
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
