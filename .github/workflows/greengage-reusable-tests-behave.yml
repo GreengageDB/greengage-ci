@@ -89,8 +89,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
-          artifact_archive_name="${{ inputs.target_os }}${{ inputs.target_os_version }}_postgres_sqldump.tar"
+          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}"
+          artifact_archive_name="${{ inputs.target_os }}_postgres_sqldump.tar"
 
           run_ids=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \
