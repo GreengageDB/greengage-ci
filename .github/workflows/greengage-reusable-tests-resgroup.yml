@@ -60,7 +60,7 @@ jobs:
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v26
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@feat/image_save_tar_option
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
