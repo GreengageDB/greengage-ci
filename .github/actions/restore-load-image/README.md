@@ -6,7 +6,7 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v26
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main
   with:
     version: '6' # or '7'
     target_os: 'ubuntu'
@@ -17,7 +17,7 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v26`
+- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@main`
 
 ## Inputs
 
