@@ -6,32 +6,33 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@main # Strongly recommended use current caller workflow tag!
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
   with:
     version: '6' # or '7'
     target_os: 'ubuntu'
-    target_os_version: '22.04' # optional
+    target_os_version: '22.04'
 ```
 
 **Recommendation:** Use the current caller workflow tag for stability.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v19`
+- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v25`
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `version` | Version derived from tag (e.g., 6 or 7) | Yes | - |
-| `target_os` | Target OS (e.g., ubuntu, centos) | Yes | - |
-| `target_os_version` | Target OS version (e.g., 22.04) | No | `''` |
+Input               | Description                             | Required | Default
+------------------- | --------------------------------------- | -------- | -------
+`version`           | Version derived from tag (e.g., 6 or 7) | Yes      | -
+`target_os`         | Target OS (e.g., ubuntu, centos)        | Yes      | -
+`target_os_version` | Target OS version (e.g., 22.04)         | Yes      | -
+`save_tar`          | Save tar file after load (set to any value to keep) | No | `''`
 
 ## What it does
 
 1. **Try pull from GHCR** - Attempts to pull the image from GitHub Container Registry
 2. **Restore from cache** - If pull fails, restores the image tarball from GitHub Actions cache
-3. **Load Docker image** - Loads the image into Docker and cleans up the tarball
+3. **Load Docker image** - Loads the image into Docker; removes tarball unless `save_tar` is set
 
 ## When to use this
 

@@ -4,7 +4,7 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v24`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25`
 
 ## Purpose
 
@@ -18,10 +18,10 @@ The workflow generates test artifacts (e.g., Allure reports, logs) and uploads t
 
 ### Execution and failure model
 
-Behave tests are executed as a matrix of independent jobs, one per feature.
-Failures in individual Behave jobs do not prevent the workflow from completing artifact collection.
+Behave tests are executed as a matrix of independent jobs, one per feature. Failures in individual Behave jobs do not prevent the workflow from completing artifact collection.
 
 The final `collect-results` job:
+
 - always runs, even if one or more Behave jobs fail,
 - downloads all available artifacts,
 - generates a consolidated Allure report from partial results when applicable.
@@ -38,20 +38,21 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                      | Required | Type   | Default |
-|---------------------|--------------------------------------------------|----------|--------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)             | Yes      | String | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`, `centos`, `rockylinux`) | Yes    | String | -       |
-| `target_os_version` | Target OS version (e.g., `22`, `7`, `8`)         | No       | String | `''`    |
-| `python3`           | Python3 build argument (ignored)                 | No       | String | `''`    |
+Name                | Description                                                      | Required | Type   | Default
+------------------- | ---------------------------------------------------------------- | -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)                             | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`, `centos`, `rockylinux`) | Yes      | String | -
+`target_os_version` | Target OS version (e.g., `20.04`, `22.04`, `7`, `8`)             | Yes      | String | -
+`python3`           | Python3 build argument (ignored)                                 | No       | String | `''`
+`ref`               | Branch or tag to checkout (e.g., `main`, `7.x`)                  | No       | String | `''`
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
-### Requirements
+## Requirements
 
 - **Permissions**: The job requires `contents: read`, `packages: read`, and `actions: write` permissions to pull images from GHCR, access repository contents, and upload artifacts.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
@@ -60,7 +61,7 @@ To integrate this workflow into your pipeline:
 - **Artifacts**: The workflow uploads artifacts (e.g., `allure-results`, `logs`, `logs_cdw`, `logs_sdw1`) and a final aggregated Allure report.
 - **SQL Dump**: For the `gpexpand` feature, a SQL dump artifact must be available from a previous "Greengage SQL Dump" workflow run.
 
-### Examples
+## Examples
 
 - **Single Configuration**
 
@@ -71,11 +72,11 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v24
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: ''
+        target_os_version: '22.04'
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -89,20 +90,25 @@ To integrate this workflow into your pipeline:
       strategy:
         fail-fast: true
         matrix:
-          target_os: [ubuntu, centos]
+          include:
+            - target_os: ubuntu
+              target_os_version: '22.04'
+            - target_os: ubuntu
+              target_os_version: '24.04'
       permissions:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v24
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v25
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
+        target_os_version: ${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
 
-### Notes
+## Notes
 
 - The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
 - Test features are dynamically discovered from `gpMgmt/test/behave/mgmt_utils` — each `.feature` file is executed as a separate matrix job.
