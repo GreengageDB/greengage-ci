@@ -29,9 +29,9 @@ To integrate this workflow into your pipeline:
 
 ### Secrets
 
-| Name          | Description                         | Required |
-|---------------|-------------------------------------|----------|
-| `ghcr_token`  | GitHub token for GHCR access        | Yes      |
+Name         | Description                  | Required
+------------ | ---------------------------- | --------
+`ghcr_token` | GitHub token for GHCR access | Yes
 
 ### Requirements
 

@@ -10,7 +10,10 @@ inputs:
     description: 'Target OS'
     required: true
   target_os_version:
-    description: 'Target OS version'
+    description: 'Target OS version (e.g., 22.04, 24.04)'
+    required: true
+  save_tar:
+    description: 'Save tar file after load'
     required: false
     default: ''
 runs:
@@ -34,6 +37,8 @@ runs:
     - name: Load SHA image
       if: steps.pull.outcome == 'failure'
       shell: bash
+      env:
+        SAVE_TAR: ${{ inputs.save_tar }}
       run: |
         docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-        rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        [ -z "$SAVE_TAR" ] && rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar || true
