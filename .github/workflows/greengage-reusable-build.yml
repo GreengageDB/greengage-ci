@@ -70,11 +70,11 @@ jobs:
 
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
-        run: docker build \
-            --build-arg OS_VERSION \
-            --build-arg SKIP_UNITTESTS \
-            --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ci/Dockerfile.${{ inputs.target_os }} \
+        run: docker build
+            --build-arg OS_VERSION
+            --build-arg SKIP_UNITTESTS
+            --tag ${IMAGE,,}:${{ github.sha }}
+            -f ci/Dockerfile.${{ inputs.target_os }}
             .
 
       # Save Docker image
