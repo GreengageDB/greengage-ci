@@ -58,7 +58,6 @@ Name         | Description                  | Required
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: '22.04'
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -69,10 +68,12 @@ Name         | Description                  | Required
   jobs:
     build:
       strategy:
-        fail-fast: true  # Stop on any failure in the matrix
+        fail-fast: false
         matrix:
-          target_os: [ubuntu]
-          target_os_version: ['22.04', '24.04']
+          include:
+            - target_os: ubuntu
+            - target_os: ubuntu
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: write
