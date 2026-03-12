@@ -1,0 +1,47 @@
+# .github/actions/collect-logs/action.yml
+name: "Collect Logs from Docker Container"
+description: "Collects logs from a Docker container after test execution"
+
+inputs:
+  log_dir:
+    description: 'Directory where logs are stored'
+    required: false
+    default: '/mnt/logs'
+  log_name:
+    description: 'Container name for log collection'
+    required: false
+    default: 'ggdb_test'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Collect logs from ${{ inputs.log_name }}
+      shell: bash
+      env:
+        LOG_DIR:  ${{ inputs.log_dir  }}
+        LOG_NAME: ${{ inputs.log_name }}
+      run: |
+        # Sanitize LOG_NAME - replace invalid chars with underscore
+        LOG_NAME=$(sed 's/[^a-zA-Z0-9_-]/_/g' <<< "$LOG_NAME")
+
+        # Sanitize LOG_DIR - replace invalid chars with underscore
+        LOG_DIR=$(sed 's/[^a-zA-Z0-9_./-]/_/g' <<< "$LOG_DIR")
+
+        docker start $LOG_NAME || true
+        docker exec  $LOG_NAME bash -c "
+          set -x
+          cd /home/gpadmin/
+          params=(
+            './ d sqldump'
+            './ d gpAdminLogs'
+            'gpdb_src/src/test/ d results'
+            'gpdb_src/src/test/ f regression.diffs'
+            'gpdb_src/gpAux/gpdemo/datadirs/ d log'
+            'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
+          )
+          for param in \"\${params[@]}\"; do
+            read -r path type name <<< \"\$param\"
+            find \$path -name \$name -type \$type -exec tar -rf \"${LOG_DIR}/${LOG_NAME}_\$name.tar\" {} \;
+          done
+          chmod -R a+rwX ${LOG_DIR}
+        " || true
