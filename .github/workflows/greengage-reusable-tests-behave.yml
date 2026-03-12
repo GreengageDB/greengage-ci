@@ -67,12 +67,12 @@ jobs:
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
-      - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
-        with:
-          version: ${{ inputs.version }}
-          target_os: ${{ inputs.target_os }}
-          target_os_version: ${{ inputs.target_os_version }}
+      # - name: Restore & Load SHA image
+      #   uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+      #   with:
+      #     version: ${{ inputs.version }}
+      #     target_os: ${{ inputs.target_os }}
+      #     target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -115,7 +115,7 @@ jobs:
       - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+          IMAGE: ghcr.io/${{ github.repository }}/ggdb6_ubuntu:b0af473e4626cc8c28b9d0b10099419eee664b6f
         run: |
           export IMAGE=${IMAGE,,}
           bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
