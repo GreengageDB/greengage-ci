@@ -19,7 +19,6 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
         type: string
       python3:
         description: 'Python3 build argument (ignored)'
@@ -119,7 +118,14 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
-          docker ps
+
+      - name: Collect logs behave feature ${{ matrix.feature }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
+        with:
+          prefix: "behave_${{ matrix.feature }}"
+          log_dir: "/logs"
+
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
         if: always()
