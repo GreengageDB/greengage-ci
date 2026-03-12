@@ -119,7 +119,7 @@ jobs:
         run: |
           export IMAGE=${IMAGE,,}
           bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
-
+          docker ps
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
         if: always()
