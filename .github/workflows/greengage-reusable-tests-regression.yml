@@ -75,7 +75,7 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
         with:
-          log_name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+          log_path_prefix: "regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}"
 
       - name: Upload regression optimizer ${{ matrix.optimizer }} artifacts
         if: always()
