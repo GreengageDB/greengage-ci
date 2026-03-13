@@ -119,11 +119,11 @@ jobs:
           export IMAGE=${IMAGE,,}
           bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
 
-      - name: Collect logs behave feature ${{ matrix.feature }}
+      - name: Collect logs ${{ matrix.feature }}
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
         with:
-          prefix: "behave_${{ matrix.feature }}"
+          log_path_prefix: "behave_${{ matrix.feature }}"
           log_dir: "/logs"
 
       # Upload feature artifacts
