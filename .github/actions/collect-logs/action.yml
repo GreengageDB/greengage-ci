@@ -25,9 +25,7 @@ runs:
         LOG_NAME: ${{ inputs.log_name }}
         LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
       run: |
-        set -euo pipefail
-
-        sudo mkdir -p "$LOG_DIR"
+        set -euox pipefail
 
         containers=$(docker ps -a --format '{{.Names}}')
 
@@ -36,55 +34,38 @@ runs:
 
           docker start "$container" >/dev/null 2>&1 || true
 
-          docker exec "$container" bash -s "$LOG_DIR" "$LOG_PATH_PREFIX" <<'EOF' || true
+          docker exec \
+            -e LOG_DIR="$LOG_DIR" \
+            -e LOG_PATH_PREFIX="$LOG_PATH_PREFIX" \
+            "$container" \
+            bash -c '
 
-          LOG_DIR=$1
-          LOG_PATH_PREFIX=$2
+              mkdir -p "$LOG_DIR"
+              cd /home/gpadmin/
 
-          params=(
-            "./ d gpAdminLogs"
-            "./ d sqldump"
-            "gpdb_src/src/test/ d results"
-            "gpdb_src/src/test/ f regression.diffs"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d log"
-            "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
-          )
+              params=(
+                "./ d gpAdminLogs"
+                "./ d sqldump"
+                "gpdb_src/src/test/ d results"
+                "gpdb_src/src/test/ f regression.diffs"
+                "gpdb_src/gpAux/gpdemo/datadirs/ d log"
+                "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
+              )
 
-          for param in "${params[@]}"; do
-            read -r path type name <<< "$param"
+              echo "Container: $(hostname)"
+              echo "PWD: $(pwd)"
+              echo "LOG_DIR: $LOG_DIR"
+              ls -al /home/gpadmin
 
-            if [ -e "$path" ]; then
-              find "$path" -name "$name" -type "$type" \
-                -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
-            fi
-          done
+              for param in "${params[@]}"; do
+                read -r path type name <<< "$param"
 
-          chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
+                if [ -e "$path" ]; then
+                  find "$path" -name "$name" -type "$type" \
+                    -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
+                fi
+              done
 
-        EOF
+              chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
+            '
         done
-
-        # Sanitize LOG_NAME - replace invalid chars with underscore
-        # LOG_NAME=$(sed 's/[^a-zA-Z0-9_-]/_/g' <<< "$LOG_NAME")
-
-        # # Sanitize LOG_DIR - replace invalid chars with underscore
-        # LOG_DIR=$(sed 's/[^a-zA-Z0-9_./-]/_/g' <<< "$LOG_DIR")
-
-        # docker start $LOG_NAME || true
-        # docker exec  $LOG_NAME bash -c "
-        #   set -x
-        #   cd /home/gpadmin/
-        #   params=(
-        #     './ d sqldump'
-        #     './ d gpAdminLogs'
-        #     'gpdb_src/src/test/ d results'
-        #     'gpdb_src/src/test/ f regression.diffs'
-        #     'gpdb_src/gpAux/gpdemo/datadirs/ d log'
-        #     'gpdb_src/gpAux/gpdemo/datadirs/ d pg_log'
-        #   )
-        #   for param in \"\${params[@]}\"; do
-        #     read -r path type name <<< \"\$param\"
-        #     find \$path -name \$name -type \$type -exec tar -rf \"${LOG_DIR}/${LOG_NAME}_\$name.tar\" {} \;
-        #   done
-        #   chmod -R a+rwX ${LOG_DIR}
-        # " || true
