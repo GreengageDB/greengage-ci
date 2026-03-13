@@ -11,7 +11,7 @@ inputs:
     description: 'Container name for log collection'
     required: false
     default: 'ggdb_test'
-  prefix:
+  log_path_prefix:
     description: 'Directory wth prefix'
     required: true
 
@@ -23,7 +23,7 @@ runs:
       env:
         LOG_DIR: ${{ inputs.log_dir }}
         LOG_NAME: ${{ inputs.log_name }}
-        PREFIX: ${{ inputs.prefix }}
+        LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
       run: |
         set -euo pipefail
 
@@ -36,10 +36,10 @@ runs:
 
           docker start "$container" >/dev/null 2>&1 || true
 
-          docker exec "$container" bash -s "$LOG_DIR" "$PREFIX" <<'EOF' || true
+          docker exec "$container" bash -s "$LOG_DIR" "$LOG_PATH_PREFIX" <<'EOF' || true
 
           LOG_DIR=$1
-          PREFIX=$2
+          LOG_PATH_PREFIX=$2
 
           params=(
             "./ d gpAdminLogs"
@@ -55,7 +55,7 @@ runs:
 
             if [ -e "$path" ]; then
               find "$path" -name "$name" -type "$type" \
-                -exec tar -rf "${LOG_DIR}/${PREFIX}_${name}.tar" "{}" \;
+                -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
             fi
           done
 
