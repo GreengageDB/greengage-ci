@@ -43,9 +43,14 @@ runs:
               mkdir -p "$LOG_DIR"
               cd /home/gpadmin/
 
+              if [ -n $DUMP_DB ]; then
+                find "./" -name "sqldump" -type "d" \
+                -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_sqldump.tar" "{}" \;
+                exit 0
+              fi
+
               params=(
                 "./ d gpAdminLogs"
-                "./ d sqldump"
                 "gpdb_src/src/test/ d results"
                 "gpdb_src/src/test/ f regression.diffs"
                 "gpdb_src/gpAux/gpdemo/datadirs/ d log"
