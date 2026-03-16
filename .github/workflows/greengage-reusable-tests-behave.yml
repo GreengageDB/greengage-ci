@@ -124,7 +124,6 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
         with:
           log_path_prefix: "behave_${{ matrix.feature }}"
-          log_dir: "/logs"
 
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts

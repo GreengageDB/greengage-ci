@@ -92,14 +92,13 @@ jobs:
 
           exit ${status:-1} # error if not known
 
-      # - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
-      #   if: always()
-      #   uses: greengagedb/greengage-ci/.github/actions/collect-logs@feat/collect-logs
-      #   with:
-      #     log_name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-      #     log_dir: "/logs"
+      - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
+        with:
+          log_path_prefix: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 
-      # Upload JIT artifacts
+     # Upload JIT artifacts
       - name: Upload JIT ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()
         uses: actions/upload-artifact@v4

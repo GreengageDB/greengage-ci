@@ -6,7 +6,7 @@ inputs:
   log_dir:
     description: 'Directory where logs are stored'
     required: false
-    default: '/mnt/logs'
+    default: '/logs'
   log_name:
     description: 'Container name for log collection'
     required: false
