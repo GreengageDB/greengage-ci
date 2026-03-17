@@ -70,7 +70,6 @@ jobs:
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
           log_name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-          dump_db: "true"
 
       - name: Collect logs optimizer ${{ matrix.optimizer }}
         if: always()
