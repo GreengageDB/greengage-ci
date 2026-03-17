@@ -38,6 +38,7 @@ runs:
         CI: 'true'
         IMAGE: ${{ inputs.image }}
         TEST_OS: ${{ inputs.target_os }}
+        TEST_OS_VERSION: ${{ inputs.target_os_version }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
@@ -54,6 +55,7 @@ runs:
           -v $LOG_DIR:/logs \
           -e CI \
           -e TEST_OS \
+          -e TEST_OS_VERSION \
           -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
@@ -68,6 +70,9 @@ runs:
         exit_code=0
         bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
         echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
-
+        if [ -n "$DUMP_DB" ]; then
+          tar -rf "/logs/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" ./sqldump/dump.sql || exit_code=$?
+          echo "Dump collection './sqldump/dump.sql' finished with $exit_code"
+        fi
         exit $exit_code
         END_OF_SCRIPT

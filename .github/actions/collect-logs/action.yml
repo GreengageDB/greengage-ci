@@ -14,6 +14,15 @@ inputs:
   log_path_prefix:
     description: 'Directory wth prefix'
     required: true
+  params:
+    description: 'Params for find util'
+    required: false
+    default: |
+      ./ d gpAdminLogs
+      gpdb_src/src/test/ d results
+      gpdb_src/src/test/ f regression.diffs
+      gpdb_src/gpAux/gpdemo/datadirs/ d log
+      gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
 
 runs:
   using: "composite"
@@ -37,35 +46,25 @@ runs:
           docker exec \
             -e LOG_DIR="$LOG_DIR" \
             -e LOG_PATH_PREFIX="$LOG_PATH_PREFIX" \
+            -e PARAMS="${{ inputs.params }}" \
             "$container" \
             bash -c '
 
               mkdir -p "$LOG_DIR"
               cd /home/gpadmin/
 
-              params=(
-                "./ d gpAdminLogs"
-                "./ d sqldump"
-                "gpdb_src/src/test/ d results"
-                "gpdb_src/src/test/ f regression.diffs"
-                "gpdb_src/gpAux/gpdemo/datadirs/ d log"
-                "gpdb_src/gpAux/gpdemo/datadirs/ d pg_log"
-              )
-
               echo "Container: $(hostname)"
               echo "PWD: $(pwd)"
               echo "LOG_DIR: $LOG_DIR"
-              ls -al /home/gpadmin
+              ls -la /home/gpadmin
 
-              for param in "${params[@]}"; do
+              echo "$PARAMS" | while IFS= read -r param; do
                 read -r path type name <<< "$param"
-
                 if [ -e "$path" ]; then
                   find "$path" -name "$name" -type "$type" \
                     -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
                 fi
               done
-
               chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
             '
         done
