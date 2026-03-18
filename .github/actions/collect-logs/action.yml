@@ -7,12 +7,9 @@ inputs:
     description: 'Directory where logs are stored'
     required: false
     default: '/logs'
-  log_name:
-    description: 'Container name for log collection'
-    required: false
-    default: 'ggdb_test'
   log_path_prefix:
-    description: 'Directory wth prefix'
+    description: 'Prefix for logs directory'
+    default: 'ggdb_test'
     required: true
   params:
     description: 'Params for find util'
@@ -27,11 +24,10 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Collect logs from ${{ inputs.log_name }}
+    - name: Collect logs
       shell: bash
       env:
         LOG_DIR: ${{ inputs.log_dir }}
-        LOG_NAME: ${{ inputs.log_name }}
         LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
       run: |
         set -euox pipefail
