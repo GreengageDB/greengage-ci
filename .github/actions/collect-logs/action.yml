@@ -30,7 +30,7 @@ runs:
         LOG_DIR: ${{ inputs.log_dir }}
         LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
       run: |
-        set -euox pipefail
+        set -euo pipefail
 
         containers=$(docker ps -a --format '{{.Names}}')
 

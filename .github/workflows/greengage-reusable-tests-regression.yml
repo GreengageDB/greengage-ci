@@ -15,11 +15,11 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        description: 'Target OS for build (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 22, 7, 8)'
+        description: 'Target OS version (e.g., 22.04, 24.04)'
         required: false
         type: string
         default: ''
@@ -50,10 +50,11 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v16
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
         with:
-          log_path_prefix: "regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}"
+          log_path_prefix: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 
       - name: Upload regression optimizer ${{ matrix.optimizer }} artifacts
         if: always()
