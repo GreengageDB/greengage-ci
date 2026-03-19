@@ -4,7 +4,7 @@ This composite action runs regression test suites for the Greengage project in a
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283`
+- `greengagedb/greengage-ci/.github/actions/tests/regression@v26`
 
 ## Purpose
 
@@ -49,7 +49,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -61,7 +61,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests with DB dump
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -74,7 +74,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres

@@ -6,14 +6,14 @@ Collects logs from a Docker container after test execution. This action is desig
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
 ```
 
 With optional parameters:
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
   with:
     log_dir: '/mnt/logs'
     params: |
@@ -25,7 +25,7 @@ With optional parameters:
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@CI-5283
+- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@v26
 
 ## Inputs
 
@@ -33,7 +33,7 @@ Input             | Description                                      | Required 
 ----------------- | ------------------------------------------------ | -------- | -----------
 `log_dir`         | Directory where logs are stored inside container | No       | `/logs`
 `log_path_prefix` | Prefix for archive with logs                     | No       | `ggdb_test`
-`params`          | Params used for find util                        | No       |
+`params`          | Params used for find util                        | No       | ./ d gpAdminLogs<br>gpdb_src/src/test/ d results<br>gpdb_src/src/test/ f regression.diffs<br>gpdb_src/gpAux/gpdemo/datadirs/ d log<br>gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
 
 ## What it does
 
@@ -58,7 +58,7 @@ Example pattern:
 
 ```yaml
 - name: Run tests
-  uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
+  uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
   with:
     image: ${{ env.IMAGE }}
     optimizer: ${{ matrix.optimizer }}
@@ -66,7 +66,7 @@ Example pattern:
 
 - name: Collect logs
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
   with:
     log_path_prefix: "regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}"
 
