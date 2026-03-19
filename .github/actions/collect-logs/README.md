@@ -6,14 +6,14 @@ Collects logs from a Docker container after test execution. This action is desig
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
 ```
 
 With optional parameters:
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
   with:
     log_dir: '/mnt/logs'
     params: |
@@ -25,7 +25,7 @@ With optional parameters:
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@v26
+- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@CI-5283
 
 ## Inputs
 
@@ -58,7 +58,7 @@ Example pattern:
 
 ```yaml
 - name: Run tests
-  uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
+  uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-5283
   with:
     image: ${{ env.IMAGE }}
     optimizer: ${{ matrix.optimizer }}
@@ -66,7 +66,7 @@ Example pattern:
 
 - name: Collect logs
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-5283
   with:
     log_path_prefix: "regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}"
 
