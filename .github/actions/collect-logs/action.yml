@@ -29,6 +29,7 @@ runs:
       env:
         LOG_DIR: ${{ inputs.log_dir }}
         LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
+        PARAMS: ${{ inputs.params }}
       run: |
         set -euo pipefail
 
