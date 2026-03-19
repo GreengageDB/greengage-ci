@@ -33,12 +33,6 @@ runs:
       run: |
         set -euo pipefail
 
-        # Sanitize LOG_DIR - replace invalid chars with underscore
-        LOG_DIR=$(sed 's/[^a-zA-Z0-9_./-]/_/g' <<< "$LOG_DIR")
-
-        # Sanitize LOG_PATH_PREFIX - replace invalid chars with underscore
-        LOG_PATH_PREFIX=$(sed 's/[^a-zA-Z0-9_-]/_/g' <<< "$LOG_PATH_PREFIX")
-
         containers=$(docker ps -a --format '{{.Names}}')
 
         for container in $containers; do
