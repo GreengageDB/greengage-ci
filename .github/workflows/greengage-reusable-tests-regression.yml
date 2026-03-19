@@ -15,13 +15,14 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        description: 'Target OS for build (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
+        required: false
         type: string
+        default: ''
       python3:
         description: 'Python3 build argument (ignored)'
         required: false
@@ -63,18 +64,25 @@ jobs:
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
+          log_name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 
-      - name: Upload regression ${{ github.job }} ${{ matrix.optimizer }} artifacts
+      - name: Collect logs optimizer ${{ matrix.optimizer }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+        with:
+          log_path_prefix: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+
+      - name: Upload regression optimizer ${{ matrix.optimizer }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.job }}_${{ matrix.optimizer }}
+          name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           path: /mnt/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
