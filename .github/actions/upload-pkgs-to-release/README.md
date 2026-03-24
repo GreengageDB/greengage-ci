@@ -60,7 +60,7 @@ jobs:
         - artifact_name: deb-packages
           extensions:    deb ddeb
         - artifact_name: rpm-packages
-          extensions:    rpm ddeb
+          extensions:    rpm
     runs-on: ubuntu-latest
     permissions:
       contents: write
