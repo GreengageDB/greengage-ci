@@ -57,10 +57,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - extensions: deb ddeb
-          artifact_name: deb-packages
-        - extensions: rpm
-          artifact_name: rpm-packages
+        - artifact_name: deb-packages
+          extensions:    deb ddeb
+        - artifact_name: rpm-packages
+          extensions:    rpm ddeb
     runs-on: ubuntu-latest
     permissions:
       contents: write
