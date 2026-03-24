@@ -177,26 +177,22 @@ runs:
           echo "Release '$RELEASE_NAME' not found, skipping upload"
         fi
 
-    - name: Move and upload packages
+    - name: Upload packages
       if: steps.check_release.outputs.exists == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
         RELEASE_NAME: ${{ inputs.release_name }}
-        PACKAGE_NAME: ${{ inputs.package_name }}
       run: |
-        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
         RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
 
-        for var in PACKAGE_NAME RELEASE_NAME ; do
-          if [ -z "${!var}" ] ; then
-            echo "Can't determine $var"
-            exit 1
-          fi
-        done
+        if [ -z "$RELEASE_NAME" ] ; then
+          echo "Can't determine RELEASE_NAME"
+          exit 1
+        fi
 
         shopt -s nullglob
-        
+
         for ext in ${{ inputs.extensions }}; do
           files=("${{ inputs.artifact_name }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
@@ -204,10 +200,8 @@ runs:
             exit 1
           fi
 
-          target="${{ inputs.artifact_name }}/${PACKAGE_NAME}${{ inputs.version }}.$ext"
-          mv -f "${files[0]}" "$target"
-          echo "Uploading $target"
-          gh release upload "$RELEASE_NAME" "$target" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
+          echo "Uploading ${files[0]}"
+          gh release upload "$RELEASE_NAME" "${files[0]}" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
         done
         if [ -n "$not_uploaded" ] ; then
           echo "The following extension(s) are not uploaded: $not_uploaded"

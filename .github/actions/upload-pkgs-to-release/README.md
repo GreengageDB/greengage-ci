@@ -19,18 +19,16 @@ This composite GitHub Action orchestrates the package release process by coordin
    - Creates GitHub release when `create_force` is specified and release doesn't exist
    - Includes build metadata (commit SHA, workflow run ID) in release notes
 
-4. **Upload Packages with Standardized Names**
-   - Renames packages to fixed pattern: `${PACKAGE_NAME}${VERSION}.${EXT}`
-   - Uploads to release with optional overwrite (`clobber` flag)
+4. **Upload Packages with Original Names**
+   - Uploads packages to release preserving their original filenames
+   - Optional overwrite with `clobber` flag
 
 ## Inputs
 
 | Name | Required | Default | Description |
-|------|----------|---------|-------------|
+| ---- | -------- | ------- | ----------- |
 | `artifact_name` | no | `Packages` | Cache key prefix for artifact restoration |
-| `package_name` | no | repo name | Base package name for uploaded files |
 | `release_name` | no | current tag | Target release name (defaults to tag) |
-| `version` | no | empty | Version suffix for package names |
 | `extensions` | no | `deb ddeb rpm` | Space-separated package extensions |
 | `create_force` | no | empty | Force release creation if missing |
 | `clobber` | no | `false` | Overwrite existing release assets |
@@ -59,9 +57,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - version: 6
-          extensions: deb ddeb
+        - extensions: deb ddeb
           artifact_name: deb-packages
+        - extensions: rpm
+          artifact_name: rpm-packages
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -70,7 +69,6 @@ jobs:
       - name: Upload packages to release
         uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@v10
         with:
-          version: ${{ matrix.version }}
           extensions: ${{ matrix.extensions }}
           artifact_name: ${{ matrix.artifact_name }}
 ```
@@ -96,7 +94,7 @@ The action waits for the **package generation workflow** to complete before proc
 ## Error Handling
 
 | Scenario | Action | Recovery |
-|----------|--------|----------|
+| -------- | ------ | -------- |
 | Package building workflow not found within timeout | Exit with timeout error | Check workflow name/trigger conditions |
 | Package building workflow failed | Exit with failure details | Fix build issues and restart |
 | Cache miss after successful build | Provide rebuild instructions with link to CI run | Manually trigger "Re-run all jobs" on build workflow |
@@ -116,6 +114,7 @@ For this action to work correctly, the package building workflow must:
 - **GitHub CLI Filtering**: Uses `gh run list --jq` with precise filtering to find the correct workflow run
 - **Cache Key Strategy**: Commit-based keys ensure artifact consistency
 - **Package Validation**: Verifies exactly one file per extension before upload
+- **Original Filename Preservation**: Files are uploaded with their original names from the artifact
 - **Release Metadata**: Includes build provenance in release notes
 
 ## Notes
