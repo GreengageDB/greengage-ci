@@ -15,7 +15,7 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
+        required: false
         type: string
       python3:
         description: 'Python3 build argument (ignored)'
@@ -29,7 +29,7 @@ on:
 
 jobs:
   optimizer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +60,7 @@ jobs:
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-5460
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}

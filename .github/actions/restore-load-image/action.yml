@@ -28,14 +28,14 @@ runs:
       run: docker pull ${IMAGE,,}
 
     - name: Restore SHA image from cache
-      if: steps.pull.outcome == 'failure'
+      #if: steps.pull.outcome == 'failure'
       uses: actions/cache/restore@v4
       with:
         path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
         key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
     - name: Load SHA image
-      if: steps.pull.outcome == 'failure'
+      #if: steps.pull.outcome == 'failure'
       shell: bash
       env:
         SAVE_TAR: ${{ inputs.save_tar }}
