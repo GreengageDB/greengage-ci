@@ -18,6 +18,8 @@ inputs:
     default: ''
 runs:
   using: "composite"
+  env:
+    SAVE_TAR: ${{ inputs.save_tar }}
   steps:
     - name: Try pull from GHCR
       shell: bash
@@ -25,7 +27,6 @@ runs:
       id: pull
       env:
         IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-        SAVE_TAR: ${{ inputs.save_tar }}
       run: |
         docker pull ${IMAGE,,}
         [ -n "$SAVE_TAR" ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar ${IMAGE,,}
@@ -42,3 +43,4 @@ runs:
       shell: bash
       run: |
         docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        [ -z "$SAVE_TAR" ] && rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar || true
