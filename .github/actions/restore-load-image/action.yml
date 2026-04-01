@@ -18,8 +18,6 @@ inputs:
     default: ''
 runs:
   using: "composite"
-  env:
-    SAVE_TAR: ${{ inputs.save_tar }}
   steps:
     - name: Try pull from GHCR
       shell: bash
@@ -28,6 +26,7 @@ runs:
       env:
         IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         IMAGE_TAR_PATH: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        SAVE_TAR: ${{ inputs.save_tar }}
       run: |
         docker pull ${IMAGE,,}
         [ -n "$SAVE_TAR" ] && docker save -o ${IMAGE_TAR_PATH} ${IMAGE,,}
@@ -42,6 +41,8 @@ runs:
     - name: Load SHA image
       if: steps.pull.outcome == 'failure'
       shell: bash
+      env:
+        SAVE_TAR: ${{ inputs.save_tar }}
       run: |
         docker load < ${IMAGE_TAR_PATH}
         [ -z "$SAVE_TAR" ] && rm -f ${IMAGE_TAR_PATH} || true
