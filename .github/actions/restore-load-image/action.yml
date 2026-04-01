@@ -25,20 +25,20 @@ runs:
       id: pull
       env:
         IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-      run: docker pull ${IMAGE,,}
+        SAVE_TAR: ${{ inputs.save_tar }}
+      run: |
+        docker pull ${IMAGE,,}
+        [ -n "$SAVE_TAR" ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar ${IMAGE,,}
 
     - name: Restore SHA image from cache
-      #if: steps.pull.outcome == 'failure'
+      if: steps.pull.outcome == 'failure'
       uses: actions/cache/restore@v4
       with:
         path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
         key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
     - name: Load SHA image
-      #if: steps.pull.outcome == 'failure'
+      if: steps.pull.outcome == 'failure'
       shell: bash
-      env:
-        SAVE_TAR: ${{ inputs.save_tar }}
       run: |
         docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-        [ -z "$SAVE_TAR" ] && rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar || true
