@@ -19,7 +19,7 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
+        required: false
         type: string
       python3:
         description: 'Python3 build argument (ignored)'
@@ -33,7 +33,7 @@ on:
 
 jobs:
   orca:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read  # Explicit for default behavior
       actions: write  # Required for cache and artifact upload

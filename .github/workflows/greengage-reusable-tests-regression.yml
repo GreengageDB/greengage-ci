@@ -35,7 +35,7 @@ on:
 
 jobs:
   optimizer:  # Regression tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
       fail-fast: false

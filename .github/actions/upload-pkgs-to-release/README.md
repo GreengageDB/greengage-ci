@@ -7,34 +7,38 @@ This composite GitHub Action orchestrates the package release process by coordin
 ### Sequence of Operations
 
 1. **Wait for Package Building Workflow Completion**
-   - Polls the specified package generation workflow (`Greengage CI` by default)
-   - Verifies the workflow completed successfully for the exact commit and tag
-   - Provides configurable timeout (default: 4 hours) and polling interval (default: 60 seconds)
+
+  - Polls the specified package generation workflow (`Greengage CI` by default)
+  - Verifies the workflow completed successfully for the exact commit and tag
+  - Provides configurable timeout (default: 4 hours) and polling interval (default: 60 seconds)
 
 2. **Restore Built Packages from Cache**
-   - Retrieves packages from GitHub Actions cache using commit SHA as key
-   - Cache key format: `{artifact_name}-{commit_sha}`
+
+  - Retrieves packages from GitHub Actions cache using commit SHA as key
+  - Cache key format: `{artifact_name}-{commit_sha}`
 
 3. **Create Release if Needed**
-   - Creates GitHub release when `create_force` is specified and release doesn't exist
-   - Includes build metadata (commit SHA, workflow run ID) in release notes
+
+  - Creates GitHub release when `create_force` is specified and release doesn't exist
+  - Includes build metadata (commit SHA, workflow run ID) in release notes
 
 4. **Upload Packages with Original Names**
-   - Uploads packages to release preserving their original filenames
-   - Optional overwrite with `clobber` flag
+
+  - Uploads packages to release preserving their original filenames
+  - Optional overwrite with `clobber` flag
 
 ## Inputs
 
-| Name | Required | Default | Description |
-| ---- | -------- | ------- | ----------- |
-| `artifact_name` | no | `Packages` | Cache key prefix for artifact restoration |
-| `release_name` | no | current tag | Target release name (defaults to tag) |
-| `extensions` | no | `deb ddeb rpm` | Space-separated package extensions |
-| `create_force` | no | empty | Force release creation if missing |
-| `clobber` | no | `false` | Overwrite existing release assets |
-| `ci_wait_timeout` | no | `14400` | Timeout in seconds to wait for CI workflow (4 hours) |
-| `ci_poll_interval` | no | `60` | Poll interval in seconds to check CI workflow status |
-| `workflow_for_waiting` | no | `Greengage CI` | **Name of the package building workflow** to wait for completion |
+Name                   | Required | Default        | Description
+---------------------- | -------- | -------------- | ----------------------------------------------------------------
+`artifact_name`        | no       | `Packages`     | Cache key prefix for artifact restoration
+`release_name`         | no       | current tag    | Target release name (defaults to tag)
+`extensions`           | no       | `deb ddeb rpm` | Space-separated package extensions
+`create_force`         | no       | empty          | Force release creation if missing
+`clobber`              | no       | `false`        | Overwrite existing release assets
+`ci_wait_timeout`      | no       | `14400`        | Timeout in seconds to wait for CI workflow (4 hours)
+`ci_poll_interval`     | no       | `60`           | Poll interval in seconds to check CI workflow status
+`workflow_for_waiting` | no       | `Greengage CI` | **Name of the package building workflow** to wait for completion
 
 ## Key Features
 
@@ -61,7 +65,7 @@ jobs:
           extensions:    deb ddeb
         - artifact_name: rpm-packages
           extensions:    rpm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       actions: read
@@ -78,27 +82,30 @@ jobs:
 The action waits for the **package generation workflow** to complete before proceeding:
 
 1. **Identifies the correct workflow run** by filtering on:
-   - Commit SHA (same as current release)
-   - Event type (`push`)
-   - Branch/tag name (release tag)
+
+  - Commit SHA (same as current release)
+  - Event type (`push`)
+  - Branch/tag name (release tag)
 
 2. **Monitors workflow status** until:
-   - **Success**: Proceeds with cache restoration and upload
-   - **Failure**: Exits with error and link to failed run
-   - **Timeout**: Exits after specified wait time
+
+  - **Success**: Proceeds with cache restoration and upload
+  - **Failure**: Exits with error and link to failed run
+  - **Timeout**: Exits after specified wait time
 
 3. **Requires specific permissions**:
-   - `contents: write` for release operations
-   - GitHub token with access to workflow run information
+
+  - `contents: write` for release operations
+  - GitHub token with access to workflow run information
 
 ## Error Handling
 
-| Scenario | Action | Recovery |
-| -------- | ------ | -------- |
-| Package building workflow not found within timeout | Exit with timeout error | Check workflow name/trigger conditions |
-| Package building workflow failed | Exit with failure details | Fix build issues and restart |
-| Cache miss after successful build | Provide rebuild instructions with link to CI run | Manually trigger "Re-run all jobs" on build workflow |
-| Release doesn't exist and `create_force` not set | Skip upload | Set `create_force: true` or create release manually |
+Scenario                                           | Action                                           | Recovery
+-------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------
+Package building workflow not found within timeout | Exit with timeout error                          | Check workflow name/trigger conditions
+Package building workflow failed                   | Exit with failure details                        | Fix build issues and restart
+Cache miss after successful build                  | Provide rebuild instructions with link to CI run | Manually trigger "Re-run all jobs" on build workflow
+Release doesn't exist and `create_force` not set   | Skip upload                                      | Set `create_force: true` or create release manually
 
 ## Package Building Workflow Requirements
 
