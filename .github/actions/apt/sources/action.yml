@@ -4,7 +4,8 @@ description: Generates /apt/sources.list with Azure mirrors for Ubuntu 22.04 or 
 
 inputs:
   os_version:
-    required: true
+    required: false
+    default: '22.04'
     description: 'Ubuntu version (e.g. 22.04 or 24.04)'
 
 runs:
