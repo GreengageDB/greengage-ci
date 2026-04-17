@@ -38,6 +38,11 @@ jobs:
       IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
       OS_VERSION: ${{ inputs.target_os_version || 22.04 }}
       SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
+      DEBIAN_FRONTEND:          noninteractive
+      UBUNTU_MAIN_MIRROR:       http://azure.archive.ubuntu.com/ubuntu
+      UBUNTU_UPDATES_MIRROR:    http://azure.archive.ubuntu.com/ubuntu
+      UBUNTU_BACKPORTS_MIRROR:  http://azure.archive.ubuntu.com/ubuntu
+      UBUNTU_SECURITY_MIRROR:   http://azure.archive.ubuntu.com/ubuntu
     steps:
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
@@ -73,6 +78,10 @@ jobs:
         run: docker build
             --build-arg OS_VERSION
             --build-arg SKIP_UNITTESTS
+            --build-arg UBUNTU_MAIN_MIRROR
+            --build-arg UBUNTU_UPDATES_MIRROR
+            --build-arg UBUNTU_BACKPORTS_MIRROR
+            --build-arg UBUNTU_SECURITY_MIRROR
             --tag ${IMAGE,,}:${{ github.sha }}
             -f ci/Dockerfile.${{ inputs.target_os }}
             .
