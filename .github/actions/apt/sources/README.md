@@ -4,16 +4,16 @@ Composite action. Generates `apt/sources.list` with Azure Ubuntu mirrors.
 
 ## Inputs
 
-| Input        | Required | Default | Description                     |
-|--------------|----------|---------|---------------------------------|
-| `os_version` | yes      | —       | Ubuntu version (`22.04`, `24.04`) |
+| Input        | Required | Default | Description                       |
+|--------------|----------|---------|-----------------------------------|
+| `os_version` | no       | `22.04` | Ubuntu version (`22.04`, `24.04`) |
 
 ## Usage
 
 ```yaml
-- uses: ./.github/actions/apt/sources
+- uses: greengagedb/greengage-ci/.github/actions/apt/sources@feat/apt-source
   with:
-    os_version: '22.04'
+    os_version: '24.04'
 ```
 
 ## Output
