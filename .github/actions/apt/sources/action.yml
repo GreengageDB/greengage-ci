@@ -1,0 +1,30 @@
+# .github/actions/apt/sources/action.yml
+name: Generate apt sources.list for Azure mirrors
+description: Generates /apt/sources.list with Azure mirrors for Ubuntu 22.04 or 24.04
+
+inputs:
+  os_version:
+    required: true
+    description: 'Ubuntu version (e.g. 22.04 or 24.04)'
+
+runs:
+  using: composite
+  steps:
+    - name: Generate apt/sources.list
+      shell: bash
+      env:
+        CODENAME: |-
+          ${{ case(
+            inputs.os_version == '22.04', 'jammy',
+            inputs.os_version == '24.04', 'noble',
+            'unknown'
+          ) }}
+      run: |
+        set -eu
+        mkdir -p apt
+        cat > apt/sources.list <<EOF
+        deb http://azure.archive.ubuntu.com/ubuntu/ ${CODENAME}           main restricted universe multiverse
+        deb http://azure.archive.ubuntu.com/ubuntu/ ${CODENAME}-updates   main restricted universe multiverse
+        deb http://azure.archive.ubuntu.com/ubuntu/ ${CODENAME}-backports main restricted universe multiverse
+        deb http://azure.archive.ubuntu.com/ubuntu/ ${CODENAME}-security  main restricted universe multiverse
+        EOF
