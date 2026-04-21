@@ -219,10 +219,12 @@ jobs:
               echo "Waiting for SSH (qemu-vm) to become available..."
               sleep 5
             done
-          '
+          ' || { echo "Timeout reached: SSH is not available"; exit 1; }
+
           EXIT_CODE=0
           ${SSH_COMMAND} "echo 'Waiting for cloud-init to be done...' && sudo cloud-init status --wait" || EXIT_CODE=$?
-          if [[ "$EXIT_CODE" > 1 ]]; then echo "cloud-init status check has some warnings!"; exit $EXIT_CODE; fi
+          if [[ "$EXIT_CODE" -eq 2 ]]; then echo "cloud-init status check has some warnings!"; exit 0; fi
+          exit $EXIT_CODE
 
       - name: Run resgorup tests
         run: |
