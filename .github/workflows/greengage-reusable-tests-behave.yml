@@ -14,12 +14,11 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        description: 'Target OS for build (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
         type: string
       python3:
         description: 'Python3 build argument (ignored)'
@@ -33,7 +32,7 @@ on:
 
 jobs:
   generate-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
     steps:
@@ -54,7 +53,7 @@ jobs:
 
   behave:
     needs: generate-matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -89,8 +88,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
-          artifact_archive_name="${{ inputs.target_os }}${{ inputs.target_os_version }}_postgres_sqldump.tar"
+          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}"
+          artifact_archive_name="${{ inputs.target_os }}_postgres_sqldump.tar"
 
           run_ids=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \
@@ -120,6 +119,12 @@ jobs:
           export IMAGE=${IMAGE,,}
           bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
 
+      - name: Collect logs ${{ matrix.feature }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+        with:
+          log_path_prefix: "behave_${{ matrix.feature }}"
+
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
         if: always()
@@ -138,7 +143,7 @@ jobs:
   collect-results:
     needs: behave
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity

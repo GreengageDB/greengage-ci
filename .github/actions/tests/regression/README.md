@@ -4,7 +4,7 @@ This composite action runs regression test suites for the Greengage project in a
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/regression@v25`
+- `greengagedb/greengage-ci/.github/actions/tests/regression@v26`
 
 ## Purpose
 
@@ -33,6 +33,7 @@ Name                | Description                                         | Requ
 `target_os_version` | Target OS version (e.g., `22`, `7`)                 | Yes      | String | `''`
 `optimizer`         | Optimizer for tests (`postgres` or `orca`)          | Yes      | String | -
 `log_dir`           | Output logs directory for mount in container        | No       | String | `/mnt/logs`
+`log_name`          | Container name for log collection                   | No       | String | `ggdb_test`
 `dump_db`           | Dump database after tests (set to `true` to enable) | No       | String | `''`
 
 ### Requirements
@@ -48,7 +49,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -60,7 +61,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests with DB dump
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -73,7 +74,7 @@ Name                | Description                                         | Requ
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres

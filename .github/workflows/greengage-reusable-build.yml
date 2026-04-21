@@ -1,3 +1,4 @@
+# .github/workflows/greengage-reusable-build.yml
 name: Greengage Reusable Docker Build Workflow
 
 on:
@@ -13,10 +14,6 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
-        type: string
-      python3:
-        description: 'Python3 build argument'
         required: false
         type: string
         default: ''
@@ -32,23 +29,28 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read  # Explicit for default behavior
       packages: write # Required to push to GHCR
       actions: write  # Required for cache
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      OS_VERSION: ${{ inputs.target_os_version || 22.04 }}
+      SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
     steps:
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
 
-      # Checkout default branch if no ref is specified
+      # Checkout default branch
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
-          fetch-depth: 0  # Full history for tag resolution
+          fetch-depth: 0    # Full history for tag resolution
+          fetch-tags: true  # Default 'false'
           filter: blob:none # without BLOBs
 
       - name: Set up Docker Buildx
@@ -66,41 +68,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Renew git tags
-      - name: Fetch all tags
-        run: git fetch --tags --force
-
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
-        id: build_image
-        env:
-          SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
-          OS_VERSION: ${{ inputs.target_os_version }}
-          IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-        run: |
-          IMAGE=${IMAGE,,}
-
-          # Build from Dockerfile specific to target OS with SHA tag
-          docker build \
-            --build-arg OS_VERSION \
-            --build-arg SKIP_UNITTESTS \
-            --tag ${IMAGE}:${{ github.sha }} \
-            -f ci/Dockerfile.${{ inputs.target_os }} \
+        run: docker build
+            --build-arg OS_VERSION
+            --build-arg SKIP_UNITTESTS
+            --tag ${IMAGE,,}:${{ github.sha }}
+            -f ci/Dockerfile.${{ inputs.target_os }}
             .
 
       # Save Docker image
       - name: Save SHA image
-        run: |
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          IMAGE=${IMAGE,,}
-          docker save ${IMAGE}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+        run: docker save ${IMAGE,,}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
 
       # Cache SHA image
       - name: Cache SHA image
         uses: actions/cache/save@v4
         with:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
+          key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
 
       # Push developer's tag if exists and SHA tag always if pull-request and same repository OR push
       - name: Push developer's and SHA tag image
@@ -111,13 +97,10 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          IMAGE=${IMAGE,,}
           if [ -n "$HEAD_REF" ]; then
             DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
             DEV_TAG=${DEV_TAG:-unknown}
-            echo "dev_tag=$DEV_TAG" >> $GITHUB_OUTPUT
-            docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:$DEV_TAG
-            docker push ${IMAGE}:$DEV_TAG
+            docker tag  ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$DEV_TAG
+            docker push ${IMAGE,,}:$DEV_TAG
           fi
-          docker push ${IMAGE}:${{ github.sha }}
+          docker push ${IMAGE,,}:${{ github.sha }}
