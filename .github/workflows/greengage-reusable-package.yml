@@ -20,16 +20,6 @@ on:
         required: false
         type: boolean
         default: false
-      test_lima:
-        description: 'Lima Template (e.g., ubuntu-22.04) for deploy test. Skip if empty'
-        required: false
-        type: string
-        default: ''
-      test_docker:
-        description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
-        required: false
-        type: string
-        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -76,10 +66,9 @@ jobs:
           path: deb-packages
           key: deb-packages-${{ github.sha }}
 
-  test-docker:
-    if: inputs.test_docker != ''
+  test-install:
     env:
-      TEST_DOCKER: ${{ inputs.test_docker }}
+      TARGET_IMAGE: ${{ inputs.target_os }}:${{ inputs.target_os_version }}
     needs: build-deb
     runs-on: ubuntu-24.04
     steps:
@@ -88,27 +77,12 @@ jobs:
         with:
           name: deb-packages
           path: deb-packages
-      - name: Start Docker container and install deb package
+      - name: Install deb package in container
         run: |
           set -eux
           docker run --rm -v ./deb-packages:/deb-packages \
-            "${TEST_DOCKER}" /bin/bash -c "\
+            "${TARGET_IMAGE}" /bin/bash -c "\
               export DEBIAN_FRONTEND=noninteractive && \
               apt-get update && \
               { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
               apt-get install -f -y"
-
-  # upload-to-release:
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   needs: [build-deb, test-docker]
-  #   runs-on: ubuntu-24.04
-  #   permissions:
-  #     contents: write  # Required for release creation
-  #   steps:
-  #     - name: Upload packages to release
-  #       uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@v19
-  #       with:
-  #         version: ${{ inputs.version }}    # optional, defaults empty
-  #         artifact_name: deb-packages       # optional, defaults to Packages
-  #         package_name: greengage           # optional, defaults to repo name
-  #         extensions: "deb ddeb"            # optional, space-separated list of extensions
