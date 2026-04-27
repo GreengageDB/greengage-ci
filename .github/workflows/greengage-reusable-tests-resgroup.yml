@@ -30,6 +30,7 @@ on:
 jobs:
   optimizer:
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +228,7 @@ jobs:
           exit $EXIT_CODE
 
       - name: Run resgorup tests
+        timeout-minutes: 150
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
