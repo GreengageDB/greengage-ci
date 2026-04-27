@@ -77,19 +77,9 @@ jobs:
             -f ci/Dockerfile.${{ inputs.target_os }}
             .
 
-      # Save Docker image
-      - name: Save SHA image
-        run: docker save ${IMAGE,,}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-
-      # Cache SHA image
-      - name: Cache SHA image
-        uses: actions/cache/save@v4
-        with:
-          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-          key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
-
-      # Push developer's tag if exists and SHA tag always if pull-request and same repository OR push
+      # Push developer's and SHA tag image for internal PRs and pushes
       - name: Push developer's and SHA tag image
+        id: push
         if: >
           github.event_name == 'push' ||
           (github.event_name == 'pull_request' &&
@@ -104,3 +94,15 @@ jobs:
             docker push ${IMAGE,,}:$DEV_TAG
           fi
           docker push ${IMAGE,,}:${{ github.sha }}
+
+      # Save and cache only when push to GHCR did not succeed (fork PRs, unexpected failures)
+      - name: Save SHA image
+        if: steps.push.outcome != 'success'
+        run: docker save ${IMAGE,,}:${{ github.sha }} > ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+
+      - name: Cache SHA image
+        if: steps.push.outcome != 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
+          key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
