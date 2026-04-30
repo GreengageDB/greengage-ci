@@ -48,12 +48,19 @@ jobs:
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
           features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
-          feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          feature_array=$(echo "$features" | while IFS= read -r f; do
+            if grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
+              echo "{\"name\":\"$f\",\"skip\":true}"
+            else
+              echo "{\"name\":\"$f\",\"skip\":false}"
+            fi
+          done | jq -s -c '.')
           echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
 
   behave:
     needs: generate-matrix
     runs-on: ubuntu-24.04
+    if: ${{ !matrix.feature.skip }}
     strategy:
       fail-fast: false
       matrix:
@@ -83,8 +90,9 @@ jobs:
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
 
-      - name: Fetch SQL dump for ${{ matrix.feature }}
-        if: matrix.feature == 'gpexpand'
+      - name: Fetch SQL dump for ${{ matrix.feature.name }}
+        if: matrix.feature.name == 'gpexpand'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -111,26 +119,26 @@ jobs:
             exit 1
           fi
 
-      - name: Run Behave feature ${{ matrix.feature }}
+      - name: Run Behave feature ${{ matrix.feature.name }}
         # continue-on-error: true
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
           export IMAGE=${IMAGE,,}
-          bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
+          bash ci/scripts/run_behave_tests.bash ${{ matrix.feature.name }}
 
-      - name: Collect logs ${{ matrix.feature }}
+      - name: Collect logs ${{ matrix.feature.name }}
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
         with:
-          log_path_prefix: "behave_${{ matrix.feature }}"
+          log_path_prefix: "behave_${{ matrix.feature.name }}"
 
       # Upload feature artifacts
-      - name: Upload ${{ matrix.feature }} artifacts
+      - name: Upload ${{ matrix.feature.name }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
+          name: ${{ github.job }}_${{ matrix.feature.name }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           path: |
             allure-results
             logs_cdw
