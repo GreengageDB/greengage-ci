@@ -76,7 +76,6 @@ Name         | Description                  | Required
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: '22.04'
         python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -92,7 +91,6 @@ Name         | Description                  | Required
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
       permissions:

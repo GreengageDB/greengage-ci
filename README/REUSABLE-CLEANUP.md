@@ -20,11 +20,11 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-Name                | Description                                | Required | Type   | Default
-------------------- | ------------------------------------------ | -------- | ------ | -------
-`version`           | Greengage version (e.g., `6` or `7`)       | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`)   | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`) | Yes      | String | -
+Name                | Description                              | Required | Type   | Default
+------------------- | -----------------------------------------| -------- | ------ | -------
+`version`           | Greengage version (e.g., `6` or `7`)     | Yes      | String | -
+`target_os`         | Target operating system (e.g., `ubuntu`) | Yes      | String | -
+`target_os_version` | Target OS version (e.g., ``, `24.04`)    | Yes      | String | -
 
 ### Secrets
 
@@ -51,7 +51,6 @@ Name         | Description                  | Required
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: '22.04'
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -66,7 +65,6 @@ Name         | Description                  | Required
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
       permissions:

@@ -86,7 +86,7 @@ Name                | Description                                 | Required | T
 ------------------- | ------------------------------------------- | -------- | ------ | -------
 `version`           | Version derived from tag (e.g., `6` or `7`) | Yes      | String | -
 `target_os`         | Target operating system (e.g., `ubuntu`)    | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`)  | Yes      | String | -
+`target_os_version` | Target OS version (e.g., ``, `24.04`)       | Yes      | String | -
 `python3`           | Python3 build argument (ignored)            | No       | String | `''`
 
 ### Secrets
@@ -136,7 +136,6 @@ Name                 | Description                           | Required
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
       permissions:

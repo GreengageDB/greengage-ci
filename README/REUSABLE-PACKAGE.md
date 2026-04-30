@@ -74,7 +74,7 @@ Name                | Description                                          | Req
 ------------------- | ---------------------------------------------------- | -------- | ------- | -------
 `version`           | Version derived from tag (e.g., `6` or `7`)          | Yes      | String  | -
 `target_os`         | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`)           | Yes      | String  | -
+`target_os_version` | Target OS version (e.g., ``, `24.04`)                | Yes      | String  | -
 `rebuild_builder`   | Rebuild builder image even if it exists              | No       | Boolean | `false`
 `test_lima`         | Lima template (e.g., `ubuntu-22.04`) for deploy test | No       | String  | `''`
 `test_docker`       | Docker image (e.g., `ubuntu:22.04`) for deploy test  | No       | String  | `''`
@@ -107,7 +107,6 @@ Name         | Description                  | Required
       with:
         version: 6
         target_os: ubuntu
-        target_os_version: '22.04'
         rebuild_builder: false
         test_lima: ubuntu-22.04
         test_docker: ubuntu:22.04
@@ -125,7 +124,6 @@ Name         | Description                  | Required
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
       permissions:
