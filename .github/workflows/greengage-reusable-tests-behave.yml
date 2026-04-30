@@ -60,7 +60,7 @@ jobs:
   behave:
     needs: generate-matrix
     runs-on: ubuntu-24.04
-    if: ${{ !matrix.feature.skip }}
+    if: matrix.feature.skip == false
     strategy:
       fail-fast: false
       matrix:
