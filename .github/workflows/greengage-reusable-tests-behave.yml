@@ -34,7 +34,8 @@ jobs:
   generate-matrix:
     runs-on: ubuntu-24.04
     outputs:
-      feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
+      run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
+      skip_matrix: ${{ steps.set-matrix.outputs.skip_matrix }}
     steps:
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -48,23 +49,29 @@ jobs:
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
           features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
-          feature_array=$(echo "$features" | while IFS= read -r f; do
-            if grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
-              echo "{\"name\":\"$f\",\"skip\":true}"
-            else
-              echo "{\"name\":\"$f\",\"skip\":false}"
+
+          run_array=$(echo "$features" | while IFS= read -r f; do
+            if ! grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
+              echo "\"$f\""
             fi
           done | jq -s -c '.')
-          echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
+
+          skip_array=$(echo "$features" | while IFS= read -r f; do
+            if grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
+              echo "\"$f\""
+            fi
+          done | jq -s -c '.')
+
+          echo "run_matrix=$run_array" >> $GITHUB_OUTPUT
+          echo "skip_matrix=$skip_array" >> $GITHUB_OUTPUT
 
   behave:
     needs: generate-matrix
     runs-on: ubuntu-24.04
-    if: matrix.feature.skip == false
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(needs.generate-matrix.outputs.feature_matrix) }}
+        feature: ${{ fromJson(needs.generate-matrix.outputs.run_matrix) }}
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
@@ -90,8 +97,8 @@ jobs:
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
 
-      - name: Fetch SQL dump for ${{ matrix.feature.name }}
-        if: matrix.feature.name == 'gpexpand'
+      - name: Fetch SQL dump for ${{ matrix.feature }}
+        if: matrix.feature == 'gpexpand'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -119,26 +126,26 @@ jobs:
             exit 1
           fi
 
-      - name: Run Behave feature ${{ matrix.feature.name }}
+      - name: Run Behave feature ${{ matrix.feature }}
         # continue-on-error: true
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
           export IMAGE=${IMAGE,,}
-          bash ci/scripts/run_behave_tests.bash ${{ matrix.feature.name }}
+          bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
 
-      - name: Collect logs ${{ matrix.feature.name }}
+      - name: Collect logs ${{ matrix.feature }}
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
         with:
-          log_path_prefix: "behave_${{ matrix.feature.name }}"
+          log_path_prefix: "behave_${{ matrix.feature }}"
 
       # Upload feature artifacts
-      - name: Upload ${{ matrix.feature.name }} artifacts
+      - name: Upload ${{ matrix.feature }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}_${{ matrix.feature.name }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
+          name: ${{ github.job }}_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           path: |
             allure-results
             logs_cdw
@@ -148,8 +155,20 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore  # Ignore if no artifacts are found
 
+  behave-skipped:
+    needs: generate-matrix
+    runs-on: ubuntu-24.04
+    if: false
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(needs.generate-matrix.outputs.skip_matrix) }}
+    steps:
+      - name: Feature ${{ matrix.feature }} is skipped via @skip tag
+        run: echo "skipped"
+
   collect-results:
-    needs: behave
+    needs: [behave, behave-skipped]
     if: always()
     runs-on: ubuntu-24.04
     permissions:
