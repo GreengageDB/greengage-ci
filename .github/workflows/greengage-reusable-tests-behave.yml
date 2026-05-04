@@ -64,10 +64,10 @@ jobs:
           echo "run_matrix=$run_array" >> $GITHUB_OUTPUT
 
           echo "## Behave Test Matrix" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Will run" >> $GITHUB_STEP_SUMMARY
-          echo "$run_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
           echo "### ⏭️ Skipped (@skip tag detected)" >> $GITHUB_STEP_SUMMARY
           echo "$skip_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Will run" >> $GITHUB_STEP_SUMMARY
+          echo "$run_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
 
   behave:
     needs: generate-matrix
