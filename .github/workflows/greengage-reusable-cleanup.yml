@@ -13,8 +13,9 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
+        required: false
         type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'

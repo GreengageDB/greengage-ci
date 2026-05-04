@@ -15,6 +15,7 @@ on:
         description: 'Target OS version (e.g., 22.04, 24.04)'
         required: false
         type: string
+        default: ''
       rebuild_builder:
         description: 'Rebuild builder image required'
         required: false
