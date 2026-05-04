@@ -158,7 +158,6 @@ jobs:
   behave-skipped:
     needs: generate-matrix
     runs-on: ubuntu-24.04
-    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -166,6 +165,7 @@ jobs:
     steps:
       - name: Feature ${{ matrix.feature }} is skipped via @skip tag
         run: echo "skipped"
+        if: false
 
   collect-results:
     needs: [behave, behave-skipped]
