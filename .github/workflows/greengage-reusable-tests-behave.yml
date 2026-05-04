@@ -35,7 +35,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
-      skip_matrix: ${{ steps.set-matrix.outputs.skip_matrix }}
     steps:
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -63,7 +62,12 @@ jobs:
           done | jq -s -c '.')
 
           echo "run_matrix=$run_array" >> $GITHUB_OUTPUT
-          echo "skip_matrix=$skip_array" >> $GITHUB_OUTPUT
+
+          echo "## Behave Test Matrix" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Will run" >> $GITHUB_STEP_SUMMARY
+          echo "$run_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
+          echo "### ⏭️ Skipped (@skip tag detected)" >> $GITHUB_STEP_SUMMARY
+          echo "$skip_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
 
   behave:
     needs: generate-matrix
@@ -155,20 +159,8 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore  # Ignore if no artifacts are found
 
-  behave-skipped:
-    needs: generate-matrix
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        feature: ${{ fromJson(needs.generate-matrix.outputs.skip_matrix) }}
-    steps:
-      - name: Feature ${{ matrix.feature }} is skipped via @skip tag
-        run: echo "skipped"
-        if: false
-
   collect-results:
-    needs: [behave, behave-skipped]
+    needs: behave
     if: always()
     runs-on: ubuntu-24.04
     permissions:
