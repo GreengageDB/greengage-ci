@@ -48,7 +48,7 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
+          features=$(for f in "$behave_tests_dir"/*.feature; do basename "$f" .feature; done)
 
           run_array=$(echo "$features" | while IFS= read -r f; do
             if ! grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
