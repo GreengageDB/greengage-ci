@@ -86,7 +86,7 @@ Name                | Description                                 | Required | T
 ------------------- | ------------------------------------------- | -------- | ------ | -------
 `version`           | Version derived from tag (e.g., `6` or `7`) | Yes      | String | -
 `target_os`         | Target operating system (e.g., `ubuntu`)    | Yes      | String | -
-`target_os_version` | Target OS version (e.g., ``, `24.04`)       | Yes      | String | -
+`target_os_version` | Target OS version (e.g., ``, `24.04`)       | No      | String | -
 `python3`           | Python3 build argument (ignored)            | No       | String | `''`
 
 ### Secrets
