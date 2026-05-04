@@ -20,45 +20,45 @@ The workflow processes the source code to build and test Debian packages. Below 
 
 1. **Build Debian Packages** (`build-deb`):
 
-  - Checks out the repository with submodules and full history.
-  - Logs into the GitHub Container Registry (GHCR) using the provided token.
-  - Builds or pulls a builder Docker image (`ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:builder`) based on the `rebuild_builder` input:
+   - Checks out the repository with submodules and full history.
+   - Logs into the GitHub Container Registry (GHCR) using the provided token.
+   - Builds or pulls a builder Docker image (`ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:builder`) based on the `rebuild_builder` input:
 
-    - If `rebuild_builder` is `true` or the builder image does not exist, builds and pushes the image using `Dockerfile.ubuntu.builder`.
-    - Otherwise, pulls the existing builder image.
+     - If `rebuild_builder` is `true` or the builder image does not exist, builds and pushes the image using `Dockerfile.ubuntu.builder`.
+     - Otherwise, pulls the existing builder image.
 
-  - Runs the builder image to compile Debian packages using `make -C gpdb_src/gpAux pkg-deb` with parallel compilation based on available CPU cores.
+   - Runs the builder image to compile Debian packages using `make -C gpdb_src/gpAux pkg-deb` with parallel compilation based on available CPU cores.
 
-  - Determines changelog options based on the event:
+   - Determines changelog options based on the event:
 
-    - For tagged push events (`refs/tags/*`), uses default changelog options.
-    - For branch pushes, includes all commits since the last tag (`last-tag all-commits`).
+     - For tagged push events (`refs/tags/*`), uses default changelog options.
+     - For branch pushes, includes all commits since the last tag (`last-tag all-commits`).
 
-  - Uploads generated artifacts (`.deb`, `.ddeb`, `.build`, `.buildinfo`, `.changes`) as `deb-packages`.
+   - Uploads generated artifacts (`.deb`, `.ddeb`, `.build`, `.buildinfo`, `.changes`) as `deb-packages`.
 
 2. **Test Installation in Lima** (`test-lima`, if `test_lima` is provided):
 
-  - Sets up Lima and caches its configuration.
-  - Downloads the `deb-packages` artifact.
-  - Starts a Lima VM with the specified template (e.g., `ubuntu-22.04`), configured with 4 CPUs, 8GB memory, and a 9p filesystem mount.
-  - Copies the Debian packages to the VM and installs them using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
-  - Uploads installation logs as `install-logs`.
-  - Cleans up the Lima VM on completion or failure.
+   - Sets up Lima and caches its configuration.
+   - Downloads the `deb-packages` artifact.
+   - Starts a Lima VM with the specified template (e.g., `ubuntu-22.04`), configured with 4 CPUs, 8GB memory, and a 9p filesystem mount.
+   - Copies the Debian packages to the VM and installs them using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
+   - Uploads installation logs as `install-logs`.
+   - Cleans up the Lima VM on completion or failure.
 
 3. **Test Installation in Docker** (`test-docker`, if `test_docker` is provided):
 
-  - Downloads the `deb-packages` artifact.
-  - Runs a Docker container with the specified image (e.g., `ubuntu:<target_os_version>`).
-  - Installs the Debian packages using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
-  - Uploads installation logs as `install-logs-docker`.
+   - Downloads the `deb-packages` artifact.
+   - Runs a Docker container with the specified image (e.g., `ubuntu:<target_os_version>`).
+   - Installs the Debian packages using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
+   - Uploads installation logs as `install-logs-docker`.
 
 4. **Failure Conditions**:
 
-  - If the builder image build or pull fails, the `build-deb` job exits with an error.
-  - If `target_os` is not `ubuntu`, the `build-deb` job is skipped.
-  - If the Debian package build fails (e.g., due to missing dependencies or compilation errors), the `build-deb` job exits with an error.
-  - If installation in Lima or Docker fails, the respective test job exits with an error, but subsequent jobs are not blocked.
-  - If `ghcr_token` is invalid or lacks permissions, GHCR login fails, causing the workflow to exit.
+   - If the builder image build or pull fails, the `build-deb` job exits with an error.
+   - If `target_os` is not `ubuntu`, the `build-deb` job is skipped.
+   - If the Debian package build fails (e.g., due to missing dependencies or compilation errors), the `build-deb` job exits with an error.
+   - If installation in Lima or Docker fails, the respective test job exits with an error, but subsequent jobs are not blocked.
+   - If `ghcr_token` is invalid or lacks permissions, GHCR login fails, causing the workflow to exit.
 
 ## Usage
 
@@ -70,20 +70,20 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-Name                | Description                                          | Required | Type    | Default
-------------------- | ---------------------------------------------------- | -------- | ------- | -------
-`version`           | Version derived from tag (e.g., `6` or `7`)          | Yes      | String  | -
-`target_os`         | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -
-`target_os_version` | Target OS version (e.g., ``, `24.04`)                | No      | String  | -
-`rebuild_builder`   | Rebuild builder image even if it exists              | No       | Boolean | `false`
-`test_lima`         | Lima template (e.g., `ubuntu-22.04`) for deploy test | No       | String  | `''`
-`test_docker`       | Docker image (e.g., `ubuntu:22.04`) for deploy test  | No       | String  | `''`
+| Name                | Description                                          | Required | Type    | Default |
+|---------------------|------------------------------------------------------|----------|---------|---------|
+| `version`           | Greengage version (e.g., `6` or `7`)                 | Yes      | String  | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
+| `target_os_version` | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
+| `rebuild_builder`   | Rebuild builder image even if it exists              | No       | Boolean | `false` |
+| `test_lima`         | Lima template (e.g., `ubuntu-22.04`) for deploy test | No       | String  | `''`    |
+| `test_docker`       | Docker image (e.g., `ubuntu:22.04`) for deploy test  | No       | String  | `''`    |
 
 ### Secrets
 
-Name         | Description                  | Required
------------- | ---------------------------- | --------
-`ghcr_token` | GitHub token for GHCR access | Yes
+|Name         | Description                  | Required|
+|------------ | ---------------------------- | --------|
+|`ghcr_token` | GitHub token for GHCR access | Yes     |
 
 ### Requirements
 
