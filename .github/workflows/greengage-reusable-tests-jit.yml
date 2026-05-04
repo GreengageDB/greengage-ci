@@ -14,7 +14,7 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu)'
+        description: 'Target OS (e.g., ubuntu)'
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
