@@ -194,6 +194,7 @@ jobs:
       # Generate Allure report
       - name: Generate Allure report
         run: |
+          set -e
           cd artifacts
           [ -d allure-results ] && allure generate allure-results -o allure-report --clean || echo "No allure-results to generate report"
 
