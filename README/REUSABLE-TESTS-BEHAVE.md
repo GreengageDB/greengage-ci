@@ -10,7 +10,7 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 
 The workflow executes Behave tests using a Docker image built for the given Greengage version and target operating system. Test features are dynamically discovered from the `gpMgmt/test/behave/mgmt_utils` directory — each `.feature` file found is executed as a separate job in a matrix strategy.
 
-> **Note**: Features tagged with `@skip` on the `Feature:` line are detected during matrix generation and their corresponding jobs are skipped at the CI level. Skipped jobs appear as grey (skipped) in the GitHub Actions UI, making it immediately visible which tests are disabled.
+> **Note**: Features tagged with `@skip` on the `Feature:` line are detected during matrix generation and excluded from the run matrix. Skipped features are listed in the Job Summary of the `generate-matrix` step, making it immediately visible which tests are disabled.
 
 For the `gpexpand` feature, the workflow attempts to fetch a SQL dump artifact from a previous "Greengage SQL Dump" workflow run before executing tests. If the artifact is unavailable, the download step is allowed to fail — the failure will surface in the `gpexpand` test run itself.
 
@@ -110,7 +110,7 @@ Name         | Description                  | Required
 
 - The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
 - Test features are dynamically discovered from `gpMgmt/test/behave/mgmt_utils` — each `.feature` file is executed as a separate matrix job.
-- Features tagged with `@skip` on the `Feature:` line are detected during matrix generation and skipped at the CI level — their jobs appear as grey (skipped) in the GitHub Actions UI rather than green, providing accurate test observability.
+- Features tagged with `@skip` on the `Feature:` line are detected during matrix generation and excluded from the run matrix — skipped features are listed in the Job Summary of the `generate-matrix` step, providing accurate test observability.
 - For the `gpexpand` feature, the SQL dump download is allowed to fail without breaking the workflow — a missing dump will cause the `gpexpand` test job itself to fail.
 - Artifacts are uploaded with names like `behave_<feature>_ggdb<version>_<target_os><target_os_version>_results`, and a final aggregated report is named `behave_all_ggdb<version>_<target_os><target_os_version>`.
 - Ensure the Behave test environment is configured correctly in the repository (e.g., `ci/docker-compose.yaml`, `ci/.env`).
