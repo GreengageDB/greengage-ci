@@ -59,6 +59,7 @@ jobs:
       - name: Resolve Azure Ubuntu mirror
         run: echo "UBUNTU_MIRROR_IP=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')" >> $GITHUB_ENV
 
+      # Login to GitHub Container Registry for local PRs OR push
       - name: Login to GitHub Container Registry
         if: >
           github.event_name == 'push' ||
