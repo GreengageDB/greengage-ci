@@ -56,7 +56,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GitHub Container Registry for local PRs OR push
+      - name: Resolve Azure Ubuntu mirror
+        run: echo "UBUNTU_MIRROR_IP=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         if: >
           github.event_name == 'push' ||
@@ -71,6 +73,8 @@ jobs:
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
         run: docker build
+            --add-host=archive.ubuntu.com:$UBUNTU_MIRROR_IP
+            --add-host=security.ubuntu.com:$UBUNTU_MIRROR_IP
             --build-arg OS_VERSION
             --build-arg SKIP_UNITTESTS
             --tag ${IMAGE,,}:${{ github.sha }}
