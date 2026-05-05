@@ -14,12 +14,14 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu)'
+        description: 'Target OS (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 22.04, 24.04)'
+        description: 'Target OS version (e.g., 24.04)'
+        required: false
         type: string
+        default: ''
       python3:
         description: 'Python3 build argument (ignored)'
         required: false
@@ -34,7 +36,7 @@ jobs:
   generate-matrix:
     runs-on: ubuntu-24.04
     outputs:
-      feature_matrix: ${{ steps.set-matrix.outputs.feature_matrix }}
+      run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
     steps:
       - name: Checkout Greengage repo
         uses: actions/checkout@v4
@@ -47,9 +49,27 @@ jobs:
         id: set-matrix
         run: |
           behave_tests_dir="gpMgmt/test/behave/mgmt_utils"
-          features=$(ls $behave_tests_dir -1 | grep feature | sed 's/\.feature$//')
-          feature_array=$(echo "$features" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "feature_matrix=$feature_array" >> $GITHUB_OUTPUT
+          features=$(for f in "$behave_tests_dir"/*.feature; do basename "$f" .feature; done)
+
+          run_array=$(echo "$features" | while IFS= read -r f; do
+            if ! grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
+              echo "\"$f\""
+            fi
+          done | jq -s -c '.')
+
+          skip_array=$(echo "$features" | while IFS= read -r f; do
+            if grep -qE '^@.*\bskip\b' "$behave_tests_dir/$f.feature" 2>/dev/null; then
+              echo "\"$f\""
+            fi
+          done | jq -s -c '.')
+
+          echo "run_matrix=$run_array" >> $GITHUB_OUTPUT
+
+          echo "## Behave Test Matrix" >> $GITHUB_STEP_SUMMARY
+          echo "### ⏭️ Skipped (@skip tag detected)" >> $GITHUB_STEP_SUMMARY
+          echo "$skip_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Will run" >> $GITHUB_STEP_SUMMARY
+          echo "$run_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
 
   behave:
     needs: generate-matrix
@@ -57,7 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(needs.generate-matrix.outputs.feature_matrix) }}
+        feature: ${{ fromJson(needs.generate-matrix.outputs.run_matrix) }}
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity
@@ -85,6 +105,7 @@ jobs:
 
       - name: Fetch SQL dump for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -174,6 +195,7 @@ jobs:
       # Generate Allure report
       - name: Generate Allure report
         run: |
+          set -e
           cd artifacts
           [ -d allure-results ] && allure generate allure-results -o allure-report --clean || echo "No allure-results to generate report"
 

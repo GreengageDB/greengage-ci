@@ -24,7 +24,7 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., `22.04`, `24.04`)        | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
 
 ### Secrets

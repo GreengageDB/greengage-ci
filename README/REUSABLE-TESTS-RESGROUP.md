@@ -43,18 +43,19 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-Name                | Description                                                      | Required | Type   | Default
-------------------- | ---------------------------------------------------------------- | -------- | ------ | -------
-`version`           | Greengage version (e.g., `6` or `7`)                             | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`, `centos`, `rockylinux`) | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `7`, `8`)             | Yes      | String | -
-`python3`           | Python3 build argument (ignored)                                 | No       | String | `''`
+| Name                | Description                                       | Required | Type    | Default |
+|---------------------|---------------------------------------------------|----------|---------|---------|
+| `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
+| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
+| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 
 ### Secrets
 
-Name         | Description                  | Required
------------- | ---------------------------- | --------
-`ghcr_token` | GitHub token for GHCR access | Yes
+|Name         | Description                  | Required|
+|------------ | ---------------------------- | --------|
+|`ghcr_token` | GitHub token for GHCR access | Yes     |
 
 ### Requirements
 
@@ -94,7 +95,6 @@ jobs:
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: '22.04'
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -109,7 +109,6 @@ jobs:
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
             - target_os: ubuntu
               target_os_version: '24.04'
       permissions:
