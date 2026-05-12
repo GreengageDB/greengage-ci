@@ -14,13 +14,14 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS for build (e.g., ubuntu, centos, rockylinux)'
+        description: 'Target OS (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 22.04, 24.04)'
+        description: 'Target OS version (e.g., 24.04)'
         required: false
         type: string
+        default: ''
       python3:
         description: 'Python3 build argument (ignored)'
         required: false

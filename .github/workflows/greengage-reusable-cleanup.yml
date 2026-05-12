@@ -8,13 +8,14 @@ on:
         required: true
         type: string
       target_os:
-        description: 'Target OS'
+        description: 'Target OS (e.g., ubuntu)'
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 22.04, 24.04)'
-        required: true
+        description: 'Target OS version (e.g., 24.04)'
+        required: false
         type: string
+        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
