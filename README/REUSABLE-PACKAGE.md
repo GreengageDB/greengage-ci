@@ -75,8 +75,6 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
 | `rebuild_builder`   | Rebuild builder image even if it exists              | No       | Boolean | `false` |
-| `test_lima`         | Lima template (e.g., `ubuntu-22.04`) for deploy test | No       | String  | `''`    |
-| `test_docker`       | Docker image (e.g., `ubuntu:22.04`) for deploy test  | No       | String  | `''`    |
 
 ### Secrets
 
