@@ -53,12 +53,6 @@ jobs:
           fetch-tags: true  # Default 'false'
           filter: blob:none # without BLOBs
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Resolve Azure Ubuntu mirror
-        run: echo "UBUNTU_MIRROR_IP=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')" >> $GITHUB_ENV
-
       # Login to GitHub Container Registry for local PRs OR push
       - name: Login to GitHub Container Registry
         if: >
@@ -73,13 +67,18 @@ jobs:
 
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
-        run: docker build
-            --add-host=archive.ubuntu.com:$UBUNTU_MIRROR_IP
-            --add-host=security.ubuntu.com:$UBUNTU_MIRROR_IP
-            --build-arg OS_VERSION
-            --build-arg SKIP_UNITTESTS
-            --tag ${IMAGE,,}:${{ github.sha }}
-            -f ci/Dockerfile.${{ inputs.target_os }}
+        run: |
+          UBUNTU_MIRROR_IP=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
+          ADD_HOST_ARGS=""
+          if curl -sf --max-time 5 "http://${UBUNTU_MIRROR_IP}/ubuntu/" > /dev/null; then
+            ADD_HOST_ARGS="--add-host=archive.ubuntu.com:${UBUNTU_MIRROR_IP} --add-host=security.ubuntu.com:${UBUNTU_MIRROR_IP}"
+          fi
+          docker build \
+            ${ADD_HOST_ARGS} \
+            --build-arg OS_VERSION \
+            --build-arg SKIP_UNITTESTS \
+            --tag ${IMAGE,,}:${{ github.sha }} \
+            -f ci/Dockerfile.${{ inputs.target_os }} \
             .
 
       # Push developer's and SHA tag image for internal PRs and pushes
