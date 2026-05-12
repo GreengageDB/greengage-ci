@@ -40,7 +40,7 @@ To integrate this workflow into your pipeline:
 - **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`). The `OS_VERSION` build argument is passed to the Dockerfile with a default value of `22.04` if `target_os_version` is not provided.
 - **Repository Access**: The workflow checks out the current branch of the repository specified in `github.repository`. For PRs, it uses `github.event.pull_request.head.sha`; otherwise, it uses `github.ref`.
 - **Disk Space**: The workflow uses the `greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24` action to maximize available disk space before building.
-- **Docker Buildx**: The workflow uses `docker/setup-buildx-action@v3` to set up Docker Buildx for building images.
+- **Ubuntu mirror**: During build, `azure.archive.ubuntu.com` is resolved and injected via `--add-host` for `archive.ubuntu.com` and `security.ubuntu.com`. Falls back to default mirrors if unreachable.
 - **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v4` with a key matching the image tag.
 
 ### Examples
