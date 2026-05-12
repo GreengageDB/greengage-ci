@@ -68,13 +68,11 @@ jobs:
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
         run: |
-          UBUNTU_MIRROR_IP=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
-          ADD_HOST_ARGS=""
-          if curl -sf --max-time 5 "http://${UBUNTU_MIRROR_IP}/ubuntu/" > /dev/null; then
-            ADD_HOST_ARGS="--add-host=archive.ubuntu.com:${UBUNTU_MIRROR_IP} --add-host=security.ubuntu.com:${UBUNTU_MIRROR_IP}"
+          ubuntu_mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
+          if curl -sf --max-time 5 "http://${ubuntu_mirror_ip}/ubuntu/" > /dev/null; then
+            docker_options="--add-host=archive.ubuntu.com:${ubuntu_mirror_ip} --add-host=security.ubuntu.com:${ubuntu_mirror_ip}"
           fi
-          docker build \
-            ${ADD_HOST_ARGS} \
+          docker build $docker_options \
             --build-arg OS_VERSION \
             --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE,,}:${{ github.sha }} \
