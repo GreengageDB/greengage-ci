@@ -1,0 +1,32 @@
+# .github/actions/get-latest-release-tag/action.yml
+
+name: Get latest release tag
+description: Get latest release tag
+
+inputs:
+  source_repo:
+    description: 'Source GitHub repository (org/repo)'
+    required: true
+  gh_token:
+    description: 'GitHub token to access the source repo'
+    required: true
+
+outputs:
+  tag:
+    description: 'latest release tag'
+    value: ${{ steps.release.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get latest release tag
+      id: release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh_token }}
+      run: |
+        TAG=$(gh release list --repo ${{ inputs.source_repo }} \
+          --exclude-drafts --exclude-pre-releases \
+          --limit 1 --json tagName -q '.[0].tagName')
+        echo "Latest greengage tag: $TAG"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
