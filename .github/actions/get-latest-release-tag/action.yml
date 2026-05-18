@@ -1,7 +1,7 @@
 # .github/actions/get-latest-release-tag/action.yml
 
 name: Get latest release tag
-description: Get latest release tag
+description: Retrieve the latest GitHub release tag for a repository
 
 inputs:
   source_repo:
@@ -13,20 +13,24 @@ inputs:
 
 outputs:
   tag:
-    description: 'latest release tag'
+    description: 'Latest release tag'
     value: ${{ steps.release.outputs.tag }}
 
 runs:
   using: composite
   steps:
-    - name: Get latest release tag
+    - name: Get the latest release tag
       id: release
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
       run: |
-        TAG=$(gh release list --repo ${{ inputs.source_repo }} \
+        TAG=$(gh release list --repo "${{ inputs.source_repo }}" \
           --exclude-drafts --exclude-pre-releases \
           --limit 1 --json tagName -q '.[0].tagName')
-        echo "Latest greengage tag: $TAG"
+        if [ -z "$TAG" ]; then
+          echo "::error::No releases found in ${{ inputs.source_repo }}"
+          exit 1
+        fi
+        echo "Latest tag for ${{ inputs.source_repo }}: $TAG"
         echo "tag=$TAG" >> $GITHUB_OUTPUT
