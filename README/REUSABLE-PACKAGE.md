@@ -1,18 +1,17 @@
 # Greengage Reusable Package Workflow
 
-This workflow builds and packages Debian (.deb) packages for the Greengage project and optionally tests their installation in Lima or Docker environments. It is designed to be called from a parent CI pipeline, providing flexibility for version, target operating system, and testing configurations.
+This workflow builds and packages Debian (.deb) packages for the Greengage project and tests their installation in a Docker container. It is designed to be called from a parent CI pipeline, providing flexibility for version and target operating system.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v27`
 
 ## Purpose
 
 The workflow performs the following tasks:
 
 - `build-deb`: Builds Debian packages for the specified Greengage version and target operating system (Ubuntu).
-- `test-lima`: Tests installation of the generated Debian packages in a Lima virtual machine (if specified).
-- `test-docker`: Tests installation of the generated Debian packages in a Docker container (if specified).
+- `test-install`: Tests installation of the generated Debian packages in a Docker container (mandatory).
 
 ### Algorithm
 
@@ -76,8 +75,6 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
 | `rebuild_builder`   | Rebuild builder image even if it exists              | No       | Boolean | `false` |
-| `test_lima`         | Lima template (e.g., `ubuntu-22.04`) for deploy test | No       | String  | `''`    |
-| `test_docker`       | Docker image (e.g., `ubuntu:22.04`) for deploy test  | No       | String  | `''`    |
 
 ### Secrets
 
@@ -103,13 +100,11 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v27
       with:
         version: 6
         target_os: ubuntu
         rebuild_builder: false
-        test_lima: ubuntu-22.04
-        test_docker: ubuntu:22.04
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -130,13 +125,12 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v27
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
         target_os_version: ${{ matrix.target_os_version }}
         rebuild_builder: false
-        test_docker: ubuntu:${{ matrix.target_os_version }}
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -144,8 +138,7 @@ To integrate this workflow into your pipeline:
 ### Notes
 
 - The `build-deb` job is skipped if `target_os` is not `ubuntu`.
-- If `test_lima` or `test_docker` is empty, the respective test job is skipped.
+- The `test-install` job always runs after `build-deb` (mandatory).
+- The target Docker image for testing is automatically derived from `target_os` and `target_os_version` inputs.
 - The workflow fetches full git history to support changelog generation for non-tagged commits.
-- Installation logs are uploaded for debugging failed installations.
-- Lima VMs are cleaned up after execution to avoid resource leaks.
 - For further details, refer to the workflow file in the `.github/workflows/` directory.
