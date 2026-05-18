@@ -1,0 +1,258 @@
+# .github/actions/publish-packages/action.yml
+
+name: Publish packages to S3 repository
+description: >
+  Downloads deb artifacts from a successful CI run for a given release tag
+  and publishes them to an S3-backed apt repository via repomanager.
+
+inputs:
+  source_repo:
+    description: 'Source GitHub repository (org/repo)'
+    required: true
+  release_tag:
+    description: 'Release tag'
+    required: true
+  ci_workflow:
+    description: 'Workflow name in the source repo (e.g. "Greengage CI")'
+    required: true
+  artifact_name:
+    description: 'Artifact name in the source repo workflow (e.g. "deb-packages")'
+    required: true
+  s3_prefix:
+    description: >
+      Repository path prefix inside the S3 bucket
+      (e.g. "ubuntu/22.04/x86_64").
+    required: true
+  repomanager_image:
+    description: 'Repomanager container image'
+    required: false
+    default: 'ghcr.io/greengagedb/repomanager-ng-tool-x86_64:latest'
+  gh_token:
+    description: 'GitHub token to access the source repo'
+    required: true
+  aws_bucket:
+    description: 'S3 bucket name'
+    required: true
+  aws_endpoint_url:
+    description: 'S3 endpoint'
+    required: true
+  aws_access_key_id:
+    description: 'Access key ID for the S3 bucket'
+    required: true
+  aws_secret_access_key:
+    description: 'Secret access key for the S3 bucket'
+    required: true
+  gpg_private_key:
+    description: 'GPG private key (armored) for repository signing'
+    required: true
+  apt_codename:
+    description: 'APT codename (e.g. greengagedb, jammy, bullseye)'
+    required: false
+    default: 'greengagedb'
+  apt_component:
+    description: 'APT component (e.g. main, contrib)'
+    required: false
+    default: 'main'
+  ghcr_login:
+    description: 'GHCR login to access repomanager image'
+    required: true
+  ghcr_password:
+    description: 'GitHub Container Registry token (PAT)'
+    required: true
+  download_dir:
+    description: 'Local directory for downloaded packages'
+    required: false
+    default: 'downloaded-packages'
+
+outputs:
+  published:
+    description: '"true" if packages were published, "false" if not published'
+    value: ${{ steps.result.outputs.published }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download artifact from CI run for ${{ inputs.source_repo }} tag ${{ inputs.release_tag }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh_token }}
+      run: |
+        set -euo pipefail
+
+        SOURCE_REPO="${{ inputs.source_repo }}"
+        TAG="${{ inputs.release_tag }}"
+        WORKFLOW="${{ inputs.ci_workflow }}"
+        ARTIFACT="${{ inputs.artifact_name }}"
+        DOWNLOAD_DIR="${{ inputs.download_dir }}"
+
+        echo "=== Resolving tag $TAG in $SOURCE_REPO ==="
+
+        TAG_OBJECT=$(gh api "repos/${SOURCE_REPO}/git/ref/tags/${TAG}" --jq '.object')
+        TAG_TYPE=$(echo "$TAG_OBJECT" | jq -r '.type')
+        TAG_SHA=$(echo  "$TAG_OBJECT" | jq -r '.sha')
+
+        if [ "$TAG_TYPE" = "tag" ]; then
+          RELEASE_SHA=$(gh api "repos/${SOURCE_REPO}/git/tags/${TAG_SHA}" --jq '.object.sha')
+        else
+          RELEASE_SHA="$TAG_SHA"
+        fi
+
+        echo "Commit SHA for tag $TAG: $RELEASE_SHA"
+
+        RUN_ID=$(gh run list \
+          --repo "$SOURCE_REPO" \
+          --workflow "$WORKFLOW" \
+          --limit 100 \
+          --json databaseId,headSha,conclusion \
+          --jq '.[] | select(.headSha == "'"$RELEASE_SHA"'" and .conclusion == "success") | .databaseId' \
+          | head -1)
+
+        if [ -z "$RUN_ID" ]; then
+          echo "::error::No successful '$WORKFLOW' run found for commit $RELEASE_SHA (tag $TAG) in $SOURCE_REPO"
+          exit 1
+        fi
+
+        echo "Found CI run: $RUN_ID"
+        echo "Downloading artifact '$ARTIFACT' → $DOWNLOAD_DIR/"
+
+        gh run download "$RUN_ID" \
+          --repo "$SOURCE_REPO" \
+          --name "$ARTIFACT" \
+          --dir "./$DOWNLOAD_DIR"
+
+        echo "Downloaded package files:"
+        find "./$DOWNLOAD_DIR" -type f | sort
+
+    - name: Check published state via aws s3 ls
+      id: check
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID:     ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        AWS_ENDPOINT_URL:      ${{ inputs.aws_endpoint_url }}
+        S3_PACKAGES_URI:       's3://${{ inputs.aws_bucket }}/repositories/${{ inputs.s3_prefix }}/packages/'
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+
+        DOWNLOAD_DIR="${{ inputs.download_dir }}"
+
+        echo "Checking S3: $S3_PACKAGES_URI"
+
+        ls_output=$(aws s3 ls "$S3_PACKAGES_URI" \
+          ${AWS_ENDPOINT_URL:+--endpoint-url "$AWS_ENDPOINT_URL"} 2>/dev/null || true)
+
+        missing=()
+
+        files=("$DOWNLOAD_DIR"/*.deb "$DOWNLOAD_DIR"/*.ddeb)
+
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "::error::No .deb/.ddeb files found in $DOWNLOAD_DIR"
+          exit 1
+        fi
+
+        for package in "${files[@]}"; do
+          filename=$(basename "$package")
+          if echo "$ls_output" | awk '{print $NF}' | grep -qFx "$filename"; then
+            echo "already in S3: $filename"
+          else
+            echo "missing in S3: $filename"
+            missing+=("$filename")
+          fi
+        done
+
+        if [ ${#missing[@]} -eq 0 ]; then
+          echo "All packages already published - skipping"
+          echo "already_published=true" >> $GITHUB_OUTPUT
+        else
+          echo "Packages queued for publishing: ${missing[*]}"
+          echo "already_published=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Import GPG key for repository signing
+      shell: bash
+      env:
+        GPG_PRIVATE_KEY: ${{ inputs.gpg_private_key }}
+      run: |
+        GNUPGHOME=$(mktemp -d)
+        chmod 700 "$GNUPGHOME"
+
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --homedir "$GNUPGHOME" --import
+
+        gpg --homedir "$GNUPGHOME" \
+            --export \
+            --output "$GNUPGHOME/pubring.gpg"
+
+        gpg --homedir "$GNUPGHOME" \
+            --export-secret-keys \
+            --output "$GNUPGHOME/secring.gpg"
+
+        echo "GNUPGHOME=$GNUPGHOME" >> $GITHUB_ENV
+
+    - name: Publish packages via repomanager
+      id: publish
+      if: steps.check.outputs.already_published != 'true'
+      shell: bash
+      env:
+        AWS_BUCKET:            ${{ inputs.aws_bucket }}
+        AWS_ENDPOINT_URL:      ${{ inputs.aws_endpoint_url }}
+        AWS_ACCESS_KEY_ID:     ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        APT_CODENAME:          ${{ inputs.apt_codename }}
+        APT_COMPONENT:         ${{ inputs.apt_component }}
+        STORAGE_TYPE:          s3
+        S3_PREFIX:             repositories/${{ inputs.s3_prefix }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+
+        DOWNLOAD_DIR="${{ inputs.download_dir }}"
+
+        echo "${{ inputs.ghcr_password }}" \
+          | docker login ghcr.io -u ${{ inputs.ghcr_login }} --password-stdin
+
+        REPOMANAGER="docker run --rm \
+          -u $(id -u):$(id -g) \
+          -v $(pwd):/data \
+          -v "${GNUPGHOME}":"${GNUPGHOME}" \
+          -e AWS_BUCKET \
+          -e AWS_ENDPOINT_URL \
+          -e AWS_ACCESS_KEY_ID \
+          -e AWS_SECRET_ACCESS_KEY \
+          -e APT_CODENAME \
+          -e APT_COMPONENT \
+          -e STORAGE_TYPE \
+          -e GNUPGHOME \
+          ${{ inputs.repomanager_image }}"
+
+        files=("$DOWNLOAD_DIR"/*.deb "$DOWNLOAD_DIR"/*.ddeb)
+
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "::error::No .deb/.ddeb files found in $DOWNLOAD_DIR"
+          exit 1
+        fi
+
+        failed=()
+        for file in "${files[@]}"; do
+          filename=$(basename "$file")
+          echo "Publishing: $filename -> $S3_PREFIX"
+          $REPOMANAGER add "$S3_PREFIX" "/data/$file" || failed+=("$filename")
+        done
+
+        if [ ${#failed[@]} -gt 0 ]; then
+          echo "::error::Failed to publish: ${failed[*]}"
+          exit 1
+        fi
+
+        echo "All packages published successfully"
+        echo "published=true" >> $GITHUB_OUTPUT
+
+    - name: Set published output
+      id: result
+      shell: bash
+      run: |
+        if [ "${{ steps.check.outputs.already_published }}" = "true" ]; then
+          echo "published=false" >> $GITHUB_OUTPUT
+        else
+          echo "published=true" >> $GITHUB_OUTPUT
+        fi
