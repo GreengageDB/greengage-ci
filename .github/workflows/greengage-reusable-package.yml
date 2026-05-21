@@ -92,32 +92,24 @@ jobs:
       - name: Start Docker container and install deb package
         run: |
           set -eux
-          docker run --rm -i \
-            -v ./deb-packages:/deb-packages \
-            "${TEST_DOCKER}" \
-            /bin/bash <<'EOF'
+      curl -fsSL https://greengagedb.org/repositories/gpg \
+        | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
+      echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
+      https://greengagedb.org/repositories/ubuntu/22.04/x86_64 \
+      greengagedb main" \
+        | sudo tee /etc/apt/sources.list.d/greengagedb.list
 
-            export DEBIAN_FRONTEND=noninteractive
-
-            apt-get update
-            apt-get install curl gnupg ca-certificates -y
-
-            curl -fsSL greengagedb.org/repositories/gpg | gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
-            echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
-            https://greengagedb.org/repositories/ubuntu/22.04/x86_64 \
-            greengagedb main" \
-            | tee /etc/apt/sources.list.d/greengagedb.list
-
-            apt-get update
-            apt-get install sigar -y
-
-            if ! apt-get install -y /deb-packages/*.deb; then
-              dpkg -i /deb-packages/*.deb
-            fi
-
-            apt-get install -f -y
-
-          EOF
+      docker run --rm \
+        -v ./deb-packages:/deb-packages \
+        -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
+        -v /etc/apt/sources.list.d/greengagedb.list:/etc/apt/sources.list.d/greengagedb.list \
+        "${TEST_DOCKER}" /bin/bash -c "
+          export DEBIAN_FRONTEND=noninteractive
+          # Disable SSL verification for https apt-repos
+          echo -en 'Acquire::https::Verify-Peer \"false\";\nAcquire::https::Verify-Host \"false\";\n' > /etc/apt/apt.conf.d/99no-verify-ssl
+          apt-get update
+          apt-get install -y /deb-packages/*.deb
+          dpkg -l greengage* sigar"
 
   # upload-to-release:
   #   if: startsWith(github.ref, 'refs/tags/')
