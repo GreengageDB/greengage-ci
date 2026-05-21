@@ -92,12 +92,25 @@ jobs:
       - name: Start Docker container and install deb package
         run: |
           set -eux
-          docker run --rm -v ./deb-packages:/deb-packages \
-            "${TEST_DOCKER}" /bin/bash -c "\
-              export DEBIAN_FRONTEND=noninteractive && \
-              apt-get update && \
-              { apt-get install -y /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; } && \
-              apt-get install -f -y"
+          curl -fsSL https://greengagedb.org/repositories/gpg \
+          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
+
+          docker run --rm \
+          -v ./deb-packages:/deb-packages \
+          -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
+          "${TEST_DOCKER}" /bin/bash -c "
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -o Acquire::https::Verify-Peer=false
+          apt-get install -y ca-certificates
+
+          echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
+          https://greengagedb.org/repositories/ubuntu/22.04/x86_64 \
+          greengagedb main" \
+          | tee /etc/apt/sources.list.d/greengagedb.list
+
+          apt-get update
+          apt-get install -y /deb-packages/*.deb
+          dpkg -l greengage* sigar ca-certificates"
 
   # upload-to-release:
   #   if: startsWith(github.ref, 'refs/tags/')
