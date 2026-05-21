@@ -100,7 +100,7 @@ jobs:
           -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
           "${TEST_DOCKER}" /bin/bash -c "
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update
+          apt-get update -o Acquire::https::Verify-Peer=false
           apt-get install -y ca-certificates
 
           echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
