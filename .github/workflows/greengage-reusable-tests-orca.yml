@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: ''
+      ci_path:
+        description: 'Path to CI directory'
+        required: false
+        type: string
+        default: 'ci'
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -55,7 +60,7 @@ jobs:
       # Run ORCA Linter
       - name: ORCA Linter
         run: |
-          docker build -t orca-linter:test -f ci/Dockerfile.linter .
+          docker build -t orca-linter:test -f ${{ inputs.ci_path }}/Dockerfile.linter .
           docker run      orca-linter:test
 
       # Run ORCA Unit test using the passed image tag
