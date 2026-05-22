@@ -22,11 +22,11 @@ on:
         required: false
         type: string
         default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
+      ci_path:
+        description: 'Path to CI directory'
         required: false
         type: string
-        default: ''
+        default: 'ci'
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -138,7 +138,7 @@ jobs:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
           export IMAGE=${IMAGE,,}
-          bash ci/scripts/run_behave_tests.bash ${{ matrix.feature }}
+          bash ${{ ci_path }}/scripts/run_behave_tests.bash ${{ matrix.feature }}
 
       - name: Collect logs ${{ matrix.feature }}
         if: always()

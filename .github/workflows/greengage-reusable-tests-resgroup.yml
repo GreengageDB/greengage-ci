@@ -18,11 +18,11 @@ on:
         required: false
         type: string
         default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
+      ci_path:
+        description: 'Path to CI directory'
         required: false
         type: string
-        default: ''
+        default: 'ci'
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -233,7 +233,7 @@ jobs:
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
-                          && bash ci/scripts/run_resgroup_test.bash"
+                          && bash ${{ ci_path }}/scripts/run_resgroup_test.bash"
 
       - name: Collect logs
         if: always()
