@@ -233,7 +233,7 @@ jobs:
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
-                          && bash ${{ ci_path }}/scripts/run_resgroup_test.bash"
+                          && bash ${{ inputs.ci_path }}/scripts/run_resgroup_test.bash"
 
       - name: Collect logs
         if: always()

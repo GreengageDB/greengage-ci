@@ -81,7 +81,7 @@ jobs:
             --build-arg OS_VERSION \
             --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ${{ ci_path }}/Dockerfile.${{ inputs.target_os }} \
+            -f ${{ inputs.ci_path }}/Dockerfile.${{ inputs.target_os }} \
             .
 
       # Push developer's and SHA tag image for internal PRs and pushes
