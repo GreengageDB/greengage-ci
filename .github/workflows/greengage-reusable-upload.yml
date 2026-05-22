@@ -17,11 +17,6 @@ on:
         required: false
         type: string
         default: ''
-      python3:
-        description: 'Python3 build argument'
-        required: false
-        type: string
-        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'

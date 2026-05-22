@@ -44,7 +44,6 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 
 ### Secrets
 
@@ -76,7 +75,6 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        python3: ''
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
