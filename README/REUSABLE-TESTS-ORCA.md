@@ -31,6 +31,7 @@ To integrate this workflow into your pipeline:
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
+| `ci_path`           | Path to CI directory scripts and Dockerfiles      | No       | String  | `ci`    |
 
 ### Secrets
 
