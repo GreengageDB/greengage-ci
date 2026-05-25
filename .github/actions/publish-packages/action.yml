@@ -208,6 +208,15 @@ runs:
 
         DOWNLOAD_DIR="${{ inputs.download_dir }}"
 
+        export AWS_CONFIG_FILE=$(pwd)/aws-config
+        cat > "$AWS_CONFIG_FILE" << 'EOF'
+        [default]
+        s3 =
+            addressing_style = path
+        request_checksum_calculation = when_required
+        response_checksum_validation = when_required
+        EOF
+
         echo "${{ inputs.ghcr_password }}" \
           | docker login ghcr.io -u ${{ inputs.ghcr_login }} --password-stdin
 
@@ -215,6 +224,8 @@ runs:
           -u $(id -u):$(id -g) \
           -v $(pwd):/data \
           -v "${GNUPGHOME}":"${GNUPGHOME}" \
+          -v ${AWS_CONFIG_FILE}:/etc/aws-config \
+          -e AWS_CONFIG_FILE=/etc/aws-config \
           -e AWS_BUCKET \
           -e AWS_ENDPOINT_URL \
           -e AWS_ACCESS_KEY_ID \
