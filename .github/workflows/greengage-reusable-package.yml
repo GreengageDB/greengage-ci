@@ -103,12 +103,11 @@ jobs:
           apt-get update -o Acquire::https::Verify-Peer=false
           apt-get install -y ca-certificates
 
-          echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
+          echo 'deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
           https://greengagedb.org/repositories/ubuntu/22.04/x86_64 \
-          greengagedb main" \
+          greengagedb main' \
           | tee /etc/apt/sources.list.d/greengagedb.list
 
           apt-get update
           apt-get install -y /deb-packages/*.deb
           dpkg -l greengage* sigar ca-certificates"
-
