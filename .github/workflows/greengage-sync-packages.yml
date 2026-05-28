@@ -49,7 +49,7 @@ jobs:
           source_repo:           ${{ env.GREENGAGE_REPO }}
           release_tag:           ${{ needs.check-releases.outputs.greengage_tag }}
           ci_workflow:           'Greengage CI'
-          artifact_name:         'deb-packages'
+          artifact_name:         'deb-packages-ubuntu22.04'
           s3_prefix:             'ubuntu/22.04/x86_64'
           gh_token:              ${{ github.token }}
           aws_bucket:            ${{ secrets.BUCKET }}

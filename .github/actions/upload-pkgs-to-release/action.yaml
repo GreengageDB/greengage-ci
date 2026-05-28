@@ -2,8 +2,11 @@ name: Upload Packages to GitHub Release
 description: "Create or update a GitHub release and upload packages with fixed names"
 
 inputs:
-  artifact_name:
-    description: 'Artifact name for download'
+  cache_key:
+    description: 'Cache key for extract artifact'
+    required: true
+  package_dir:
+    description: 'Local directory where cached packages are restored'
     required: false
     default: 'Packages'
   package_name:
@@ -119,8 +122,8 @@ runs:
       uses: actions/cache/restore@v4
       id: cache-restore
       with:
-        path: ${{ inputs.artifact_name }}
-        key:  ${{ inputs.artifact_name }}-${{ github.sha }}
+        key:  ${{ inputs.cache_key }}
+        path: ${{ inputs.package_dir }}
 
     - name: Handle cache miss or restore failure
       if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -132,7 +135,7 @@ runs:
 
     - name: List downloaded files
       shell: bash
-      run: find "${{ inputs.artifact_name }}" -type f
+      run: find "${{ inputs.package_dir }}" -type f
 
     - name: Create release if not exists
       if: inputs.create_force != ''
@@ -194,7 +197,7 @@ runs:
         shopt -s nullglob
 
         for ext in ${{ inputs.extensions }}; do
-          files=("${{ inputs.artifact_name }}"/*.$ext)
+          files=("${{ inputs.package_dir }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
             echo "Expected exactly one *.$ext file, found ${#files[@]}"
             exit 1
