@@ -1,4 +1,4 @@
-# .github/workflows/greengage-release.yml
+# .github/workflows/greengage-release.yml EXAMPLE
 name: Greengage release
 
 on:
@@ -12,16 +12,24 @@ jobs:
       matrix:
         include:
         - version: 6
-          extensions: deb ddeb
-          artifact_name: deb-packages
+          target_os: ubuntu
+          target_os_version: '22.04'
+          extensions:  deb ddeb
+          package_dir: deb-packages
+        - version: 6
+          target_os: ubuntu
+          target_os_version: '24.04'
+          extensions:  deb ddeb
+          package_dir: deb-packages
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       actions: read
     steps:
       - name: Upload packages to release
-        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@v10
+        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@v38
         with:
-          version: ${{ matrix.version }}
-          extensions: ${{ matrix.extensions }}
-          artifact_name: ${{ matrix.artifact_name }}
+          version:     ${{ matrix.version }}
+          extensions:  ${{ matrix.extensions }}
+          package_dir: ${{ matrix.package_dir }}
+          cache_key:   ${{ matrix.package_dir }}-${{ matrix.target_os }}${{ matrix.target_os_version }}-${{ github.sha }}

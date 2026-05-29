@@ -2,8 +2,14 @@ name: Upload Packages to GitHub Release
 description: "Create or update a GitHub release and upload packages with fixed names"
 
 inputs:
-  artifact_name:
-    description: 'Artifact name for download'
+  target_os:
+    description: 'Target OS (e.g. ubuntu)'
+    required: true
+  target_os_version:
+    description: 'Target OS version (e.g. 22.04)'
+    required: true
+  package_dir:
+    description: 'Local directory where cached packages are restored'
     required: false
     default: 'Packages'
   package_name:
@@ -72,7 +78,7 @@ runs:
         while true; do
           elapsed=$(($(date +%s) - start_time))
           remaining=$((MAX_WAIT_SECONDS - elapsed))
-          
+
           if [ $remaining -le 0 ]; then
             echo "ERROR: Timeout waiting for CI workflow (waited ${MAX_WAIT_SECONDS}s)"
             exit 1
@@ -82,8 +88,8 @@ runs:
             --json conclusion,headSha,event,headBranch,url,status \
             --jq '
               map(select(
-                .headSha == "'"${{ github.sha }}"'" and 
-                .event == "push" and 
+                .headSha == "'"${{ github.sha }}"'" and
+                .event == "push" and
                 .headBranch == "'"${{ github.event.release.tag_name }}"'"
               )) |
               .[0]
@@ -119,8 +125,8 @@ runs:
       uses: actions/cache/restore@v4
       id: cache-restore
       with:
-        path: ${{ inputs.artifact_name }}
-        key:  ${{ inputs.artifact_name }}-${{ github.sha }}
+        path: ${{ inputs.package_dir }}
+        key:  ${{ inputs.package_dir }}-${{ inputs.target_os }}${{ inputs.target_os_version }}-${{ github.sha }}
 
     - name: Handle cache miss or restore failure
       if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -132,7 +138,7 @@ runs:
 
     - name: List downloaded files
       shell: bash
-      run: find "${{ inputs.artifact_name }}" -type f
+      run: find "${{ inputs.package_dir }}" -type f
 
     - name: Create release if not exists
       if: inputs.create_force != ''
@@ -183,6 +189,7 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
         RELEASE_NAME: ${{ inputs.release_name }}
+        REVISION: ${{ inputs.target_os }}${{ inputs.target_os_version }}
       run: |
         RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
 
@@ -194,14 +201,20 @@ runs:
         shopt -s nullglob
 
         for ext in ${{ inputs.extensions }}; do
-          files=("${{ inputs.artifact_name }}"/*.$ext)
+          files=("${{ inputs.package_dir }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
             echo "Expected exactly one *.$ext file, found ${#files[@]}"
             exit 1
           fi
 
-          echo "Uploading ${files[0]}"
-          gh release upload "$RELEASE_NAME" "${files[0]}" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
+          f="${files[0]}"
+          base="${f%.$ext}"
+          arch="${base##*_}"
+          mv ${base%_$arch}{,~${REVISION}}_${arch}.${ext}
+          f="${base%_$arch}~${REVISION}_${arch}.${ext}"
+
+          echo "Uploading $f"
+          gh release upload "$RELEASE_NAME" "$f" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
         done
         if [ -n "$not_uploaded" ] ; then
           echo "The following extension(s) are not uploaded: $not_uploaded"
