@@ -19,8 +19,12 @@ jobs:
         include:
           - source_repo:   GreengageDB/greengage
             ci_workflow:   'Greengage CI'
-            artifact_name: 'deb-packages'
+            artifact_name: 'deb-packages-ubuntu22.04'
             s3_prefix:     'ubuntu/22.04/x86_64'
+          - source_repo:   GreengageDB/greengage
+            ci_workflow:   'Greengage CI'
+            artifact_name: 'deb-packages-ubuntu24.04'
+            s3_prefix:     'ubuntu/24.04/x86_64'
           - source_repo:   GreengageDB/pxf
             ci_workflow:   'Greengage PXF CI'
             artifact_name: 'deb-packages-ubuntu22.04-6.*'
