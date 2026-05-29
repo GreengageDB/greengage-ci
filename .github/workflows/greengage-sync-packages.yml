@@ -4,76 +4,53 @@ name: Sync release packages to S3 repository
 
 on:
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+    - cron: '*/15 * * * *'
 
 concurrency:
   group: sync-packages
   cancel-in-progress: false
 
-env:
-  GREENGAGE_REPO:    GreengageDB/greengage
-  PXF_REPO:          GreengageDB/pxf
-
 jobs:
-  check-releases:
+  publish:
     runs-on: ubuntu-24.04
-    outputs:
-      greengage_tag: ${{ steps.greengage.outputs.tag }}
-      pxf_tag:       ${{ steps.pxf.outputs.tag }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source_repo:   GreengageDB/greengage
+            ci_workflow:   'Greengage CI'
+            artifact_name: 'deb-packages-ubuntu22.04'
+            s3_prefix:     'ubuntu/22.04/x86_64'
+          - source_repo:   GreengageDB/greengage
+            ci_workflow:   'Greengage CI'
+            artifact_name: 'deb-packages-ubuntu24.04'
+            s3_prefix:     'ubuntu/24.04/x86_64'
+          - source_repo:   GreengageDB/pxf
+            ci_workflow:   'Greengage PXF CI'
+            artifact_name: 'deb-packages-ubuntu22.04-6.*'
+            s3_prefix:     'ubuntu/22.04/x86_64'
+          - source_repo:   GreengageDB/pxf
+            ci_workflow:   'Greengage PXF CI'
+            artifact_name: 'deb-packages-ubuntu22.04-7.*'
+            s3_prefix:     'ubuntu/22.04/x86_64'
 
     steps:
-      - name: Get latest greengage release tag
-        id: greengage
-        uses: GreengageDB/greengage-ci/.github/actions/get-latest-release-tag@main
+      - name: Get latest release tag
+        id: tag
+        uses: GreengageDB/greengage-ci/.github/actions/get-latest-release-tag@v37
         with:
-          source_repo: ${{ env.GREENGAGE_REPO }}
+          source_repo: ${{ matrix.source_repo }}
           gh_token: ${{ github.token }}
 
-      - name: Get latest pxf release tag
-        id: pxf
-        uses: GreengageDB/greengage-ci/.github/actions/get-latest-release-tag@main
+      - name: Publish ${{ matrix.source_repo }} ${{ steps.tag.outputs.tag }}
+        if: steps.tag.outputs.tag != ''
+        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v39
         with:
-          source_repo: ${{ env.PXF_REPO }}
-          gh_token: ${{ github.token }}
-
-  publish-greengage:
-    needs: check-releases
-    if: needs.check-releases.outputs.greengage_tag != ''
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Publish Greengage ${{ needs.check-releases.outputs.greengage_tag }}
-        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v34
-        with:
-          source_repo:           ${{ env.GREENGAGE_REPO }}
-          release_tag:           ${{ needs.check-releases.outputs.greengage_tag }}
-          ci_workflow:           'Greengage CI'
-          artifact_name:         'deb-packages-ubuntu22.04'
-          s3_prefix:             'ubuntu/22.04/x86_64'
-          gh_token:              ${{ github.token }}
-          aws_bucket:            ${{ secrets.BUCKET }}
-          aws_endpoint_url:      ${{ secrets.AWS_ENDPOINT_URL }}
-          aws_access_key_id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ghcr_login:            ${{ secrets.GHCR_LOGIN }}
-          ghcr_password:         ${{ secrets.GHCR_PASSWORD }}
-          gpg_private_key:       ${{ secrets.GPG_PRIVATE_KEY }}
-
-  publish-pxf:
-    needs: check-releases
-    if: needs.check-releases.outputs.pxf_tag != ''
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Publish PXF ${{ needs.check-releases.outputs.pxf_tag }}
-        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v34
-        with:
-          source_repo:           ${{ env.PXF_REPO }}
-          release_tag:           ${{ needs.check-releases.outputs.pxf_tag }}
-          ci_workflow:           'Greengage PXF CI'
-          artifact_name:         'deb-packages-ubuntu22.04'
-          s3_prefix:             'ubuntu/22.04/x86_64'
+          source_repo:           ${{ matrix.source_repo }}
+          release_tag:           ${{ steps.tag.outputs.tag }}
+          ci_workflow:           ${{ matrix.ci_workflow }}
+          artifact_name:         ${{ matrix.artifact_name }}
+          s3_prefix:             ${{ matrix.s3_prefix }}
           gh_token:              ${{ github.token }}
           aws_bucket:            ${{ secrets.BUCKET }}
           aws_endpoint_url:      ${{ secrets.AWS_ENDPOINT_URL }}

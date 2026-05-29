@@ -82,8 +82,6 @@ runs:
         SOURCE_REPO="${{ inputs.source_repo }}"
         TAG="${{ inputs.release_tag }}"
         WORKFLOW="${{ inputs.ci_workflow }}"
-        ARTIFACT="${{ inputs.artifact_name }}"
-        DOWNLOAD_DIR="${{ inputs.download_dir }}"
 
         echo "=== Resolving tag $TAG in $SOURCE_REPO ==="
 
@@ -111,17 +109,18 @@ runs:
           echo "::error::No successful '$WORKFLOW' run found for commit $RELEASE_SHA (tag $TAG) in $SOURCE_REPO"
           exit 1
         fi
-
         echo "Found CI run: $RUN_ID"
-        echo "Downloading artifact '$ARTIFACT' → $DOWNLOAD_DIR/"
+        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
 
-        gh run download "$RUN_ID" \
-          --repo "$SOURCE_REPO" \
-          --name "$ARTIFACT" \
-          --dir "./$DOWNLOAD_DIR"
-
-        echo "Downloaded package files:"
-        find "./$DOWNLOAD_DIR" -type f | sort
+    - name: Download package artifacts
+      uses: actions/download-artifact@v4
+      with:
+        github-token: ${{ inputs.gh_token }}
+        repository: ${{ inputs.source_repo }}
+        run-id: ${{ env.RUN_ID }}
+        path: ${{ inputs.download_dir }}
+        pattern: ${{ inputs.artifact_name }}
+        merge-multiple: true
 
     - name: Check published state via aws s3 ls
       id: check
