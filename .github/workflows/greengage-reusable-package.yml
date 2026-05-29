@@ -68,14 +68,14 @@ jobs:
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deb-packages
+          name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           path: deb-packages
 
       - name: Cache Debian artifacts
         uses: actions/cache/save@v4
         with:
           path: deb-packages
-          key: deb-packages-${{ github.sha }}
+          key:  deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}-${{ github.sha }}
 
   test-docker:
     if: inputs.test_docker != ''
@@ -87,7 +87,7 @@ jobs:
       - name: Download deb artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deb-packages
+          name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           path: deb-packages
       - name: Start Docker container and install deb package
         run: |
