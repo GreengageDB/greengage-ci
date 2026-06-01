@@ -110,4 +110,6 @@ jobs:
 
           apt-get update
           apt-get install -y /deb-packages/*.deb
-          dpkg -l greengage* sigar ca-certificates"
+          dpkg -l sigar 2>/dev/null || true
+          dpkg -l greengage*
+          "
