@@ -1,0 +1,117 @@
+name: Greengage Reusable Native Deb Build
+
+on:
+  workflow_call:
+    inputs:
+      go_version:
+        description: 'Go version to install (e.g. "1.20"). Leave empty for non-Go projects.'
+        required: false
+        type: string
+        default: ''
+      extra_apt_packages:
+        description: 'Space-separated list of extra apt packages to install before build (e.g. "libssl-dev libpq-dev").'
+        required: false
+        type: string
+        default: ''
+      artifact_name:
+        description: 'Name for the uploaded .deb artifact.'
+        required: true
+        type: string
+      runner:
+        description: 'GitHub Actions runner image (e.g. ubuntu-24.04).'
+        required: false
+        type: string
+        default: 'ubuntu-24.04'
+      fetch_depth:
+        description: 'git fetch-depth passed to actions/checkout.'
+        required: false
+        type: number
+        default: 0
+      test_docker:
+        description: 'Docker image to test package installation (e.g. ubuntu:24.04). Skip if empty.'
+        required: false
+        type: string
+        default: ''
+      add_greengage_repo:
+        description: 'Add the official Greengage apt repository before installing the package (required when Depends includes greengage6 | greengage7).'
+        required: false
+        type: boolean
+        default: false
+      pre_install_commands:
+        description: 'Shell commands to run inside the container before package installation (e.g. add apt repositories).'
+        required: false
+        type: string
+        default: ''
+      verify_commands:
+        description: 'Shell commands to run inside the container after package installation.'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build-deb:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.fetch_depth }}
+          path: src
+
+      - name: Set up Go
+        if: inputs.go_version != ''
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ inputs.go_version }}
+
+      - name: Link Go to /usr/local/go
+        if: inputs.go_version != ''
+        run: sudo ln -sf $(go env GOROOT) /usr/local/go
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y debhelper build-essential ${{ inputs.extra_apt_packages }}
+
+      - name: Build .deb
+        run: cd src && dpkg-buildpackage -us -uc -b
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: "*.deb"
+
+  test-install:
+    if: inputs.test_docker != ''
+    needs: build-deb
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Download deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: deb-packages
+
+      - name: Test package installation
+        env:
+          ADD_GREENGAGE_REPO: ${{ inputs.add_greengage_repo }}
+        run: |
+          docker run --rm \
+            -v "$(pwd)/deb-packages:/deb-packages" \
+            -e ADD_GREENGAGE_REPO \
+            "${{ inputs.test_docker }}" /bin/bash -c "
+              set -eux
+              apt-get update -q
+              apt-get install -y curl ca-certificates gpg
+              if [ \"\$ADD_GREENGAGE_REPO\" = 'true' ]; then
+                OS_VERSION=\$(. /etc/os-release && echo \$VERSION_ID)
+                curl -fsSL https://greengagedb.org/repositories/gpg \
+                  | gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
+                echo \"deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] https://greengagedb.org/repositories/ubuntu/\${OS_VERSION}/x86_64 greengagedb main\" \
+                  > /etc/apt/sources.list.d/greengagedb.list
+              fi
+              ${{ inputs.pre_install_commands }}
+              apt-get update -q
+              apt-get install -y /deb-packages/*.deb
+              ${{ inputs.verify_commands }}
+            "
