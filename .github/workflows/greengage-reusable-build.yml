@@ -36,6 +36,7 @@ jobs:
       actions: write  # Required for cache
     env:
       IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      TARGET_OS:  ${{ inputs.target_os }}
       OS_VERSION: ${{ inputs.target_os_version || 22.04 }}
       SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
     steps:
@@ -68,15 +69,22 @@ jobs:
       # Build Docker intermediate image with commit SHA tag
       - name: Build Docker image
         run: |
-          ubuntu_mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
-          if curl -sf --max-time 5 "http://${ubuntu_mirror_ip}/ubuntu/" > /dev/null; then
-            docker_options="--add-host=archive.ubuntu.com:${ubuntu_mirror_ip} --add-host=security.ubuntu.com:${ubuntu_mirror_ip}"
-          fi
+          case "$TARGET_OS" in
+            ubuntu)
+              mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
+              if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
+                docker_options="--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}"
+              fi
+              ;;
+            rockylinux)
+              # TODO: add Azure mirror for Rocky Linux if available
+              ;;
+          esac
           docker build $docker_options \
             --build-arg OS_VERSION \
             --build-arg SKIP_UNITTESTS \
             --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ci/Dockerfile.${{ inputs.target_os }} \
+            -f ci/Dockerfile.$TARGET_OS \
             .
 
       # Push developer's and SHA tag image for internal PRs and pushes

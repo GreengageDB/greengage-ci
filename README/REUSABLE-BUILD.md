@@ -20,12 +20,12 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                       | Required | Type    | Default |
-|---------------------|---------------------------------------------------|----------|---------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
-| `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
+| Name                | Description                                            | Required | Type    | Default |
+|---------------------|--------------------------------------------------------|----------|---------|---------|
+| `version`           | Greengage version (e.g., `6` or `7`)                   | Yes      | String  | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`, `rockylinux`) | Yes      | String  | -       |
+| `target_os_version` | Target OS version (e.g., ``, `24.04`)                  | No       | String  | `''`    |
+| `skip_unittests`    | Skip unit tests during build (set to `1` to skip)      | No       | String  | `''`    |
 
 ### Secrets
 
@@ -40,7 +40,9 @@ To integrate this workflow into your pipeline:
 - **Dockerfile**: Ensure a Dockerfile exists at `ci/Dockerfile.<target_os>` (e.g., `ci/Dockerfile.ubuntu`). The `OS_VERSION` build argument is passed to the Dockerfile with a default value of `22.04` if `target_os_version` is not provided.
 - **Repository Access**: The workflow checks out the current branch of the repository specified in `github.repository`. For PRs, it uses `github.event.pull_request.head.sha`; otherwise, it uses `github.ref`.
 - **Disk Space**: The workflow uses the `greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24` action to maximize available disk space before building.
-- **Ubuntu mirror**: During build, `azure.archive.ubuntu.com` is resolved and injected via `--add-host` for `archive.ubuntu.com` and `security.ubuntu.com`. Falls back to default mirrors if unreachable.
+- **OS-specific mirrors**: During build, mirror optimization is applied per target OS.
+  For `ubuntu`, `azure.archive.ubuntu.com` is resolved and injected via `--add-host` for `archive.ubuntu.com` and `security.ubuntu.com`, falling back to default mirrors if unreachable.
+  For other OSes (e.g., `rockylinux`), no mirror override is applied.
 - **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v4` with a key matching the image tag.
 
 ### Examples
