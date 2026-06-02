@@ -27,6 +27,11 @@ on:
         required: false
         type: number
         default: 0
+      build_command:
+        description: 'Command to build the .deb package, run from the repository root (e.g. "make deb" or "dpkg-buildpackage -us -uc -b").'
+        required: false
+        type: string
+        default: 'dpkg-buildpackage -us -uc -b'
       test_docker:
         description: 'Docker image to test package installation (e.g. ubuntu:24.04). Skip if empty.'
         required: false
@@ -67,13 +72,20 @@ jobs:
         if: inputs.go_version != ''
         run: sudo ln -sf $(go env GOROOT) /usr/local/go
 
+      - name: Export GOPATH
+        if: inputs.go_version != ''
+        run: echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+
       - name: Install packaging tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y debhelper build-essential ${{ inputs.extra_apt_packages }}
+          sudo apt-get install -y \
+          build-essential \
+          debhelper \
+          ${{ inputs.extra_apt_packages }}
 
       - name: Build .deb
-        run: cd src && dpkg-buildpackage -us -uc -b
+        run: cd src && ${{ inputs.build_command }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
