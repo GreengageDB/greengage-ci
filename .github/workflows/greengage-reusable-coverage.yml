@@ -1,0 +1,146 @@
+# .github/workflows/greengage-reusable-coverage.yml
+name: Greengage Reusable Coverage Report
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version (e.g., 6 or 7)'
+        required: true
+        type: string
+      target_os:
+        description: 'Target OS (e.g., ubuntu)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 24.04)'
+        required: false
+        type: string
+        default: ''
+      coverage_threshold:
+        description: 'Minimum coverage percentage required (e.g., 75)'
+        required: true
+        type: number
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+      actions: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+    steps:
+      - name: Restore & Load SHA image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        with:
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
+
+      - name: Checkout Greengage repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          submodules: recursive
+
+      - name: Download behave artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ inputs.gh_token }}
+          run-id: ${{ github.run_id }}
+          path: downloaded-artifacts
+          pattern: behave_*_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
+          merge-multiple: false
+
+      - name: Download regression artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ inputs.gh_token }}
+          run-id: ${{ github.run_id }}
+          path: downloaded-artifacts
+          pattern: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}*
+          merge-multiple: false
+
+      - name: Prepare coverage script
+        run: |
+          cat > coverage.sh << 'EOF'
+          git config --global --add safe.directory /home/gpadmin/gpdb_src
+          source gpdb_src/concourse/scripts/common.bash && install_and_configure_gpdb
+
+          COVERAGE_DATA_DIR=/tmp/coverage-data
+          RCFILE=/home/gpadmin/gpdb_src/gpMgmt/test/coveragerc_combine_report
+          mkdir -p "$COVERAGE_DATA_DIR"
+
+          while IFS= read -r f; do
+            artifact_name=$(echo "$f" | sed 's|^/downloaded-artifacts/||' | cut -d'/' -f1)
+            dest="$COVERAGE_DATA_DIR/coverage-data_${artifact_name}"
+            echo "Copying $f -> $dest"
+            cp "$f" "$dest"
+          done < <(find /downloaded-artifacts -name 'coverage-data' -not -path '*/coverage-html/*')
+
+          count=$(ls "$COVERAGE_DATA_DIR"/coverage-data_* 2>/dev/null | wc -l)
+          echo "Collected $count coverage-data files"
+
+          if [ "$count" -eq 0 ]; then
+            echo "No coverage-data files found, skipping"
+            exit 0
+          fi
+
+          cd "$COVERAGE_DATA_DIR"
+          coverage combine --append \
+            --rcfile="$RCFILE" \
+            coverage-data_*
+
+          coverage html \
+            --rcfile="$RCFILE" \
+            --show-contexts \
+            -i \
+            -d /coverage-combined/coverage-html
+
+          coverage report --rcfile="$RCFILE" -i | tee /coverage-combined/coverage-report.txt
+
+          cp "$COVERAGE_DATA_DIR/coverage-data" /coverage-combined/coverage-data
+          echo "Report generated"
+          EOF
+
+      - name: Combine coverage and generate report
+        run: |
+          mkdir -p coverage-combined
+          docker run --rm \
+            -v ${PWD}/coverage.sh:/coverage.sh \
+            -v ${PWD}/downloaded-artifacts:/downloaded-artifacts \
+            -v ${PWD}/coverage-combined:/coverage-combined \
+            -v ${PWD}:/home/gpadmin/gpdb_src \
+            -e GPHOME=/usr/local/greengage-db-devel \
+            ${IMAGE,,} \
+            /bin/bash /coverage.sh
+
+      - name: Check coverage quality gate
+        run: |
+          THRESHOLD=${{ inputs.coverage_threshold }}
+          TOTAL=$(grep '^TOTAL' coverage-combined/coverage-report.txt | awk '{print $NF}' | tr -d '%')
+          echo "Total coverage: ${TOTAL}%"
+          echo "Threshold: ${THRESHOLD}%"
+          if awk "BEGIN {exit !($TOTAL < $THRESHOLD)}"; then
+            echo "::error::Coverage ${TOTAL}% is below threshold ${THRESHOLD}%"
+            exit 1
+          fi
+          echo "Coverage check passed: ${TOTAL}% >= ${THRESHOLD}%"
+
+      - name: Upload combined coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage_all_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          path: |
+            coverage-combined/coverage-html/
+            coverage-combined/coverage-data
+          retention-days: 14
+          if-no-files-found: warn
