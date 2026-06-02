@@ -104,14 +104,14 @@ jobs:
           systemctl enable --now docker
 
           cd /home/gpadmin
-          mkdir -p logs
+          mkdir -p logs ci
 
           docker load < $IMAGE_FILE
           rm $IMAGE_FILE
 
           # Extract test script from Image instaed of GIT
           docker create --name temp-container $IMAGE
-          docker cp temp-container:/home/gpadmin/gpdb_src/ci ./ci
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/. ./ci/
           docker rm temp-container
           EOF0
 
