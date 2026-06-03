@@ -36,6 +36,9 @@ on:
         description: 'GitHub token for GHCR access'
         required: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-deb:
     if: inputs.target_os == 'ubuntu'

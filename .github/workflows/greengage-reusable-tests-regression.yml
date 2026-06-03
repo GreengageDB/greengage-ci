@@ -5,6 +5,7 @@ name: Greengage Reusable Regression Tests on GitHub
 env:
   COMPOSE_HTTP_TIMEOUT: 400
   DOCKER_COMPOSE: "docker compose"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 # Trigger for reusable workflow
 on:
