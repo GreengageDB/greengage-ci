@@ -36,8 +36,12 @@ jobs:
             s3_prefix:     'ubuntu/22.04/x86_64'
           - source_repo:   GreengageDB/gpbackup
             ci_workflow:   'Build deb'
-            artifact_name: 'gpbackup-deb'
+            artifact_name: 'gpbackup-deb-ubuntu22.04'
             s3_prefix:     'ubuntu/22.04/x86_64'
+          - source_repo:   GreengageDB/gpbackup
+            ci_workflow:   'Build deb'
+            artifact_name: 'gpbackup-deb-ubuntu24.04'
+            s3_prefix:     'ubuntu/24.04/x86_64'
 
     steps:
       - name: Get latest release tag
