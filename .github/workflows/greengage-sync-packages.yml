@@ -34,6 +34,10 @@ jobs:
             ci_workflow:   'Greengage PXF CI'
             artifact_name: 'deb-packages-ubuntu22.04-7.*'
             s3_prefix:     'ubuntu/22.04/x86_64'
+          - source_repo:   GreengageDB/gpbackup
+            ci_workflow:   'Build deb'
+            artifact_name: 'gpbackup-deb'
+            s3_prefix:     'ubuntu/22.04/x86_64'
 
     steps:
       - name: Get latest release tag
