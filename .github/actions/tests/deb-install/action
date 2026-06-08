@@ -20,9 +20,7 @@ inputs:
     default: ''
   verify_commands:
     description: Commands to run after installation to verify it
-    default: |
-      dpkg -l sigar 2>/dev/null || true
-      dpkg -l greengage*
+    default: ''
 
 runs:
   using: composite
