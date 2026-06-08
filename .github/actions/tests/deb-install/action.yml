@@ -40,7 +40,7 @@ runs:
         VERIFY_COMMANDS: ${{ inputs.verify_commands }}
       run: |
         set -eux
-        curl -fsSL https://greengagedb.org/repositories/gpg \
+        curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg \
           | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
 
         docker run --rm \
