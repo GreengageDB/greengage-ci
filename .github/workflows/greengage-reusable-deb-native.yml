@@ -99,32 +99,10 @@ jobs:
     needs: build-deb
     runs-on: ${{ inputs.runner }}
     steps:
-      - name: Download deb artifact
-        uses: actions/download-artifact@v4
+      - uses: greengagedb/greengage-ci/.github/actions/tests/deb-install@CI-5788
         with:
-          name: ${{ inputs.artifact_name }}
-          path: deb-packages
-
-      - name: Test package installation
-        env:
-          ADD_GREENGAGE_REPO: ${{ inputs.add_greengage_repo }}
-        run: |
-          docker run --rm \
-            -v "$(pwd)/deb-packages:/deb-packages" \
-            -e ADD_GREENGAGE_REPO \
-            "${{ inputs.test_docker }}" /bin/bash -c "
-              set -eux
-              apt-get update -q
-              apt-get install -y curl ca-certificates gpg
-              if [ \"\$ADD_GREENGAGE_REPO\" = 'true' ]; then
-                OS_VERSION=\$(. /etc/os-release && echo \$VERSION_ID)
-                curl -fsSL https://greengagedb.org/repositories/gpg \
-                  | gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
-                echo \"deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] https://greengagedb.org/repositories/ubuntu/\${OS_VERSION}/x86_64 greengagedb main\" \
-                  > /etc/apt/sources.list.d/greengagedb.list
-              fi
-              ${{ inputs.pre_install_commands }}
-              apt-get update -q
-              apt-get install -y /deb-packages/*.deb
-              ${{ inputs.verify_commands }}
-            "
+          test_docker: ${{ inputs.test_docker }}
+          artifact_name: ${{ inputs.artifact_name }}
+          add_greengage_repo: ${{ inputs.add_greengage_repo }}
+          pre_install_commands: ${{ inputs.pre_install_commands }}
+          verify_commands: ${{ inputs.verify_commands }}
