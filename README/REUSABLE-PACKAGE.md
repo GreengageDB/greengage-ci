@@ -4,7 +4,7 @@ This workflow builds and packages Debian (.deb) packages for the Greengage proje
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@CI-5788`
 
 ## Purpose
 
@@ -28,35 +28,32 @@ The workflow processes the source code to build and test Debian packages. Below 
      - Otherwise, pulls the existing builder image.
 
    - Runs the builder image to compile Debian packages using `make -C gpdb_src/gpAux pkg-deb` with parallel compilation based on available CPU cores.
-
    - Determines changelog options based on the event:
 
      - For tagged push events (`refs/tags/*`), uses default changelog options.
      - For branch pushes, includes all commits since the last tag (`last-tag all-commits`).
 
-   - Uploads generated artifacts (`.deb`, `.ddeb`, `.build`, `.buildinfo`, `.changes`) as `deb-packages`.
+   - Uploads generated artifacts (`.deb`, `.ddeb`, `.build`, `.buildinfo`, `.changes`) as `deb-packages-<target_os><target_os_version>`.
 
 2. **Test Installation in Lima** (`test-lima`, if `test_lima` is provided):
 
    - Sets up Lima and caches its configuration.
    - Downloads the `deb-packages` artifact.
    - Starts a Lima VM with the specified template (e.g., `ubuntu-22.04`), configured with 4 CPUs, 8GB memory, and a 9p filesystem mount.
-   - Copies the Debian packages to the VM and installs them using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
+   - Copies the Debian packages to the VM and installs them.
    - Uploads installation logs as `install-logs`.
    - Cleans up the Lima VM on completion or failure.
 
 3. **Test Installation in Docker** (`test-docker`, if `test_docker` is provided):
 
-   - Downloads the `deb-packages` artifact.
-   - Runs a Docker container with the specified image (e.g., `ubuntu:<target_os_version>`).
-   - Installs the Debian packages using `apt-get install` or `dpkg -i` with `apt-get install -f` for dependency resolution.
-   - Uploads installation logs as `install-logs-docker`.
+   - Uses the [`tests/deb-install`](.github/actions/tests/deb-install/action.yml) composite action.
+   - Downloads the `deb-packages` artifact, runs the specified Docker image, adds the Greengage apt repository, and installs the packages.
 
 4. **Failure Conditions**:
 
    - If the builder image build or pull fails, the `build-deb` job exits with an error.
    - If `target_os` is not `ubuntu`, the `build-deb` job is skipped.
-   - If the Debian package build fails (e.g., due to missing dependencies or compilation errors), the `build-deb` job exits with an error.
+   - If the Debian package build fails, the `build-deb` job exits with an error.
    - If installation in Lima or Docker fails, the respective test job exits with an error, but subsequent jobs are not blocked.
    - If `ghcr_token` is invalid or lacks permissions, GHCR login fails, causing the workflow to exit.
 
@@ -87,59 +84,65 @@ To integrate this workflow into your pipeline:
 
 ### Requirements
 
-- **Permissions**: The job requires `contents: read`, `packages: write`, and `actions: write` permissions to access repository contents, push images to GHCR, and upload artifacts.
+- **Permissions**: The job requires `contents: read`, `packages: write`, and `actions: write` permissions.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret.
 - **Docker Image**: The workflow builds or pulls a builder image matching `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:builder`.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository` with submodules and full history.
 
 ### Examples
 
-- Single
+### Single
 
-  ```yaml
-  jobs:
-    package:
-      permissions:
-        contents: read
-        packages: write
-        actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25
-      with:
-        version: 6
-        target_os: ubuntu
-        rebuild_builder: false
-        test_lima: ubuntu-22.04
-        test_docker: ubuntu:22.04
-      secrets:
-        ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-  ```
+```yaml
+jobs:
+  package:
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@CI-5788
+    with:
+      version: 6
+      target_os: ubuntu
+      rebuild_builder: false
+      test_lima: ubuntu-22.04
+      test_docker: ubuntu:22.04
+      verify_commands: |
+        dpkg -l sigar 2>/dev/null || true
+        dpkg -l greengage*
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+```
 
-- Matrix
+### Matrix
 
-  ```yaml
-  jobs:
-    package:
-      strategy:
-        fail-fast: false
-        matrix:
-          include:
-            - target_os: ubuntu
-            - target_os: ubuntu
-              target_os_version: '24.04'
-      permissions:
-        contents: read
-        packages: write
-        actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v25
-      with:
-        version: 6
-        target_os: ${{ matrix.target_os }}
-        target_os_version: ${{ matrix.target_os_version }}
-        rebuild_builder: false
-        test_docker: ubuntu:${{ matrix.target_os_version }}
-      secrets:
-        ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-  ```
+```yaml
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_os: ubuntu
+          - target_os: ubuntu
+            target_os_version: '24.04'
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@CI-5788
+    with:
+      version: 6
+      target_os: ${{ matrix.target_os }}
+      target_os_version: ${{ matrix.target_os_version }}
+      rebuild_builder: false
+      test_docker: ubuntu:${{ matrix.target_os_version || '22.04' }}
+      verify_commands: |
+        dpkg -l sigar 2>/dev/null || true
+        dpkg -l greengage*
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+```
 
 ### Notes
 
