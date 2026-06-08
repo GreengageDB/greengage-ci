@@ -1,0 +1,73 @@
+# .github/actions/tests/deb-install/action
+name: Test deb package installation
+description: Run deb package installation test inside a Docker container
+
+inputs:
+  test_docker:
+    description: Docker image to test installation in
+    required: true
+  artifact_name:
+    description: Name of the deb artifact to download
+    required: true
+  add_greengage_repo:
+    description: Whether to add Greengage apt repository
+    default: 'true'
+  greengage_repo_url:
+    description: Whether to add Greengage apt repository
+    default: 'https://greengagedb.org'
+  pre_install_commands:
+    description: Commands to run before apt-get install
+    default: ''
+  verify_commands:
+    description: Commands to run after installation to verify it
+    default: |
+      dpkg -l sigar 2>/dev/null || true
+      dpkg -l greengage*
+
+runs:
+  using: composite
+  steps:
+    - name: Download deb artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: deb-packages
+
+    - name: Test package installation
+      shell: bash
+      env:
+        ADD_GREENGAGE_REPO: ${{ inputs.add_greengage_repo }}
+        GREENGAGE_REPO_URL: ${{ inputs.greengage_repo_url }}
+        PRE_INSTALL_COMMANDS: ${{ inputs.pre_install_commands }}
+        VERIFY_COMMANDS: ${{ inputs.verify_commands }}
+      run: |
+        set -eux
+        curl -fsSL https://greengagedb.org/repositories/gpg \
+          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
+
+        docker run --rm \
+          -v "$(pwd)/deb-packages:/deb-packages" \
+          -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
+          -e ADD_GREENGAGE_REPO \
+          -e GREENGAGE_REPO_URL \
+          -e PRE_INSTALL_COMMANDS \
+          -e VERIFY_COMMANDS \
+          "${{ inputs.test_docker }}" /bin/bash -c '
+            set -eux
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -o Acquire::https::Verify-Peer=false -q
+            apt-get install -y ca-certificates curl gpg
+
+            if [ "$ADD_GREENGAGE_REPO" = "true" ]; then
+              OS_VERSION=$(. /etc/os-release && echo $VERSION_ID)
+              echo "deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
+                ${GREENGAGE_REPO_URL}/repositories/ubuntu/${OS_VERSION}/x86_64 \
+                greengagedb main" \
+                > /etc/apt/sources.list.d/greengagedb.list
+            fi
+
+            eval "$PRE_INSTALL_COMMANDS"
+            apt-get update -q
+            apt-get install -y /deb-packages/*.deb
+            eval "$VERIFY_COMMANDS"
+          '
