@@ -1,4 +1,4 @@
-# .github/actions/tests/deb-install/action
+# .github/actions/tests/deb-install/action.yml
 name: Test deb package installation
 description: Run deb package installation test inside a Docker container
 
