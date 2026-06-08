@@ -43,27 +43,44 @@ runs:
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
-
+        GPHOME: /usr/local/greengage-db-devel
       run: |
+        mkdir -p coverage
         docker run -i --name $LOG_NAME \
           -v $LOG_DIR:/logs \
+          -v ${PWD}/coverage:/tmp/coverage-data \
           -e CI \
           -e TEST_OS \
           -e TEST_OS_VERSION \
           -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
+          -e GPHOME \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
           /bin/bash << 'END_OF_SCRIPT'
         set -x
         ssh-keygen -A
         /usr/sbin/sshd
-
         cd /home/gpadmin || exit 1
 
         exit_code=0
         bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
         echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
+
+        mkdir -p /tmp/coverage-data
+        chmod 777 /tmp/coverage-data
+        cd /tmp/coverage-data
+        if [ "$(ls coverage-data* 2>/dev/null | wc -l)" -gt 0 ]; then
+          coverage combine --append \
+            --rcfile=/home/gpadmin/gpdb_src/gpMgmt/test/coveragerc_combine_report \
+            coverage-data*
+          coverage html \
+            --rcfile=/home/gpadmin/gpdb_src/gpMgmt/test/coveragerc_combine_report \
+            --show-contexts -d ./coverage-html
+        else
+          echo "No coverage-data files found, skipping coverage report"
+        fi
+
         if [ -n "$DUMP_DB" ]; then
           tar -rf "/logs/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" ./sqldump/dump.sql || exit_code=$?
           echo "Dump collection './sqldump/dump.sql' finished with $exit_code"
