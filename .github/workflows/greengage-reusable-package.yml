@@ -21,11 +21,6 @@ on:
         required: false
         type: boolean
         default: false
-      test_lima:
-        description: 'Lima Template (e.g., ubuntu-22.04) for deploy test. Skip if empty'
-        required: false
-        type: string
-        default: ''
       test_docker:
         description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
         required: false
