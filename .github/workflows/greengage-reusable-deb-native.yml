@@ -42,6 +42,11 @@ on:
         required: false
         type: boolean
         default: false
+      greengage_repo_url:
+        description: Whether to add Greengage apt repository
+        required: false
+        type: string
+        default: 'https://greengagedb.org'
       pre_install_commands:
         description: 'Shell commands to run inside the container before package installation (e.g. add apt repositories).'
         required: false
@@ -104,5 +109,6 @@ jobs:
           test_docker: ${{ inputs.test_docker }}
           artifact_name: ${{ inputs.artifact_name }}
           add_greengage_repo: ${{ inputs.add_greengage_repo }}
+          greengage_repo_url: ${{ inputs.greengage_repo_url }}
           pre_install_commands: ${{ inputs.pre_install_commands }}
           verify_commands: ${{ inputs.verify_commands }}
