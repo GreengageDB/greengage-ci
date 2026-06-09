@@ -54,7 +54,7 @@ runs:
             set -eux
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -o Acquire::https::Verify-Peer=false -q
-            apt-get install -y ca-certificates curl gpg
+            apt-get install -y ca-certificates gpg
 
             if [ "$ADD_GREENGAGE_REPO" = "true" ]; then
               OS_VERSION=$(. /etc/os-release && echo $VERSION_ID)
