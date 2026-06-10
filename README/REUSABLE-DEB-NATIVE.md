@@ -5,7 +5,7 @@ It is designed to be called from a parent CI pipeline for projects that build `.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@CI-5788`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@v44`
 
 ## Purpose
 
@@ -72,7 +72,7 @@ jobs:
     permissions:
       contents: read
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@CI-5788
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@v44
     with:
       artifact_name: gpbackup-deb
       go_version: '1.21'
@@ -88,7 +88,7 @@ jobs:
     permissions:
       contents: read
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@CI-5788
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-deb-native.yml@v44
     with:
       artifact_name: gpbackup-s3-plugin-deb
       go_version: '1.21'

@@ -105,7 +105,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Install deb-package in Docker 
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@CI-5788
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
         with:
           test_docker: ${{ inputs.test_docker }}
           artifact_name: ${{ inputs.artifact_name }}
