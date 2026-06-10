@@ -71,10 +71,10 @@ runs:
                 > /etc/apt/sources.list.d/greengagedb.list
             fi
 
-            eval "$PRE_INSTALL_COMMANDS" || (echo "Error: pre-insatll commands: '${PRE_INSTALL_COMMANDS}' execution" >> /summary/error.log ; exit 1)
+            eval "$PRE_INSTALL_COMMANDS" || (echo "Error: pre-insatll commands: ${PRE_INSTALL_COMMANDS} execution" >> /summary/error.log ; exit 1)
             apt-get update -q
-            apt-get install -y /deb-packages/*.deb  || (echo "Error: 'apt-get install -y /deb-packages/*.deb' execution" >> /summary/error.log ; exit 1)
-            eval "$VERIFY_COMMANDS" || (echo "Error: verify commands: '${VERIFY_COMMANDS}' execution" >> /summary/error.log ; exit 1)
+            apt-get install -y /deb-packages/*.deb  || (echo "Error: apt-get install -y /deb-packages/*.deb execution" >> /summary/error.log ; exit 1)
+            eval "$VERIFY_COMMANDS" || (echo "Error: verify commands: ${VERIFY_COMMANDS} execution" >> /summary/error.log ; exit 1)
 
             for deb in /deb-packages/*.deb; do
               pkg=$(dpkg-deb -f "$deb" Package)
