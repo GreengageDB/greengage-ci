@@ -13,7 +13,7 @@ inputs:
     description: Whether to add Greengage apt repository
     default: 'true'
   greengage_repo_url:
-    description: Whether to add Greengage apt repository
+    description: Base URL of the Greengage apt repository
     default: 'https://greengagedb.org'
   pre_install_commands:
     description: Commands to run before apt-get install
@@ -21,6 +21,9 @@ inputs:
   verify_commands:
     description: Commands to run after installation to verify it
     default: ''
+  summary:
+    description: Write installed package info to GitHub Actions job summary
+    default: 'true'
 
 runs:
   using: composite
@@ -38,18 +41,23 @@ runs:
         GREENGAGE_REPO_URL: ${{ inputs.greengage_repo_url }}
         PRE_INSTALL_COMMANDS: ${{ inputs.pre_install_commands }}
         VERIFY_COMMANDS: ${{ inputs.verify_commands }}
+        SUMMARY: ${{ inputs.summary }}
       run: |
         set -eux
         curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg \
           | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
 
+        touch "$(pwd)/pkg-info.txt"
+
         docker run --rm \
           -v "$(pwd)/deb-packages:/deb-packages" \
           -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
+          -v "$(pwd)/pkg-info.txt:/pkg-info.txt" \
           -e ADD_GREENGAGE_REPO \
           -e GREENGAGE_REPO_URL \
           -e PRE_INSTALL_COMMANDS \
           -e VERIFY_COMMANDS \
+          -e SUMMARY \
           "${{ inputs.test_docker }}" /bin/bash -c '
             set -eux
             export DEBIAN_FRONTEND=noninteractive
@@ -68,4 +76,25 @@ runs:
             apt-get update -q
             apt-get install -y /deb-packages/*.deb
             eval "$VERIFY_COMMANDS"
+
+            if [ "$SUMMARY" = "true" ]; then
+              for deb in /deb-packages/*.deb; do
+                pkg=$(dpkg-deb -f "$deb" Package)
+                dpkg -s "$pkg" 2>/dev/null
+              done > /pkg-info.txt
+            fi
           '
+
+        if [ "$SUMMARY" = "true" ] && [ -n "${GITHUB_STEP_SUMMARY}" ]; then
+          echo "## Installed packages" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
+          while IFS=': ' read -r field value; do
+            case "$field" in
+              Package|Version|Architecture|Installed-Size|Description)
+                echo "| \`${field}\` | ${value} |" >> "${GITHUB_STEP_SUMMARY}"
+                ;;
+            esac
+          done < pkg-info.txt
+        fi
