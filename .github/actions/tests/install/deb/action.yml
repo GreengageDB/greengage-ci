@@ -41,23 +41,19 @@ runs:
         GREENGAGE_REPO_URL: ${{ inputs.greengage_repo_url }}
         PRE_INSTALL_COMMANDS: ${{ inputs.pre_install_commands }}
         VERIFY_COMMANDS: ${{ inputs.verify_commands }}
-        SUMMARY: ${{ inputs.summary }}
       run: |
         set -eux
         curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg \
           | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
 
-        touch "$(pwd)/pkg-info.txt"
-
         docker run --rm \
           -v "$(pwd)/deb-packages:/deb-packages" \
+          -v "$(pwd)/summary:/summary" \
           -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
-          -v "$(pwd)/pkg-info.txt:/pkg-info.txt" \
           -e ADD_GREENGAGE_REPO \
           -e GREENGAGE_REPO_URL \
           -e PRE_INSTALL_COMMANDS \
           -e VERIFY_COMMANDS \
-          -e SUMMARY \
           "${{ inputs.test_docker }}" /bin/bash -c '
             set -eux
             export DEBIAN_FRONTEND=noninteractive
@@ -77,24 +73,98 @@ runs:
             apt-get install -y /deb-packages/*.deb
             eval "$VERIFY_COMMANDS"
 
-            if [ "$SUMMARY" = "true" ]; then
-              for deb in /deb-packages/*.deb; do
-                pkg=$(dpkg-deb -f "$deb" Package)
-                dpkg -s "$pkg" 2>/dev/null
-              done > /pkg-info.txt
-            fi
+            for deb in /deb-packages/*.deb; do
+              pkg=$(dpkg-deb -f "$deb" Package)
+              dpkg -s "$pkg" 2>/dev/null > /summary/${pkg}.txt \
+                || echo "Status: not-installed" > /summary/${pkg}.txt
+            done
           '
 
-        if [ "$SUMMARY" = "true" ] && [ -n "${GITHUB_STEP_SUMMARY}" ]; then
-          echo "## Installed packages" >> "${GITHUB_STEP_SUMMARY}"
+    - name: Upload summary artifacts
+      id: upload-summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: tests_install_deb_${{ inputs.test_docker }}
+        path: summary/
+
+    - name: Display job summary
+      if: inputs.summary == 'true'
+      shell: bash
+      env:
+        ARTIFACT_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.upload-summary.outputs.artifact-id }}
+        TEST_DOCKER: ${{ inputs.test_docker }}
+      run: |
+        echo "## Deb installation test: \`${TEST_DOCKER}\`" >> "${GITHUB_STEP_SUMMARY}"
+        echo "" >> "${GITHUB_STEP_SUMMARY}"
+        echo "📦 [Download package info](${ARTIFACT_URL})" >> "${GITHUB_STEP_SUMMARY}"
+        echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+        for f in summary/*.txt; do
+          pkg=$(basename "$f" .txt)
+          status=$(grep '^Status:' "$f" | head -1)
+
+          if echo "$status" | grep -q 'install ok installed'; then
+            icon="✅"
+          else
+            icon="❌ not installed"
+          fi
+
+          echo "<details>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "<summary>${icon} <b>${pkg}</b></summary>" >> "${GITHUB_STEP_SUMMARY}"
           echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+          # Pass 1: table of single-line fields
           echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
           echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
-          while IFS=': ' read -r field value; do
-            case "$field" in
-              Package|Version|Architecture|Installed-Size|Description)
-                echo "| \`${field}\` | ${value} |" >> "${GITHUB_STEP_SUMMARY}"
-                ;;
-            esac
-          done < pkg-info.txt
-        fi
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^([A-Za-z0-9_-]+):\ (.+)$ ]]; then
+              field="${BASH_REMATCH[1]}"
+              value="${BASH_REMATCH[2]}"
+              echo "| \`${field}\` | ${value} |" >> "${GITHUB_STEP_SUMMARY}"
+            fi
+          done < "$f"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+          # Pass 2: multiline blocks in details
+          current_header=""
+          block=""
+          in_block=false
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]] ]]; then
+              # continuation line - add to block
+              block+="${line#"${line%%[! ]*}"}"$'\n'
+              in_block=true
+            else
+              # flush previous block
+              if $in_block && [ -n "$block" ]; then
+                echo "<details><summary><code>${current_header}</code></summary>" >> "${GITHUB_STEP_SUMMARY}"
+                echo "" >> "${GITHUB_STEP_SUMMARY}"
+                echo '```' >> "${GITHUB_STEP_SUMMARY}"
+                echo "${block}" >> "${GITHUB_STEP_SUMMARY}"
+                echo '```' >> "${GITHUB_STEP_SUMMARY}"
+                echo "" >> "${GITHUB_STEP_SUMMARY}"
+                echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+                block=""
+                in_block=false
+              fi
+              # remember current field name as potential header
+              if [[ "$line" =~ ^([A-Za-z0-9_-]+): ]]; then
+                current_header="${BASH_REMATCH[1]}"
+              fi
+            fi
+          done < "$f"
+          # flush last block if any
+          if $in_block && [ -n "$block" ]; then
+            echo "<details><summary><code>${current_header}</code></summary>" >> "${GITHUB_STEP_SUMMARY}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            echo "${block}" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+        done
