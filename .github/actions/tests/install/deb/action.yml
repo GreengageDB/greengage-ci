@@ -83,7 +83,7 @@ runs:
             done
           '
 
-          echo "No errors" > summary/error.log
+        echo "No errors" > summary/error.log
 
     - name: Upload summary artifacts
       id: upload-summary
