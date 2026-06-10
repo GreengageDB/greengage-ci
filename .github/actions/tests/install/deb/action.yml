@@ -89,7 +89,7 @@ runs:
       id: upload-summary
       uses: actions/upload-artifact@v7
       with:
-        name: tests_install_deb_${{ inputs.test_docker }}
+        name: install_${{ inputs.artifact_name }}_summary
         path: summary/
 
     - name: Display job summary
