@@ -125,9 +125,9 @@ runs:
           echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
           echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
           while IFS= read -r line; do
-            if [[ "$line" =~ ^([A-Za-z0-9_-]+):\ (.+)$ ]]; then
-              field="${BASH_REMATCH[1]}"
-              value="${BASH_REMATCH[2]}"
+            if [[ "$line" =~ ^[A-Za-z0-9_-]+:\ .+ ]]; then
+              field="${line%%: *}"
+              value="${line#*: }"
               echo "| \`${field}\` | ${value} |" >> "${GITHUB_STEP_SUMMARY}"
             fi
           done < "$f"
@@ -156,8 +156,8 @@ runs:
                 in_block=false
               fi
               # remember current field name as potential header
-              if [[ "$line" =~ ^([A-Za-z0-9_-]+): ]]; then
-                current_header="${BASH_REMATCH[1]}"
+              if [[ "$line" =~ ^[A-Za-z0-9_-]+:\ .+ ]]; then
+                current_header="${line%%: *}"
               fi
             fi
           done < "$f"
