@@ -84,7 +84,7 @@ runs:
 
     - name: Upload summary artifacts
       id: upload-summary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests_install_deb_${{ inputs.test_docker }}
         path: summary/
@@ -93,7 +93,7 @@ runs:
       if: inputs.summary == 'true'
       shell: bash
       env:
-        ARTIFACT_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.upload-summary.outputs.artifact-id }}
+        ARTIFACT_URL: ${{ steps.upload-summary.outputs.artifact-url }}
         TEST_DOCKER: ${{ inputs.test_docker }}
       run: |
         echo "## Deb installation test: \`${TEST_DOCKER}\`" >> "${GITHUB_STEP_SUMMARY}"
