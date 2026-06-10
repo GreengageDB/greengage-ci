@@ -10,6 +10,13 @@ Tests Debian package installation inside a Docker container.
   with:
     test_docker: 'ubuntu:22.04'
     artifact_name: 'deb-packages-ubuntu22.04'
+    add_greengage_repo: 'true'
+    greengage_repo_url: 'https://greengagedb.org'
+    pre_install_commands: ''
+    verify_commands: |
+      dpkg -l sigar gpbackup 2>/dev/null || true
+      dpkg -l greengage*
+    summary: 'true'
 ```
 
 **Recommendation:** Use the current caller workflow tag for stability.
@@ -28,6 +35,7 @@ Input                  | Description                                           |
 `greengage_repo_url`   | Base URL of the Greengage apt repository              | No       | `https://greengagedb.org`
 `pre_install_commands` | Shell commands to run before `apt-get install`        | No       | `''`
 `verify_commands`      | Shell commands to run after install to verify result  | No       | `''`
+`summary`              | Write installed package info to GHA job summary       | No       | `true`
 
 ## What it does
 
@@ -37,6 +45,7 @@ Input                  | Description                                           |
 4. **Pre-install commands** — runs arbitrary commands before installation (e.g., environment setup)
 5. **Install packages** — installs all `.deb` files from the artifact via `apt-get install`
 6. **Verify** — runs verification commands to confirm successful installation
+7. **Summary** (if `summary: true`) — writes installed package info (`Package`, `Version`, `Architecture`, `Installed-Size`, `Description`) to the GitHub Actions job summary via `dpkg -s`
 
 ## Design rationale
 
