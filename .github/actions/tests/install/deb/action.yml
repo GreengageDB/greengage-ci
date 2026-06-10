@@ -46,8 +46,9 @@ runs:
       run: |
         set -eux
         mkdir summary
-        curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>summary/error.log \
-          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 2>>summary/error.log || (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/error.log)\n\n" > summary/install_log.md ; exit 1)
+        curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>summary/curl.err | \
+          sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 1>>summary/gpg.log 2>>summary/gpg.err || \
+          (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/curl.err summary/gpg.{err,log})\n\n" > summary/SUMMARY.md ; exit 1)
 
         docker run --rm \
           -v "$(pwd)/deb-packages:/deb-packages" \
@@ -71,13 +72,13 @@ runs:
                 > /etc/apt/sources.list.d/greengagedb.list
             fi
 
-            eval "$PRE_INSTALL_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
+            eval "$PRE_INSTALL_COMMANDS" 2>/summary/pre-insatll.err || \
+              (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/pre-insatll.err)\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
             apt-get update -q
-            apt-get install -y /deb-packages/*.deb  1>/summary/stdout.log 2>/summary/error.log || \
-              (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/{stdout,error}.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
-            eval "$VERIFY_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: verify commands\n\n\`\`\`bash\n${VERIFY_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
+            apt-get install -y /deb-packages/*.deb  1>/summary/apt-install.log 2>/summary/apt-install.err || \
+              (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/apt-install.{log,err})\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
+            eval "$VERIFY_COMMANDS" 2>/summary/verify-commands.err || \
+              (echo -e "### ❌ Error: verify commands\n\n\`\`\`bash\n${VERIFY_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/verify-commands.err)\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
 
             for deb in /deb-packages/*.deb; do
               pkg=$(dpkg-deb -f "$deb" Package)
@@ -86,7 +87,7 @@ runs:
             done
           '
 
-        echo "### ✅ No errors" > summary/install_log.md
+        echo "### ✅ No errors" > summary/SUMMARY.md
 
     - name: Upload summary artifacts
       id: upload-summary
@@ -103,22 +104,21 @@ runs:
         TEST_DOCKER: ${{ inputs.test_docker }}
       run: |
         echo -e "## Deb installation summary: \`${TEST_DOCKER}\`\n\n" >> "${GITHUB_STEP_SUMMARY}"
-        echo -e "$(cat summary/install_log.md)\n\n" >> "${GITHUB_STEP_SUMMARY}"
-        echo -e "### 📦 [Download package info](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "$(cat summary/SUMMARY.md)\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "### 📦 [Download \`${{ inputs.artifact_name }}\` package installation summary](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
 
         shopt -s nullglob
         for f in summary/*.txt; do
           pkg=$(basename "$f" .txt)
-          status=$(grep '^Status:' "$f" | head -1)
 
-          if echo "$status" | grep -q 'install ok installed'; then
-            icon="✅"
+          if head -1 $f | grep -q 'not-installed'; then
+            pkg="❌ <b>${pkg}<b> not installed"
           else
-            icon="❌ not installed"
+            pkg="<b>${pkg}<b> status"
           fi
 
           echo "<details>" >> "${GITHUB_STEP_SUMMARY}"
-          echo "<summary>${icon} <b>${pkg}</b></summary>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "<summary>${pkg}</summary>" >> "${GITHUB_STEP_SUMMARY}"
           echo "" >> "${GITHUB_STEP_SUMMARY}"
 
           # Pass 1: table of single-line fields
