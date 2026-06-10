@@ -47,7 +47,7 @@ runs:
         set -eux
         mkdir summary
         curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>summary/error.log \
-          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 2>>summary/error.log || (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/error.log)\n\n" > summary/install.log ; exit 1)
+          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 2>>summary/error.log || (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/error.log)\n\n" > summary/install_log.md ; exit 1)
 
         docker run --rm \
           -v "$(pwd)/deb-packages:/deb-packages" \
@@ -72,12 +72,12 @@ runs:
             fi
 
             eval "$PRE_INSTALL_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: pre-insatll commands: \`${PRE_INSTALL_COMMANDS}\`\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
             apt-get update -q
             apt-get install -y /deb-packages/*.deb  2>/summary/error.log || \
-              (echo -e "### ❌ Error: apt-get install -y /deb-packages/*.deb\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
             eval "$VERIFY_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: verify commands: \`${VERIFY_COMMANDS}\`\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: verify commands\n\n\`\`\`bash\n${VERIFY_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
 
             for deb in /deb-packages/*.deb; do
               pkg=$(dpkg-deb -f "$deb" Package)
@@ -86,7 +86,7 @@ runs:
             done
           '
 
-        echo "### ✅ No errors" > summary/install.log
+        echo "### ✅ No errors" > summary/install_log.md
 
     - name: Upload summary artifacts
       id: upload-summary
@@ -103,7 +103,7 @@ runs:
         TEST_DOCKER: ${{ inputs.test_docker }}
       run: |
         echo -e "## Deb installation test: \`${TEST_DOCKER}\`\n\n" >> "${GITHUB_STEP_SUMMARY}"
-        echo -e "$(cat summary/install.log)\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "$(cat summary/install_log.md)\n\n" >> "${GITHUB_STEP_SUMMARY}"
         echo -e "📦 [Download package info](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
 
         shopt -s nullglob
