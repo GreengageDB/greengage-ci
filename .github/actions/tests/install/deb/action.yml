@@ -74,8 +74,8 @@ runs:
             eval "$PRE_INSTALL_COMMANDS" 2>/summary/error.log || \
               (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
             apt-get update -q
-            apt-get install -y /deb-packages/*.deb  2>/summary/error.log || \
-              (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
+            apt-get install -y /deb-packages/*.deb  1>/summary/stdout.log 2>/summary/error.log || \
+              (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/{stdout,error}.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
             eval "$VERIFY_COMMANDS" 2>/summary/error.log || \
               (echo -e "### ❌ Error: verify commands\n\n\`\`\`bash\n${VERIFY_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
 
