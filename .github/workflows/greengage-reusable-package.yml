@@ -21,11 +21,6 @@ on:
         required: false
         type: boolean
         default: false
-      test_lima:
-        description: 'Lima Template (e.g., ubuntu-22.04) for deploy test. Skip if empty'
-        required: false
-        type: string
-        default: ''
       test_docker:
         description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
         required: false
@@ -79,37 +74,14 @@ jobs:
 
   test-docker:
     if: inputs.test_docker != ''
-    env:
-      TEST_DOCKER: ${{ inputs.test_docker }}
     needs: build-deb
     runs-on: ubuntu-24.04
     steps:
-      - name: Download deb artifacts
-        uses: actions/download-artifact@v4
+      - name: Install deb-package in Docker 
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
         with:
-          name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
-          path: deb-packages
-      - name: Start Docker container and install deb package
-        run: |
-          set -eux
-          curl -fsSL https://greengagedb.org/repositories/gpg \
-          | sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
-
-          docker run --rm \
-          -v ./deb-packages:/deb-packages \
-          -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
-          "${TEST_DOCKER}" /bin/bash -c "
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -o Acquire::https::Verify-Peer=false
-          apt-get install -y ca-certificates
-
-          echo 'deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] \
-          https://greengagedb.org/repositories/ubuntu/22.04/x86_64 \
-          greengagedb main' \
-          | tee /etc/apt/sources.list.d/greengagedb.list
-
-          apt-get update
-          apt-get install -y /deb-packages/*.deb
-          dpkg -l sigar 2>/dev/null || true
-          dpkg -l greengage*
-          "
+          test_docker: ${{ inputs.test_docker }}
+          artifact_name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          verify_commands: |
+            dpkg -l sigar 2>/dev/null || true
+            dpkg -l greengage*

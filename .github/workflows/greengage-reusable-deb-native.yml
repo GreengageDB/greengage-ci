@@ -42,6 +42,11 @@ on:
         required: false
         type: boolean
         default: false
+      greengage_repo_url:
+        description: Whether to add Greengage apt repository
+        required: false
+        type: string
+        default: 'https://greengagedb.org'
       pre_install_commands:
         description: 'Shell commands to run inside the container before package installation (e.g. add apt repositories).'
         required: false
@@ -82,6 +87,7 @@ jobs:
           sudo apt-get install -y \
           build-essential \
           debhelper \
+          devscripts \
           ${{ inputs.extra_apt_packages }}
 
       - name: Build .deb
@@ -98,32 +104,12 @@ jobs:
     needs: build-deb
     runs-on: ${{ inputs.runner }}
     steps:
-      - name: Download deb artifact
-        uses: actions/download-artifact@v4
+      - name: Install deb-package in Docker 
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
         with:
-          name: ${{ inputs.artifact_name }}
-          path: deb-packages
-
-      - name: Test package installation
-        env:
-          ADD_GREENGAGE_REPO: ${{ inputs.add_greengage_repo }}
-        run: |
-          docker run --rm \
-            -v "$(pwd)/deb-packages:/deb-packages" \
-            -e ADD_GREENGAGE_REPO \
-            "${{ inputs.test_docker }}" /bin/bash -c "
-              set -eux
-              apt-get update -q
-              apt-get install -y curl ca-certificates gpg
-              if [ \"\$ADD_GREENGAGE_REPO\" = 'true' ]; then
-                OS_VERSION=\$(. /etc/os-release && echo \$VERSION_ID)
-                curl -fsSL https://greengagedb.org/repositories/gpg \
-                  | gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg
-                echo \"deb [signed-by=/etc/apt/keyrings/greengagedb.gpg] https://greengagedb.org/repositories/ubuntu/\${OS_VERSION}/x86_64 greengagedb main\" \
-                  > /etc/apt/sources.list.d/greengagedb.list
-              fi
-              ${{ inputs.pre_install_commands }}
-              apt-get update -q
-              apt-get install -y /deb-packages/*.deb
-              ${{ inputs.verify_commands }}
-            "
+          test_docker: ${{ inputs.test_docker }}
+          artifact_name: ${{ inputs.artifact_name }}
+          add_greengage_repo: ${{ inputs.add_greengage_repo }}
+          greengage_repo_url: ${{ inputs.greengage_repo_url }}
+          pre_install_commands: ${{ inputs.pre_install_commands }}
+          verify_commands: ${{ inputs.verify_commands }}
