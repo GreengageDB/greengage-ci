@@ -26,7 +26,7 @@ The workflow performs the following tasks:
 
 2. **Test Installation in Docker** (`test-install`, if `test_docker` is provided):
 
-   - Uses the [`tests/deb-install`](.github/actions/tests/deb-install/action.yml) composite action.
+   - Uses the [`tests/install/deb`](.github/actions/tests/install/deb/action.yml) composite action.
    - Downloads the artifact, runs the specified Docker image, optionally adds the Greengage apt repository, and installs the package.
 
 3. **Failure Conditions**:
