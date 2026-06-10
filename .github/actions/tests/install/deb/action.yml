@@ -72,12 +72,12 @@ runs:
             fi
 
             eval "$PRE_INSTALL_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: pre-insatll commands: ${PRE_INSTALL_COMMANDS} execution\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: pre-insatll commands: \`${PRE_INSTALL_COMMANDS}\`\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
             apt-get update -q
             apt-get install -y /deb-packages/*.deb  2>/summary/error.log || \
-              (echo -e "### ❌ Error: apt-get install -y /deb-packages/*.deb execution\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: apt-get install -y /deb-packages/*.deb\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
             eval "$VERIFY_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: verify commands: ${VERIFY_COMMANDS} execution\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
+              (echo -e "### ❌ Error: verify commands: \`${VERIFY_COMMANDS}\`\n$(cat /summary/error.log)\n\n" >> /summary/install.log ; exit 1)
 
             for deb in /deb-packages/*.deb; do
               pkg=$(dpkg-deb -f "$deb" Package)
