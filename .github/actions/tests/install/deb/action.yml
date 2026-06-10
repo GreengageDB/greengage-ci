@@ -72,7 +72,7 @@ runs:
             fi
 
             eval "$PRE_INSTALL_COMMANDS" 2>/summary/error.log || \
-              (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
+              (echo -e "### ❌ Error: pre-insatll commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
             apt-get update -q
             apt-get install -y /deb-packages/*.deb  2>/summary/error.log || \
               (echo -e "### ❌ Error: \`apt-get install -y /deb-packages/*.deb\`\n\n\`\`\`\n$(cat /summary/error.log)\n\`\`\`\n\n" >> /summary/install_log.md ; exit 1)
@@ -102,9 +102,9 @@ runs:
         ARTIFACT_URL: ${{ steps.upload-summary.outputs.artifact-url }}
         TEST_DOCKER: ${{ inputs.test_docker }}
       run: |
-        echo -e "## Deb installation test: \`${TEST_DOCKER}\`\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "## Deb installation summary: \`${TEST_DOCKER}\`\n\n" >> "${GITHUB_STEP_SUMMARY}"
         echo -e "$(cat summary/install_log.md)\n\n" >> "${GITHUB_STEP_SUMMARY}"
-        echo -e "📦 [Download package info](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "### 📦 [Download package info](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
 
         shopt -s nullglob
         for f in summary/*.txt; do
