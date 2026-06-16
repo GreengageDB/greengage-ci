@@ -12,6 +12,9 @@ on:
           - GreengageDB/greengage
           - GreengageDB/pxf
           - GreengageDB/gpbackup
+          - magf/greengage
+          - magf/pxf
+          - magf/gpbackup
 
   # schedule:
   #   - cron: '* 0 * * *'
