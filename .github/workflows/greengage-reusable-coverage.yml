@@ -118,7 +118,6 @@ jobs:
             -v ${PWD}/downloaded-artifacts:/downloaded-artifacts \
             -v ${PWD}/coverage-combined:/coverage-combined \
             -v ${PWD}:/home/gpadmin/gpdb_src \
-            -e GPHOME=/usr/local/greengage-db-devel \
             ${IMAGE,,} \
             /bin/bash /coverage.sh
 
