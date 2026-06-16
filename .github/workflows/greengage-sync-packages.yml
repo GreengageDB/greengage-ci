@@ -22,6 +22,7 @@ concurrency:
 
 jobs:
   collect-releases:
+    name: Collect ${{ inputs.source_repo }} releases
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.scan.outputs.matrix }}
@@ -43,7 +44,7 @@ jobs:
           echo "matrix={\"tag\":$tags}" >> "$GITHUB_OUTPUT"
 
   info:
-    name: Information about releases from ${{ inputs.source_repo }}
+    name: ${{ inputs.source_repo }} ${{ matrix.tag }}
     needs: collect-releases
     strategy:
       matrix: ${{ fromJson(needs.collect-releases.outputs.matrix) }}
