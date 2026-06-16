@@ -4,7 +4,7 @@ This composite GitHub Action orchestrates the package release process by coordin
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release/action.yaml@v39`
+- `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release/action.yaml@v38`
 
 ## Workflow Coordination Model
 
