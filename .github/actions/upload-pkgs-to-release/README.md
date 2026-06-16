@@ -2,6 +2,10 @@
 
 This composite GitHub Action orchestrates the package release process by coordinating between the **package building workflow** and **release publishing workflow**. It ensures packages are only uploaded to releases after successful completion of the package generation process.
 
+## Actual version
+
+- `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release/action.yaml@v39`
+
 ## Workflow Coordination Model
 
 ### Sequence of Operations
