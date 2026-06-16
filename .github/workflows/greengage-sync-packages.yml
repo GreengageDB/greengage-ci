@@ -1,70 +1,81 @@
 # .github/workflows/sync-packages.yml
-
 name: Sync release packages to S3 repository
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: 'Source repository'
+        required: true
+        type: choice
+        options:
+          - GreengageDB/greengage
+          - GreengageDB/pxf
+          - GreengageDB/gpbackup
+
+  # schedule:
+  #   - cron: '* 0 * * *'
 
 concurrency:
   group: sync-packages
   cancel-in-progress: false
 
 jobs:
-  publish:
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - source_repo:   GreengageDB/greengage
-            ci_workflow:   'Greengage CI'
-            artifact_name: 'deb-packages-ubuntu22.04'
-            s3_prefix:     'ubuntu/22.04/x86_64'
-          - source_repo:   GreengageDB/greengage
-            ci_workflow:   'Greengage CI'
-            artifact_name: 'deb-packages-ubuntu24.04'
-            s3_prefix:     'ubuntu/24.04/x86_64'
-          - source_repo:   GreengageDB/pxf
-            ci_workflow:   'Greengage PXF CI'
-            artifact_name: 'deb-packages-pxf6-*'
-            s3_prefix:     'ubuntu/22.04/x86_64'
-          - source_repo:   GreengageDB/pxf
-            ci_workflow:   'Greengage PXF CI'
-            artifact_name: 'deb-packages-pxf7-*'
-            s3_prefix:     'ubuntu/22.04/x86_64'
-          - source_repo:   GreengageDB/gpbackup
-            ci_workflow:   'Build deb'
-            artifact_name: 'gpbackup-deb-ubuntu22.04'
-            s3_prefix:     'ubuntu/22.04/x86_64'
-          - source_repo:   GreengageDB/gpbackup
-            ci_workflow:   'Build deb'
-            artifact_name: 'gpbackup-deb-ubuntu24.04'
-            s3_prefix:     'ubuntu/24.04/x86_64'
-
+  collect-releases:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.scan.outputs.matrix }}
     steps:
-      - name: Get latest release tag
-        id: tag
-        uses: GreengageDB/greengage-ci/.github/actions/get-latest-release-tag@v37
-        with:
-          source_repo: ${{ matrix.source_repo }}
-          gh_token: ${{ github.token }}
+      - name: Scan releases in ${{ inputs.source_repo }}
+        id: scan
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -euo pipefail
 
-      - name: Publish ${{ matrix.source_repo }} ${{ steps.tag.outputs.tag }}
-        if: steps.tag.outputs.tag != ''
-        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v48
-        with:
-          source_repo:           ${{ matrix.source_repo }}
-          release_tag:           ${{ steps.tag.outputs.tag }}
-          ci_workflow:           ${{ matrix.ci_workflow }}
-          artifact_name:         ${{ matrix.artifact_name }}
-          s3_prefix:             ${{ matrix.s3_prefix }}
-          gh_token:              ${{ github.token }}
-          aws_bucket:            ${{ secrets.BUCKET }}
-          aws_endpoint_url:      ${{ secrets.AWS_ENDPOINT_URL }}
-          aws_access_key_id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ghcr_login:            ${{ secrets.GHCR_LOGIN }}
-          ghcr_password:         ${{ secrets.GHCR_PASSWORD }}
-          gpg_private_key:       ${{ secrets.GPG_PRIVATE_KEY }}
+          tags=$(gh release list \
+            --repo "${{ inputs.source_repo }}" \
+            --limit 100 \
+            --json tagName \
+            --jq '[.[].tagName]')
+
+          echo "Tags: $tags"
+          echo "matrix={\"tag\":$tags}" >> "$GITHUB_OUTPUT"
+
+  info:
+    name: Information about releases from ${{ inputs.source_repo }}
+    needs: collect-releases
+    strategy:
+      matrix: ${{ fromJson(needs.collect-releases.outputs.matrix) }}
+      fail-fast: false
+      # max-parallel: 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release ${{ matrix.tag }} assets
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh release view "${{ matrix.tag }}" \
+            --repo "${{ inputs.source_repo }}" \
+            --json assets \
+            --jq '.assets[] | [.name, .size, .downloadUrl] | @tsv'
+
+      # - name: Publish ${{ matrix.source_repo }} ${{ steps.tag.outputs.tag }}
+      #   if: steps.tag.outputs.tag != ''
+      # uses: GreengageDB/greengagge-ci/.github/actions/publish-packages@CI-5864
+      #   with:
+      #     source_repo:           ${{ matrix.source_repo }}
+      #     release_tag:           ${{ steps.tag.outputs.tag }}
+      #     ci_workflow:           ${{ matrix.ci_workflow }}
+      #     artifact_name:         ${{ matrix.artifact_name }}
+      #     s3_prefix:             ${{ matrix.s3_prefix }}
+      #     gh_token:              ${{ github.token }}
+      #     aws_bucket:            ${{ secrets.BUCKET }}
+      #     aws_endpoint_url:      ${{ secrets.AWS_ENDPOINT_URL }}
+      #     aws_access_key_id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     ghcr_login:            ${{ secrets.GHCR_LOGIN }}
+      #     ghcr_password:         ${{ secrets.GHCR_PASSWORD }}
+      #     gpg_private_key:       ${{ secrets.GPG_PRIVATE_KEY }}
