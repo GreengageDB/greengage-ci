@@ -47,7 +47,7 @@ runs:
         set -eux
         mkdir summary
         curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>summary/curl.err | \
-          sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 1>>summary/gpg.log 2>>summary/gpg.err || \
+          sudo gpg --batch --no-tty --dearmor -o /etc/apt/keyrings/greengagedb.gpg 1>>summary/gpg.log 2>>summary/gpg.err || \
           (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/curl.err summary/gpg.{err,log})\n\n" > summary/SUMMARY.md ; exit 1)
 
         docker run --rm \
