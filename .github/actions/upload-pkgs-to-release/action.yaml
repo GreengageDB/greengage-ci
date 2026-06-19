@@ -161,24 +161,25 @@ runs:
         not_uploaded=''
         for ext in ${{ inputs.extensions }}; do
           files=("${{ inputs.artifact_prefix }}"/*.$ext)
-          if [ ${#files[@]} -ne 1 ]; then
-            echo "Expected exactly one *.$ext file, found ${#files[@]}"
-            exit 1
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No *.$ext files found, skipping"
+            continue
           fi
 
-          f="${files[0]}"
-          base="${f%.$ext}"
-          arch="${base##*_}"
-          mv "${base%_$arch}"{,~${REVISION}}"_${arch}.${ext}"
-          f="${base%_$arch}~${REVISION}_${arch}.${ext}"
+          for f in "${files[@]}"; do
+            base="${f%.$ext}"
+            arch="${base##*_}"
+            mv "${base%_$arch}"{,~${REVISION}}"_${arch}.${ext}"
+            f="${base%_$arch}~${REVISION}_${arch}.${ext}"
 
-          echo "Uploading $f"
-          gh release upload "$RELEASE_NAME" "$f" \
-            ${{ inputs.clobber == 'true' && '--clobber' || '' }} \
-            || not_uploaded="${not_uploaded:+$not_uploaded, }$ext"
+            echo "Uploading $f"
+            gh release upload "$RELEASE_NAME" "$f" \
+              ${{ inputs.clobber == 'true' && '--clobber' || '' }} \
+              || not_uploaded="${not_uploaded:+$not_uploaded, }$f"
+          done
         done
 
         if [ -n "$not_uploaded" ]; then
-          echo "The following extension(s) were not uploaded: $not_uploaded"
+          echo "The following files were not uploaded: $not_uploaded"
           exit 1
         fi
