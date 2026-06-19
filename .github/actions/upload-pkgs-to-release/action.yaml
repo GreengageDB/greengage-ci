@@ -1,5 +1,6 @@
+# .github/actions/upload-pkgs-to-release/action.yaml
 name: Upload Packages to GitHub Release
-description: "Create or update a GitHub release and upload packages with fixed names"
+description: "Waits for CI workflow completion, downloads built packages and uploads them to the release"
 
 inputs:
   target_os:
@@ -8,42 +9,29 @@ inputs:
   target_os_version:
     description: 'Target OS version (e.g. 22.04)'
     required: true
-  package_dir:
-    description: 'Local directory where cached packages are restored'
-    required: false
-    default: 'Packages'
-  package_name:
-    description: 'Base package name, defaults to repository name'
-    required: false
-    default: ''
-  release_name:
-    description: 'Target release name, defaults to current tag'
-    required: false
-    default: ''
-  version:
-    description: 'Version string to append to package name'
-    required: false
-    default: ''
+  artifact_prefix:
+    description: |
+      Artifact name prefix. The full artifact name is constructed as
+      {artifact_prefix}-{target_os}{target_os_version}
+      (e.g. 'deb-packages-pxf6' -> 'deb-packages-pxf6-ubuntu22.04').
+      Also used as the local directory for downloaded packages.
+    required: true
   extensions:
     description: 'Space-separated list of package file extensions'
     required: false
     default: 'deb ddeb rpm'
-  create_force:
-    description: 'Force create the release if not exists, defaults false'
-    required: false
-    default: ''
   clobber:
-    description: 'Overwrite existing assets if they exist. Defaults to false (skip if exists)'
+    description: 'Overwrite existing assets if they exist'
     required: false
     default: ''
   ci_wait_timeout:
     description: 'Timeout in seconds to wait for CI workflow'
     required: false
-    default: '14400'  # 4 hours
+    default: '14400'
   ci_poll_interval:
     description: 'Poll interval in seconds to check CI workflow status'
     required: false
-    default: '60'  # 1 minute
+    default: '60'
   workflow_for_waiting:
     description: 'Packages generation workflow name for waiting'
     required: false
@@ -57,14 +45,6 @@ runs:
       with:
         submodules: recursive
 
-    - name: Debug ref context RESTORE ACTION
-      shell: bash
-      run: |
-        echo "Current ref: ${{ github.ref }}"
-        echo "Current ref_name: ${{ github.ref_name }}"
-        echo "Current sha: ${{ github.sha }}"
-        echo "Event name: ${{ github.event_name }}"
-
     - name: Wait for package generation workflow completion
       shell: bash
       env:
@@ -73,6 +53,7 @@ runs:
         POLL_INTERVAL: ${{ inputs.ci_poll_interval }}
         WORKFLOW: ${{ inputs.workflow_for_waiting }}
       run: |
+        set -euo pipefail
         start_time=$(date +%s)
 
         while true; do
@@ -85,123 +66,101 @@ runs:
           fi
 
           result=$(gh run list --workflow "$WORKFLOW" --limit 100 \
-            --json conclusion,headSha,event,headBranch,url,status \
+            --json conclusion,headSha,event,headBranch,url,status,databaseId \
             --jq '
               map(select(
                 .headSha == "'"${{ github.sha }}"'" and
                 .event == "push" and
                 .headBranch == "'"${{ github.event.release.tag_name }}"'"
-              )) |
-              .[0]
+              )) | .[0]
             ')
 
           if [ -z "$result" ] || [ "$result" = "null" ]; then
             echo "CI workflow not found yet. Waiting... (${remaining}s remaining)"
-            sleep $POLL_INTERVAL
+            sleep "$POLL_INTERVAL"
             continue
           fi
 
           status=$(echo "$result" | jq -r '.status // empty')
           conclusion=$(echo "$result" | jq -r '.conclusion // empty')
           run_url=$(echo "$result" | jq -r '.url')
+          run_id=$(echo "$result" | jq -r '.databaseId')
 
           if [ "$status" = "completed" ] && [ "$conclusion" = "success" ]; then
-            echo "CI_WORKFLOW_URL=$run_url" >> $GITHUB_ENV
+            echo "CI_WORKFLOW_URL=$run_url" >> "$GITHUB_ENV"
+            echo "CI_RUN_ID=$run_id"       >> "$GITHUB_ENV"
             break
           fi
 
-          if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || [ "$status" = "waiting" ] || [ "$status" = "pending" ]; then
+          if [ "$status" = "in_progress" ] || [ "$status" = "queued" ] || \
+             [ "$status" = "waiting" ]     || [ "$status" = "pending" ]; then
             echo "Current status: '$status'. Continue waiting... (${remaining}s remaining)"
-            sleep $POLL_INTERVAL
+            sleep "$POLL_INTERVAL"
             continue
           fi
 
-          echo "ERROR: CI workflow failed or was skipped. Failed run url: '$run_url'"
+          echo "ERROR: CI workflow failed or was skipped. Run: '$run_url'"
           jq <<< "$result"
           exit 1
         done
 
-    - name: Restore Package artifacts from cache
+    - name: Download artifact from CI run
+      id: download
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        ARTIFACT_NAME="${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}"
+
+        echo "Trying to download artifact '$ARTIFACT_NAME' from run $CI_RUN_ID..."
+
+        if gh run download "$CI_RUN_ID" \
+          --name "$ARTIFACT_NAME" \
+          --dir "${{ inputs.artifact_prefix }}"; then
+          echo "source=artifact" >> "$GITHUB_OUTPUT"
+        else
+          echo "Artifact not found, will try cache fallback"
+          echo "source=cache" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Restore packages from cache (fallback)
+      if: steps.download.outputs.source == 'cache'
       uses: actions/cache/restore@v4
       id: cache-restore
       with:
-        path: ${{ inputs.package_dir }}
-        key:  ${{ inputs.package_dir }}-${{ inputs.target_os }}${{ inputs.target_os_version }}-${{ github.sha }}
+        path: ${{ inputs.artifact_prefix }}
+        key:  ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}-${{ github.sha }}
 
-    - name: Handle cache miss or restore failure
-      if: steps.cache-restore.outputs.cache-hit != 'true'
+    - name: Handle artifact and cache miss
+      if: |
+        steps.download.outputs.source == 'cache' &&
+        steps.cache-restore.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        echo "ERROR: Cache missed but last build succeeded. No artifacts found for tag: '${{ github.event.release.tag_name }}'"
-        echo "Please go to ${CI_WORKFLOW_URL:-the CI workflow run} and click 'Re-run all jobs' to rebuild cache"
+        echo "ERROR: Both artifact download and cache restore failed."
+        echo "No packages found for tag '${{ github.event.release.tag_name }}'"
+        echo "Please re-run the CI workflow: ${CI_WORKFLOW_URL:-unknown}"
         exit 1
 
     - name: List downloaded files
       shell: bash
-      run: find "${{ inputs.package_dir }}" -type f
-
-    - name: Create release if not exists
-      if: inputs.create_force != ''
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-        RELEASE_NAME: ${{ inputs.release_name }}
-        PACKAGE_NAME: ${{ inputs.package_name }}
-      run: |
-        PACKAGE_NAME=${PACKAGE_NAME:-${GITHUB_REPOSITORY#*/}}
-        RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
-
-        for var in PACKAGE_NAME RELEASE_NAME ; do
-          if [ -z "${!var}" ] ; then
-            echo "Can't determine $var"
-            exit 1
-          fi
-        done
-
-        if ! gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
-          gh release create "$RELEASE_NAME" \
-            --title "Release $RELEASE_NAME" \
-            --notes "$PACKAGE_NAME $RELEASE_NAME
-        Built from commit: $GITHUB_SHA
-        Workflow run: $GITHUB_RUN_NUMBER"
-        else
-          echo "Release $RELEASE_NAME already exists, skipping creation."
-        fi
-
-    - name: Check release exists
-      shell: bash
-      id: check_release
-      env:
-        GH_TOKEN: ${{ github.token }}
-        RELEASE_NAME: ${{ inputs.release_name }}
-      run: |
-        RELEASE_NAME="${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}"
-        if gh release view "$RELEASE_NAME" > /dev/null 2>&1; then
-          echo "Release '$RELEASE_NAME' exists, proceeding with upload"
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "Release '$RELEASE_NAME' not found, skipping upload"
-        fi
+      run: find "${{ inputs.artifact_prefix }}" -type f
 
     - name: Upload packages
-      if: steps.check_release.outputs.exists == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        RELEASE_NAME: ${{ inputs.release_name }}
+        RELEASE_NAME: ${{ github.ref_name }}
         REVISION: ${{ inputs.target_os }}${{ inputs.target_os_version }}
       run: |
-        RELEASE_NAME=${RELEASE_NAME:-${GITHUB_REF#refs/tags/}}
-
-        if [ -z "$RELEASE_NAME" ] ; then
-          echo "Can't determine RELEASE_NAME"
-          exit 1
-        fi
-
+        set -euo pipefail
         shopt -s nullglob
 
+        not_uploaded=''
         for ext in ${{ inputs.extensions }}; do
-          files=("${{ inputs.package_dir }}"/*.$ext)
+          files=("${{ inputs.artifact_prefix }}"/*.$ext)
           if [ ${#files[@]} -ne 1 ]; then
             echo "Expected exactly one *.$ext file, found ${#files[@]}"
             exit 1
@@ -210,13 +169,16 @@ runs:
           f="${files[0]}"
           base="${f%.$ext}"
           arch="${base##*_}"
-          mv ${base%_$arch}{,~${REVISION}}_${arch}.${ext}
+          mv "${base%_$arch}"{,~${REVISION}}"_${arch}.${ext}"
           f="${base%_$arch}~${REVISION}_${arch}.${ext}"
 
           echo "Uploading $f"
-          gh release upload "$RELEASE_NAME" "$f" ${{ inputs.clobber == 'true' && '--clobber' || '' }} || not_uploaded=${not_uploaded:+$not_uploaded, }$ext
+          gh release upload "$RELEASE_NAME" "$f" \
+            ${{ inputs.clobber == 'true' && '--clobber' || '' }} \
+            || not_uploaded="${not_uploaded:+$not_uploaded, }$ext"
         done
-        if [ -n "$not_uploaded" ] ; then
-          echo "The following extension(s) are not uploaded: $not_uploaded"
+
+        if [ -n "$not_uploaded" ]; then
+          echo "The following extension(s) were not uploaded: $not_uploaded"
           exit 1
         fi
