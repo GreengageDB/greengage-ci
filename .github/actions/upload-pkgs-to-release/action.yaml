@@ -41,7 +41,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -127,7 +127,7 @@ runs:
 
     - name: Restore packages from cache (fallback)
       if: steps.download.outputs.source == 'cache'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       id: cache-restore
       with:
         path: ${{ inputs.artifact_prefix }}
