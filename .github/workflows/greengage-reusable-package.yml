@@ -16,11 +16,15 @@ on:
         required: false
         type: string
         default: ''
-      rebuild_builder:
-        description: 'Rebuild builder image required'
+      artifact_prefix:
+        description: |
+          Artifact name prefix. The full artifact name is constructed as
+          {artifact_prefix}-{target_os}{target_os_version}
+          (e.g. 'deb-packages-greengage6' -> 'deb-packages-greengage6-ubuntu22.04').
+          Also used as the local directory for downloaded packages.
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: 'deb-packages'
       test_docker:
         description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
         required: false
@@ -55,7 +59,7 @@ jobs:
           BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
           docker run --rm \
-            -v ./deb-packages:/home/gpadmin/gpdb_src/Package \
+            -v ./${{ inputs.artifact_prefix }}:/home/gpadmin/gpdb_src/Package \
             -e BUILDNUMBER=${{ github.run_number }} \
             -e SKIP_UNITTESTS=1 \
             "${BUILDER,,}":${{ github.sha }} \
@@ -63,14 +67,8 @@ jobs:
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
-          path: deb-packages
-
-      - name: Cache Debian artifacts
-        uses: actions/cache/save@v4
-        with:
-          path: deb-packages
-          key:  deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}-${{ github.sha }}
+          name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          path: ${{ inputs.artifact_prefix }}
 
   test-docker:
     if: inputs.test_docker != ''
@@ -81,7 +79,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
         with:
           test_docker: ${{ inputs.test_docker }}
-          artifact_name: deb-packages-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
