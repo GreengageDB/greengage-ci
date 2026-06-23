@@ -161,7 +161,7 @@ jobs:
 
       - name: Upload combined coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage_all_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: |
