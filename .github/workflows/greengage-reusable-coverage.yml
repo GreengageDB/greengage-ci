@@ -144,6 +144,8 @@ jobs:
           {
             echo "## Coverage Report"
             echo ""
+            echo "<details><summary><code>Threshold: ${{ inputs.coverage_threshold }}%</code></summary>"
+            echo ""
             echo "| Module | Statements | Miss | Branch | BrPart | Coverage |"
             echo "|--------|-----------|------|--------|--------|----------|"
             grep -v '^-\|^Name\|^TOTAL' "$REPORT" | awk '{
@@ -154,7 +156,7 @@ jobs:
               printf "| **TOTAL** | **%s** | **%s** | **%s** | **%s** | **%s** |\n", $2, $3, $4, $5, $6
             }'
             echo ""
-            echo "> Threshold: ${{ inputs.coverage_threshold }}%"
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload combined coverage report
