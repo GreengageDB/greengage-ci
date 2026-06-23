@@ -52,7 +52,7 @@ jobs:
           submodules: recursive
 
       - name: Download behave artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           github-token: ${{ inputs.gh_token }}
           run-id: ${{ github.run_id }}
