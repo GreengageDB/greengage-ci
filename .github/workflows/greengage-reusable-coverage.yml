@@ -90,7 +90,7 @@ jobs:
           echo "Collected $count coverage-data files"
 
           if [ "$count" -eq 0 ]; then
-            echo "No coverage-data files found, skipping"
+            echo "::warning::No coverage-data files found, skipping"
             exit 0
           fi
 
@@ -125,7 +125,6 @@ jobs:
         run: |
           THRESHOLD=${{ inputs.coverage_threshold }}
           TOTAL=$(grep '^TOTAL' "$COVERAGE_REPORT" | awk '{print $NF}' | tr -d '%')
-          TOTAL=$(grep '^TOTAL' "$COVERAGE_REPORT" | awk '{print $NF}' | tr -d '%')
           echo "Total coverage: ${TOTAL}%"
           echo "Threshold: ${THRESHOLD}%"
           if awk "BEGIN {exit !($TOTAL < $THRESHOLD)}"; then
@@ -137,25 +136,22 @@ jobs:
       - name: Create coverage summary
         if: always()
         run: |
-          REPORT="$COVERAGE_REPORT"
-          if [ ! -f "$REPORT" ]; then exit 0; fi
+          if [ ! -f "$COVERAGE_REPORT" ]; then exit 0; fi
 
-          TOTAL=$(grep '^TOTAL' "$REPORT" | awk '{print $NF}' | tr -d '%')
+          TOTAL=$(grep '^TOTAL' "$COVERAGE_REPORT" | awk '{print $NF}' | tr -d '%')
 
           {
             echo "## Coverage Report"
             echo ""
-            echo "<details><summary><code>Threshold: ${{ inputs.coverage_threshold }}%</code></summary>"
+            echo "<details><summary><code>Coverage: $TOTAL%</code></summary>"
             echo ""
             echo "| Module | Statements | Miss | Branch | BrPart | Coverage |"
             echo "|--------|-----------|------|--------|--------|----------|"
-            grep -v '^-\|^Name\|^TOTAL' "$REPORT" | awk '{
-              printf "| %s | %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $5, $6
-            }'
+            awk '/^Name|^-|^TOTAL/ { next } NF { printf "| %s | %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $5, $6 }' "$COVERAGE_REPORT"
             echo ""
-            grep '^TOTAL' "$REPORT" | awk '{
-              printf "| **TOTAL** | **%s** | **%s** | **%s** | **%s** | **%s** |\n", $2, $3, $4, $5, $6
-            }'
+            echo "| Statements | Miss | Branch | BrPart | Coverage |"
+            echo "|-----------|------|--------|--------|----------|"
+            awk '/^TOTAL/ { printf "| **%s** | **%s** | **%s** | **%s** | **%s** |\n", $2, $3, $4, $5, $6 }' "$COVERAGE_REPORT"
             echo ""
             echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
