@@ -54,8 +54,6 @@ jobs:
       - name: Download behave artifacts
         uses: actions/download-artifact@v8
         with:
-          github-token: ${{ inputs.gh_token }}
-          run-id: ${{ github.run_id }}
           path: downloaded-artifacts
           pattern: behave_*_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           merge-multiple: false
@@ -63,8 +61,6 @@ jobs:
       - name: Download regression artifacts
         uses: actions/download-artifact@v8
         with:
-          github-token: ${{ inputs.gh_token }}
-          run-id: ${{ github.run_id }}
           path: downloaded-artifacts
           pattern: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}*
           merge-multiple: false
@@ -139,11 +135,17 @@ jobs:
           if [ ! -f "$COVERAGE_REPORT" ]; then exit 0; fi
 
           TOTAL=$(grep '^TOTAL' "$COVERAGE_REPORT" | awk '{print $NF}' | tr -d '%')
+          THRESHOLD=${{ inputs.coverage_threshold }}
+          if awk "BEGIN {exit !($TOTAL >= $THRESHOLD)}"; then
+            STATUS="✅"
+          else
+            STATUS="❌"
+          fi
 
           {
             echo "## Coverage Report"
             echo ""
-            echo "<details><summary><code>Coverage: $TOTAL%</code></summary>"
+            echo "<details><summary><code>$STATUS $TOTAL% (threshold: $THRESHOLD%)</code></summary>"
             echo ""
             echo "| Module | Statements | Miss | Branch | BrPart | Coverage |"
             echo "|--------|-----------|------|--------|--------|----------|"
