@@ -44,13 +44,6 @@ jobs:
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
 
-      - name: Checkout Greengage repo
-        uses: actions/checkout@v7
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          submodules: recursive
-
       - name: Download behave artifacts
         uses: actions/download-artifact@v8
         with:
@@ -68,7 +61,6 @@ jobs:
       - name: Prepare coverage script
         run: |
           cat > coverage.sh << 'EOF'
-          git config --global --add safe.directory /home/gpadmin/gpdb_src
           source gpdb_src/concourse/scripts/common.bash && install_and_configure_gpdb
 
           COVERAGE_DATA_DIR=/tmp/coverage-data
@@ -113,7 +105,6 @@ jobs:
             -v ${PWD}/coverage.sh:/coverage.sh \
             -v ${PWD}/downloaded-artifacts:/downloaded-artifacts \
             -v ${PWD}/coverage-combined:/coverage-combined \
-            -v ${PWD}:/home/gpadmin/gpdb_src \
             ${IMAGE,,} \
             /bin/bash /coverage.sh
 
