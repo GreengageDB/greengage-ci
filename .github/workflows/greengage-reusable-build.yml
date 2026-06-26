@@ -26,6 +26,9 @@ on:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
+      DOCKERHUB_USERNAME:
+        description: 'DockerHub username (for public cache-from images)'
+        required: false
 
 jobs:
   build:
@@ -66,44 +69,93 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Build Docker intermediate image with commit SHA tag
-      - name: Build Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Compute dev tag, extra-hosts, and cache-from sources upfront.
+      # cache-from priority (highest → lowest):
+      #   a) same image + branch/git-tag ref on GHCR  — most recent prior build on this ref
+      #   b) same image + 'latest' on GHCR            — last merged state
+      #   c) same image + 'testing' on DockerHub      — public, no login needed
+      #   d) same image + 'latest' on DockerHub       — public stable release
+      #   e) base OS image                             — cold-start fallback
+      # Commit SHA is intentionally excluded as a cache key — it's ephemeral.
+      - name: Compute dev tag and cache-from sources
+        id: meta
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          REF:      ${{ github.ref }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
+          IMAGE_LC="${IMAGE,,}"
+          DOCKERHUB_IMAGE="${DOCKERHUB_USERNAME}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          DOCKERHUB_IMAGE="${DOCKERHUB_IMAGE,,}"
+
+          if [ -n "$HEAD_REF" ]; then
+            DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
+            DEV_TAG=${DEV_TAG:-unknown}
+          elif [[ "$REF" =~ ^refs/tags/(.+)$ ]]; then
+            DEV_TAG=$(echo "${BASH_REMATCH[1]}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          elif [[ "$REF" =~ ^refs/heads/(.+)$ ]]; then
+            DEV_TAG=$(echo "${BASH_REMATCH[1]}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          else
+            DEV_TAG="unknown"
+          fi
+
           case "$TARGET_OS" in
             ubuntu)
               mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
               if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
-                docker_options="--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}"
+                extra_hosts="archive.ubuntu.com:${mirror_ip},security.ubuntu.com:${mirror_ip}"
               fi
               ;;
             rockylinux)
               # TODO: add Azure mirror for Rocky Linux if available
               ;;
           esac
-          docker build $docker_options \
-            --build-arg OS_VERSION \
-            --build-arg SKIP_UNITTESTS \
-            --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ci/Dockerfile.$TARGET_OS \
-            .
 
-      # Push developer's and SHA tag image for internal PRs and pushes
-      - name: Push developer's and SHA tag image
-        id: push
-        if: >
-          github.event_name == 'push' ||
-          (github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository)
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          if [ -n "$HEAD_REF" ]; then
-            DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
-            DEV_TAG=${DEV_TAG:-unknown}
-            docker tag  ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$DEV_TAG
-            docker push ${IMAGE,,}:$DEV_TAG
+          CACHE_FROM="type=registry,ref=${IMAGE_LC}:${DEV_TAG}
+          type=registry,ref=${IMAGE_LC}:latest"
+          if [ -n "$DOCKERHUB_USERNAME" ]; then
+            CACHE_FROM="${CACHE_FROM}
+          type=registry,ref=${DOCKERHUB_IMAGE}:testing
+          type=registry,ref=${DOCKERHUB_IMAGE}:latest"
           fi
-          docker push ${IMAGE,,}:${{ github.sha }}
+          CACHE_FROM="${CACHE_FROM}
+          type=registry,ref=${{ inputs.target_os }}:${OS_VERSION}"
+
+          echo "dev_tag=${DEV_TAG}"       >> "$GITHUB_OUTPUT"
+          echo "extra_hosts=${extra_hosts}" >> "$GITHUB_OUTPUT"
+          {
+            echo "cache_from<<EOF"
+            echo "$CACHE_FROM"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Build Docker intermediate image with commit SHA tag
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/Dockerfile.${{ inputs.target_os }}
+          push: >-
+            ${{
+              github.event_name == 'push' ||
+              (github.event_name == 'pull_request' &&
+               github.event.pull_request.head.repo.full_name == github.repository)
+            }}
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.dev_tag }}
+          build-args: |
+            OS_VERSION=${{ env.OS_VERSION }}
+            SKIP_UNITTESTS=${{ env.SKIP_UNITTESTS }}
+          extra-hosts: ${{ steps.meta.outputs.extra_hosts }}
+          cache-from: ${{ steps.meta.outputs.cache_from }}
+          # inline mode: cache metadata lives inside the image manifest itself.
+          # No extra registry namespace needed; works with the registry cache-from above.
+          cache-to:   type=inline
 
       # Save and cache only when push to GHCR did not succeed (fork PRs, unexpected failures)
       - name: Save SHA image
