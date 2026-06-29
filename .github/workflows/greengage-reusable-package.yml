@@ -25,11 +25,11 @@ on:
         required: false
         type: string
         default: 'Package'
-      test_docker:
-        description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
+      test_deploy:
+        description: 'Test deploy package in Docker image <target_os>:<target_os_version>'
         required: false
-        type: string
-        default: ''
+        type: boolean
+        default: false
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -78,7 +78,7 @@ jobs:
           path: ${{ inputs.artifact_prefix }}
 
   test-docker-ubuntu:
-    if: inputs.test_docker != '' && inputs.target_os == 'ubuntu'
+    if: inputs.test_deploy && inputs.target_os == 'ubuntu'
     name: Test deploy in Ubuntu
     needs: build-package
     runs-on: ubuntu-24.04
@@ -86,14 +86,14 @@ jobs:
       - name: Install deb-package in Docker
         uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
         with:
-          test_docker: ${{ inputs.test_docker }}
+          test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
 
   test-docker-rockylinux:
-    if: inputs.test_docker != '' && inputs.target_os == 'rockylinux'
+    if: inputs.test_deploy && inputs.target_os == 'rockylinux'
     name: Test deploy in Rocky Linux
     needs: build-package
     runs-on: ubuntu-24.04
@@ -101,7 +101,7 @@ jobs:
       - name: Install rpm-package in Docker
         uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@CI-5654
         with:
-          test_docker: ${{ inputs.test_docker }}
+          test_docker: rockylinux:${{ inputs.target_os_version }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
           verify_commands: |
             rpm -q sigar 2>/dev/null || true
