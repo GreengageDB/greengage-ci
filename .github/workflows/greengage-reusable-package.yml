@@ -44,7 +44,7 @@ env:
 
 jobs:
   build-package:
-    name: Create for ${{ inputs.target_os }} ${{ inputs.target_os_version }}
+    name: Build package
     runs-on: ubuntu-24.04
     steps:
       - name: Login to GHCR
@@ -61,7 +61,7 @@ jobs:
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
 
-      - name: Make ${{ env.MAKE_TARGET }}
+      - name: Make package
         env:
           BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
@@ -79,7 +79,7 @@ jobs:
 
   test-docker-ubuntu:
     if: inputs.test_docker != '' && inputs.target_os == 'ubuntu'
-    name: Test in ${{ inputs.target_os }} ${{ inputs.target_os_version }}
+    name: Test deploy in Ubuntu
     needs: build-package
     runs-on: ubuntu-24.04
     steps:
@@ -94,7 +94,7 @@ jobs:
 
   test-docker-rockylinux:
     if: inputs.test_docker != '' && inputs.target_os == 'rockylinux'
-    name: Test in ${{ inputs.target_os }} ${{ inputs.target_os_version }}
+    name: Test deploy in Rocky Linux
     needs: build-package
     runs-on: ubuntu-24.04
     steps:
