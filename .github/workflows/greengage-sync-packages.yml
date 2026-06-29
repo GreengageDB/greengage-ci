@@ -2,6 +2,8 @@
 name: Sync release packages to S3 repository
 
 on:
+  # Manual run example:
+  # gh workflow run greengage-sync-packages.yml --repo GreengageDB/greengage-ci --ref CI-5846 --field source_repo=magf/pxf
   workflow_dispatch:
     inputs:
       source_repo:
