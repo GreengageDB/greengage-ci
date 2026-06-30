@@ -24,24 +24,31 @@ on:
           Also used as the local directory for downloaded packages.
         required: false
         type: string
-        default: 'deb-packages'
-      test_docker:
-        description: 'Docker Image (e.g., ubuntu:22.04, ubuntu:noble) for deploy test. Skip if empty'
+        default: 'Package'
+      test_install:
+        description: 'Test installation package in Docker image <target_os>:<target_os_version>'
         required: false
-        type: string
-        default: ''
+        type: boolean
+        default: false
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
         required: true
+env:
+  MAKE_TARGET: |-
+    ${{ case(
+      inputs.target_os == 'ubuntu', 'pkg-deb',
+      inputs.target_os == 'rockylinux', 'pkg-rpm',
+      'unknown'
+    ) }}
 
 jobs:
-  build-deb:
-    if: inputs.target_os == 'ubuntu'
+  build-package:
+    name: Build package
     runs-on: ubuntu-24.04
     steps:
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -54,7 +61,7 @@ jobs:
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
 
-      - name: Build Debian packages
+      - name: Make package
         env:
           BUILDER: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
         run: |
@@ -63,23 +70,39 @@ jobs:
             -e BUILDNUMBER=${{ github.run_number }} \
             -e SKIP_UNITTESTS=1 \
             "${BUILDER,,}":${{ github.sha }} \
-            /bin/bash -c "unset CONFIGURE_FLAGS ; make -C ./gpdb_src/gpAux pkg-deb"
-      - name: Upload Debian artifacts
-        uses: actions/upload-artifact@v4
+            /bin/bash -c "unset CONFIGURE_FLAGS ; make -C ./gpdb_src/gpAux $MAKE_TARGET"
+      - name: Upload package
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           path: ${{ inputs.artifact_prefix }}
 
-  test-docker:
-    if: inputs.test_docker != ''
-    needs: build-deb
+  test-docker-ubuntu:
+    if: inputs.test_install && inputs.target_os == 'ubuntu'
+    name: Test installation in Ubuntu
+    needs: build-package
     runs-on: ubuntu-24.04
     steps:
-      - name: Install deb-package in Docker 
+      - name: Install deb-package in Docker
         uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
         with:
-          test_docker: ${{ inputs.test_docker }}
+          test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
+
+  test-docker-rockylinux:
+    if: inputs.test_install && inputs.target_os == 'rockylinux'
+    name: Test installation in Rocky Linux
+    needs: build-package
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install rpm-package in Docker
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v47
+        with:
+          test_docker: rockylinux:${{ inputs.target_os_version }}
+          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
+          verify_commands: |
+            rpm -q sigar 2>/dev/null || true
+            rpm -qa 'greengage*'

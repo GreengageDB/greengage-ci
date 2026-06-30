@@ -1,0 +1,182 @@
+name: Test rpm package installation
+description: Run rpm package installation test inside a Docker container
+
+inputs:
+  test_docker:
+    description: Docker image to test installation in
+    required: true
+  artifact_name:
+    description: Name of the rpm artifact to download
+    required: true
+  add_greengage_repo:
+    description: Whether to add Greengage dnf repository
+    default: 'true'
+  greengage_repo_url:
+    description: Base URL of the Greengage dnf repository
+    default: 'https://greengagedb.org'
+  pre_install_commands:
+    description: Commands to run before dnf install
+    default: ''
+  verify_commands:
+    description: Commands to run after installation to verify it
+    default: ''
+  summary:
+    description: Write installed package info to GitHub Actions job summary
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Download rpm artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: rpm-packages
+
+    - name: Test package installation
+      id: test
+      continue-on-error: true
+      shell: bash
+      env:
+        ADD_GREENGAGE_REPO: ${{ inputs.add_greengage_repo }}
+        GREENGAGE_REPO_URL: ${{ inputs.greengage_repo_url }}
+        PRE_INSTALL_COMMANDS: ${{ inputs.pre_install_commands }}
+        VERIFY_COMMANDS: ${{ inputs.verify_commands }}
+      run: |
+        set -eux
+        mkdir summary
+        if [ ! -f /tmp/greengagedb.gpg ]; then
+          curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>summary/curl.err \
+            -o /tmp/greengagedb.gpg || \
+            (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat summary/curl.err)\n\n" > summary/SUMMARY.md ; exit 1)
+        fi
+
+        docker run --rm \
+          -v "$(pwd)/rpm-packages:/rpm-packages" \
+          -v "$(pwd)/summary:/summary" \
+          -v /tmp/greengagedb.gpg:/tmp/greengagedb.gpg \
+          -e ADD_GREENGAGE_REPO \
+          -e GREENGAGE_REPO_URL \
+          -e PRE_INSTALL_COMMANDS \
+          -e VERIFY_COMMANDS \
+          "${{ inputs.test_docker }}" /bin/bash -c '
+            set -eux
+
+            if [ "$ADD_GREENGAGE_REPO" = "true" ]; then
+              rpm --import /tmp/greengagedb.gpg
+              OS_VERSION=$(. /etc/os-release && echo $VERSION_ID)
+              cat > /etc/yum.repos.d/greengagedb.repo <<EOF
+        [greengagedb]
+        name=Greengage Database
+        baseurl=${GREENGAGE_REPO_URL}/repositories/rockylinux/${OS_VERSION}/x86_64
+        enabled=1
+        gpgcheck=1
+        gpgkey=${GREENGAGE_REPO_URL}/repositories/gpg
+        EOF
+            fi
+
+            eval "$PRE_INSTALL_COMMANDS" 2>/summary/pre-install.err || \
+              (echo -e "### ❌ Error: pre-install commands\n\n\`\`\`bash\n${PRE_INSTALL_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/pre-install.err)\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
+            dnf install -y /rpm-packages/*.rpm 1>/summary/dnf-install.log 2>/summary/dnf-install.err || \
+              (echo -e "### ❌ Error: \`dnf install -y /rpm-packages/*.rpm\`\n\n\`\`\`\n$(cat /summary/dnf-install.{log,err})\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
+            eval "$VERIFY_COMMANDS" 2>/summary/verify-commands.err || \
+              (echo -e "### ❌ Error: verify commands\n\n\`\`\`bash\n${VERIFY_COMMANDS}\n\`\`\`\n\n\`\`\`\n$(cat /summary/verify-commands.err)\n\`\`\`\n\n" >> /summary/SUMMARY.md ; exit 1)
+
+            for rpm in /rpm-packages/*.rpm; do
+              pkg=$(rpm -qp --queryformat "%{NAME}" "$rpm")
+              rpm -qi "$pkg" 2>/dev/null > /summary/${pkg}.txt \
+                || echo "Status: not-installed" > /summary/${pkg}.txt
+            done
+          '
+
+        echo "### ✅ No errors" > summary/SUMMARY.md
+
+    - name: Upload summary artifacts
+      id: upload-summary
+      uses: actions/upload-artifact@v7
+      with:
+        name: install_${{ inputs.artifact_name }}_summary
+        path: summary/
+
+    - name: Display job summary
+      if: inputs.summary == 'true'
+      shell: bash
+      env:
+        ARTIFACT_URL: ${{ steps.upload-summary.outputs.artifact-url }}
+        TEST_DOCKER: ${{ inputs.test_docker }}
+      run: |
+        echo -e "## Rpm installation summary: \`${TEST_DOCKER}\`\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "$(cat summary/SUMMARY.md)\n\n" >> "${GITHUB_STEP_SUMMARY}"
+        echo -e "### 📦 [Download \`${{ inputs.artifact_name }}\` package installation summary](${ARTIFACT_URL})\n\n" >> "${GITHUB_STEP_SUMMARY}"
+
+        shopt -s nullglob
+        for f in summary/*.txt; do
+          pkg=$(basename "$f" .txt)
+
+          if head -1 $f | grep -q 'not-installed'; then
+            pkg="❌ <b>${pkg}<b> not installed"
+          else
+            pkg="<b>${pkg}<b> status"
+          fi
+
+          echo "<details>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "<summary>${pkg}</summary>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+          # Pass 1: table of single-line fields
+          # rpm -qi format: "Field       : value"
+          echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^([A-Za-z][A-Za-z0-9\ ]*[A-Za-z0-9])\ *:\ (.+)$ ]]; then
+              field="${BASH_REMATCH[1]// }"
+              value="${BASH_REMATCH[2]}"
+              echo "| \`${field}\` | ${value} |" >> "${GITHUB_STEP_SUMMARY}"
+            fi
+          done < "$f"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+
+          # Pass 2: multiline blocks (Description)
+          current_header=""
+          block=""
+          in_block=false
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]] ]]; then
+              block+="${line#"${line%%[! ]*}"}"$'\n'
+              in_block=true
+            else
+              if $in_block && [ -n "$block" ]; then
+                echo "<details><summary><code>${current_header}</code></summary>" >> "${GITHUB_STEP_SUMMARY}"
+                echo "" >> "${GITHUB_STEP_SUMMARY}"
+                echo '```' >> "${GITHUB_STEP_SUMMARY}"
+                echo "${block}" >> "${GITHUB_STEP_SUMMARY}"
+                echo '```' >> "${GITHUB_STEP_SUMMARY}"
+                echo "" >> "${GITHUB_STEP_SUMMARY}"
+                echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+                block=""
+                in_block=false
+              fi
+              if [[ "$line" =~ ^([A-Za-z][A-Za-z0-9\ ]*[A-Za-z0-9])\ *: ]]; then
+                current_header="${BASH_REMATCH[1]// }"
+              fi
+            fi
+          done < "$f"
+          if $in_block && [ -n "$block" ]; then
+            echo "<details><summary><code>${current_header}</code></summary>" >> "${GITHUB_STEP_SUMMARY}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            echo "${block}" >> "${GITHUB_STEP_SUMMARY}"
+            echo '```' >> "${GITHUB_STEP_SUMMARY}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "</details>" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+        done
+
+    - name: Fail if test failed
+      if: steps.test.outcome == 'failure'
+      shell: bash
+      run: exit 1
