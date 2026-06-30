@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Install rpm-package in Docker
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@CI-5654
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v47
         with:
           test_docker: rockylinux:${{ inputs.target_os_version }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
