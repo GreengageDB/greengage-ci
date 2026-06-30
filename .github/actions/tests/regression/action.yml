@@ -43,10 +43,11 @@ runs:
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
-
       run: |
+        mkdir -p coverage
         docker run -i --name $LOG_NAME \
           -v $LOG_DIR:/logs \
+          -v ${PWD}/coverage:/tmp/coverage-data \
           -e CI \
           -e TEST_OS \
           -e TEST_OS_VERSION \
@@ -58,12 +59,12 @@ runs:
         set -x
         ssh-keygen -A
         /usr/sbin/sshd
-
         cd /home/gpadmin || exit 1
 
         exit_code=0
         bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
         echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
+
         if [ -n "$DUMP_DB" ]; then
           tar -rf "/logs/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" ./sqldump/dump.sql || exit_code=$?
           echo "Dump collection './sqldump/dump.sql' finished with $exit_code"
