@@ -53,7 +53,7 @@ jobs:
 
       - name: Publish ${{ matrix.source_repo }} ${{ steps.tag.outputs.tag }}
         if: steps.tag.outputs.tag != ''
-        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v39
+        uses: GreengageDB/greengage-ci/.github/actions/publish-packages@v48
         with:
           source_repo:           ${{ matrix.source_repo }}
           release_tag:           ${{ steps.tag.outputs.tag }}
