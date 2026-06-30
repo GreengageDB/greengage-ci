@@ -5,6 +5,7 @@ name: Sync release packages to S3 repository
 on:
   schedule:
     - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 concurrency:
   group: sync-packages
