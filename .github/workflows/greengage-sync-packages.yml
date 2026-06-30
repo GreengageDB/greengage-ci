@@ -28,11 +28,11 @@ jobs:
             s3_prefix:     'ubuntu/24.04/x86_64'
           - source_repo:   GreengageDB/pxf
             ci_workflow:   'Greengage PXF CI'
-            artifact_name: 'deb-packages-ubuntu22.04-6.*'
+            artifact_name: 'deb-packages-pxf6-*'
             s3_prefix:     'ubuntu/22.04/x86_64'
           - source_repo:   GreengageDB/pxf
             ci_workflow:   'Greengage PXF CI'
-            artifact_name: 'deb-packages-ubuntu22.04-7.*'
+            artifact_name: 'deb-packages-pxf7-*'
             s3_prefix:     'ubuntu/22.04/x86_64'
           - source_repo:   GreengageDB/gpbackup
             ci_workflow:   'Build deb'
