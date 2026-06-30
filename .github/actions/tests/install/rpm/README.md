@@ -6,7 +6,7 @@ Tests RPM package installation inside a Docker container.
 
 ```yaml
 - name: Test rpm package installation
-  uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@CI-5654
+  uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v47
   with:
     test_docker: 'rockylinux:8'                   # REQUIRED
     artifact_name: 'rpm-packages-rockylinux8'     # REQUIRED
@@ -23,7 +23,7 @@ Tests RPM package installation inside a Docker container.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/install/rpm/action.yml@CI-5654`
+- `greengagedb/greengage-ci/.github/actions/tests/install/rpm/action.yml@v47`
 
 ## Inputs
 
