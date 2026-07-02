@@ -70,37 +70,29 @@ jobs:
           LOG_NAME: 'jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}'
         run: |
           export IMAGE=${IMAGE,,}
-          # Written to a file and docker-cp'd into the container rather than
-          # piped in via `docker run -i ... /bin/bash < file`: over stdin,
-          # long-running children (sshd, the gpdb cluster, make) inherit the
-          # same pipe and can race to read from it, swallowing the
-          # not-yet-delivered tail of the script (the final `echo`/`exit
-          # $exit_code`). Bash then hits EOF early and exits with the status
-          # of the last command it actually ran - a variable assignment,
-          # whose exit status is always 0 - so a real test failure silently
-          # reports as a successful step.
           cat > jit_${{ github.job }}_${{ matrix.optimizer }}.bash << EOF
           set -x
           cd /home/gpadmin/
           ssh-keygen -A
           /usr/sbin/sshd
           bash gpdb_src/concourse/scripts/ic_gpdb.bash
-          exit_code=\$?
-          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$exit_code"
-          exit \$exit_code
           EOF
 
-          # Run tests and save logs to a volume
-          docker create --name $LOG_NAME \
+          # Mounted as a file rather than piped into `docker run -i ... <
+          # file`: over stdin, long-running children (sshd, the gpdb
+          # cluster, make) inherit the same pipe and can race to read from
+          # it, swallowing the not-yet-delivered tail of the script, so a
+          # real test failure could silently report as a successful step.
+          # Reading the script as a normal file removes that hazard
+          # entirely.
+          docker run --name $LOG_NAME \
             -v /mnt/logs:/logs \
+            -v ${PWD}/jit_${{ github.job }}_${{ matrix.optimizer }}.bash:/opt/jit_test.bash:ro \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c jit=on -c optimizer=${{ matrix.optimizer == 'orca' && 'on -c optimizer_jit_above_cost=0' || 'off' }} -c jit_above_cost=0 -c gp_explain_jit=off' installcheck" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             $IMAGE \
             /bin/bash /opt/jit_test.bash
-
-          docker cp jit_${{ github.job }}_${{ matrix.optimizer }}.bash $LOG_NAME:/opt/jit_test.bash
-          docker start --attach $LOG_NAME
           status=$?
 
           exit ${status:-1} # error if not known

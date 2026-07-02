@@ -17,7 +17,7 @@ inputs:
     description: 'Optimizer for tests (e.g., postgres, orca)'
     required: true
   dump_db:
-    description: 'Dump database after tests (collected via the dump-db action)'
+    description: 'Dump database after tests'
     required: false
     default: ''
   log_dir:
@@ -44,21 +44,15 @@ runs:
       run: |
         mkdir -p coverage
 
-        cat > entrypoint.sh << 'END_OF_SCRIPT'
-        set -x
-        bash gpdb_src/concourse/scripts/ic_gpdb.bash
-        END_OF_SCRIPT
-
         docker run --name $LOG_NAME \
           -v $LOG_DIR:/logs \
           -v ${PWD}/coverage:/tmp/coverage-data \
-          -v ${PWD}/entrypoint.sh:/opt/entrypoint.sh:ro \
           -e CI \
           -e TEST_OS \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
-          /bin/bash /opt/entrypoint.sh
+          /bin/bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash
 
     - name: Collect DB dump
       if: always() && inputs.dump_db != ''
