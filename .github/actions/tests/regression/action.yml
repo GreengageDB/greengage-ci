@@ -17,7 +17,7 @@ inputs:
     description: 'Optimizer for tests (e.g., postgres, orca)'
     required: true
   dump_db:
-    description: 'Dump database after tests'
+    description: 'Dump database after tests (collected via the dump-db action)'
     required: false
     default: ''
   log_dir:
@@ -38,52 +38,37 @@ runs:
         CI: 'true'
         IMAGE: ${{ inputs.image }}
         TEST_OS: ${{ inputs.target_os }}
-        TEST_OS_VERSION: ${{ inputs.target_os_version }}
-        DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
       run: |
         mkdir -p coverage
 
-        # The test entrypoint is written to a file and copied into the
-        # container's filesystem rather than piped in over stdin. When it was
-        # fed via `docker run -i ... /bin/bash << EOF`, long-running children
-        # spawned by the script (sshd, the gpdb cluster, make's test runners)
-        # inherited the same stdin pipe and could race to read from it,
-        # swallowing the not-yet-delivered tail of the script (the final
-        # `echo`/`exit $exit_code`). Bash then hit EOF early and exited with
-        # the status of the last command it actually ran - a variable
-        # assignment, whose exit status is always 0 - so a real test failure
-        # (exit_code=1) silently reported as a successful step.
         cat > entrypoint.sh << 'END_OF_SCRIPT'
         set -x
-        ssh-keygen -A
-        /usr/sbin/sshd
-        cd /home/gpadmin || exit 1
-
-        exit_code=0
-        bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
-        echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
-
-        if [ -n "$DUMP_DB" ]; then
-          tar -rf "/logs/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" ./sqldump/dump.sql || exit_code=$?
-          echo "Dump collection './sqldump/dump.sql' finished with $exit_code"
-        fi
-        exit $exit_code
+        bash gpdb_src/concourse/scripts/ic_gpdb.bash
         END_OF_SCRIPT
 
-        docker create --name $LOG_NAME \
+        docker run --name $LOG_NAME \
           -v $LOG_DIR:/logs \
           -v ${PWD}/coverage:/tmp/coverage-data \
+          -v ${PWD}/entrypoint.sh:/opt/entrypoint.sh:ro \
           -e CI \
           -e TEST_OS \
-          -e TEST_OS_VERSION \
-          -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
           /bin/bash /opt/entrypoint.sh
 
-        docker cp entrypoint.sh $LOG_NAME:/opt/entrypoint.sh
-        docker start --attach $LOG_NAME
+    - name: Collect DB dump
+      if: always() && inputs.dump_db != ''
+      shell: bash
+      env:
+        LOG_NAME: ${{ inputs.log_name }}
+        TEST_OS: ${{ inputs.target_os }}
+        TEST_OS_VERSION: ${{ inputs.target_os_version }}
+        LOG_DIR: ${{ inputs.log_dir }}
+      run: |
+        mkdir -p "$LOG_DIR" sqldump
+        docker cp "$LOG_NAME:/home/gpadmin/sqldump/dump.sql" ./sqldump/dump.sql
+        tar -rf "${LOG_DIR}/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" sqldump/dump.sql
