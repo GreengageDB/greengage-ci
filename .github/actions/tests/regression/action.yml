@@ -38,36 +38,31 @@ runs:
         CI: 'true'
         IMAGE: ${{ inputs.image }}
         TEST_OS: ${{ inputs.target_os }}
-        TEST_OS_VERSION: ${{ inputs.target_os_version }}
-        DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
       run: |
         mkdir -p coverage
-        docker run -i --name $LOG_NAME \
+
+        docker run --name $LOG_NAME \
           -v $LOG_DIR:/logs \
           -v ${PWD}/coverage:/tmp/coverage-data \
           -e CI \
           -e TEST_OS \
-          -e TEST_OS_VERSION \
-          -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
-          /bin/bash << 'END_OF_SCRIPT'
-        set -x
-        ssh-keygen -A
-        /usr/sbin/sshd
-        cd /home/gpadmin || exit 1
+          /bin/bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash
 
-        exit_code=0
-        bash gpdb_src/concourse/scripts/ic_gpdb.bash || exit_code=1
-        echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with $exit_code"
-
-        if [ -n "$DUMP_DB" ]; then
-          tar -rf "/logs/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" ./sqldump/dump.sql || exit_code=$?
-          echo "Dump collection './sqldump/dump.sql' finished with $exit_code"
-        fi
-        exit $exit_code
-        END_OF_SCRIPT
+    - name: Collect DB dump
+      if: always() && inputs.dump_db != ''
+      shell: bash
+      env:
+        LOG_NAME: ${{ inputs.log_name }}
+        TEST_OS: ${{ inputs.target_os }}
+        TEST_OS_VERSION: ${{ inputs.target_os_version }}
+        LOG_DIR: ${{ inputs.log_dir }}
+      run: |
+        mkdir -p "$LOG_DIR" sqldump
+        docker cp "$LOG_NAME:/home/gpadmin/sqldump/dump.sql" ./sqldump/dump.sql
+        tar -rf "${LOG_DIR}/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" sqldump/dump.sql

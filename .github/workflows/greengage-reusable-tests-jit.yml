@@ -76,19 +76,23 @@ jobs:
           ssh-keygen -A
           /usr/sbin/sshd
           bash gpdb_src/concourse/scripts/ic_gpdb.bash
-          exit_code=\$?
-          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$exit_code"
-          exit \$exit_code
           EOF
 
-          # Run tests and save logs to a volume
-          docker run -i --name $LOG_NAME \
+          # Mounted as a file rather than piped into `docker run -i ... <
+          # file`: over stdin, long-running children (sshd, the gpdb
+          # cluster, make) inherit the same pipe and can race to read from
+          # it, swallowing the not-yet-delivered tail of the script, so a
+          # real test failure could silently report as a successful step.
+          # Reading the script as a normal file removes that hazard
+          # entirely.
+          docker run --name $LOG_NAME \
             -v /mnt/logs:/logs \
+            -v ${PWD}/jit_${{ github.job }}_${{ matrix.optimizer }}.bash:/opt/jit_test.bash:ro \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c jit=on -c optimizer=${{ matrix.optimizer == 'orca' && 'on -c optimizer_jit_above_cost=0' || 'off' }} -c jit_above_cost=0 -c gp_explain_jit=off' installcheck" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             $IMAGE \
-            /bin/bash < ./jit_${{ github.job }}_${{ matrix.optimizer }}.bash
+            /bin/bash /opt/jit_test.bash
           status=$?
 
           exit ${status:-1} # error if not known
