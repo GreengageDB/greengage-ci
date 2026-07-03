@@ -38,6 +38,7 @@ runs:
         CI: 'true'
         IMAGE: ${{ inputs.image }}
         TEST_OS: ${{ inputs.target_os }}
+        DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
         LOG_DIR:  ${{ inputs.log_dir  }}
         LOG_NAME: ${{ inputs.log_name }}
@@ -49,6 +50,7 @@ runs:
           -v ${PWD}/coverage:/tmp/coverage-data \
           -e CI \
           -e TEST_OS \
+          -e DUMP_DB \
           -e MAKE_TEST_COMMAND \
           --sysctl 'kernel.sem=500 1024000 200 4096' \
           ${IMAGE,,} \
