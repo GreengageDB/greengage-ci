@@ -70,28 +70,14 @@ jobs:
           LOG_NAME: 'jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}'
         run: |
           export IMAGE=${IMAGE,,}
-          cat > jit_${{ github.job }}_${{ matrix.optimizer }}.bash << EOF
-          set -x
-          cd /home/gpadmin/
-          ssh-keygen -A
-          /usr/sbin/sshd
-          bash gpdb_src/concourse/scripts/ic_gpdb.bash
-          exit_code=\$?
-          echo "Script gpdb_src/concourse/scripts/ic_gpdb.bash finished with \$exit_code"
-          exit \$exit_code
-          EOF
 
-          # Run tests and save logs to a volume
-          docker run -i --name $LOG_NAME \
+          docker run --name $LOG_NAME \
             -v /mnt/logs:/logs \
             -e TEST_OS='${{ inputs.target_os }}' \
             -e MAKE_TEST_COMMAND="-k PGOPTIONS='-c jit=on -c optimizer=${{ matrix.optimizer == 'orca' && 'on -c optimizer_jit_above_cost=0' || 'off' }} -c jit_above_cost=0 -c gp_explain_jit=off' installcheck" \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             $IMAGE \
-            /bin/bash < ./jit_${{ github.job }}_${{ matrix.optimizer }}.bash
-          status=$?
-
-          exit ${status:-1} # error if not known
+            /bin/bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash
 
       - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
         if: always()
