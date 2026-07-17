@@ -27,7 +27,7 @@ Name                    | Description                                        | R
 
 ```yaml
 - name: Publish downloaded packages
-  uses: GreengageDB/greengage-ci/.github/actions/publish-to-s3-repo@CI-5846
+  uses: GreengageDB/greengage-ci/.github/actions/publish-to-s3-repo@v50
   with:
     packages_dir:           downloaded-packages
     s3_prefix:               'ubuntu/22.04/x86_64'
@@ -44,7 +44,7 @@ With optional parameters:
 
 ```yaml
 - name: Publish downloaded packages
-  uses: GreengageDB/greengage-ci/.github/actions/publish-to-s3-repo@CI-5846
+  uses: GreengageDB/greengage-ci/.github/actions/publish-to-s3-repo@v50
   with:
     packages_dir:            downloaded-packages
     extensions:               'deb ddeb'
