@@ -2,7 +2,7 @@
 
 name: Publish packages to S3 repository
 description: >
-  Publishes already-downloaded package files from a local directory to an
+  Publishes already-downloaded package files from a release page to an
   S3-backed repository via repomanager. Shared by any action/workflow that
   first obtains packages some other way (CI run artifact, release asset, ...).
 
