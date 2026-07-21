@@ -16,11 +16,11 @@ env:
   SOURCE_REPOS: |-
     [
       "GreengageDB/greengage",
-      "uaqq/pxf",
-      "uaqq/gpbackup",
-      "uaqq/gpbackup-s3-plugin",
-      "uaqq/madlib",
-      "uaqq/diskquota"
+      "GreengageDB/pxf",
+      "GreengageDB/gpbackup",
+      "GreengageDB/gpbackup-s3-plugin",
+      "GreengageDB/madlib",
+      "GreengageDB/diskquota"
     ]
 
 jobs:
