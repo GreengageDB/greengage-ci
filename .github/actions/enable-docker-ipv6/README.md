@@ -6,7 +6,7 @@ Configures the Docker daemon on the runner to hand out IPv6 addresses to contain
 
 ```yaml
 - name: Enable Docker IPv6
-  uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@CI-6098
+  uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 ```
 
 Run this **after** `maximize-disk-space` - that action restarts Docker as part of relocating its storage, which would otherwise undo this step.
