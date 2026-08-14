@@ -1,0 +1,71 @@
+name: Greengage Reusable pg_upgrade test
+
+# Trigger for reusable workflow
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version upgrade to (caller)'
+        required: false
+        type: string
+        default: 7
+      target_os:
+        description: 'Target OS (e.g., ubuntu)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 24.04)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  pg_upgrade:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Determine Greengage Image name
+        run: |
+          image=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          echo "IMAGE=${image,,}" >> $GITHUB_ENV
+
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v44
+
+      - name: Restore & Load SHA image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6130
+        with:
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
+          extract_ci: ci
+
+      - name: DEBUG
+        run: echo $IMAGE
+
+      - name: Build ${{ env.IMAGE }}_pgupgrade image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          file: ci/Dockerfile.pg_upgrade
+          tags: ${{ env.IMAGE }}_pgupgrade:${{ github.sha }}
+          build-args: GGDB7_IMAGE=${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Run pg_upgrade
+        run: |
+          docker run ${{ env.IMAGE }}_pgupgrade:${{ github.sha }} bash -c \
+            "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
+             su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash"
+
+      - name: Collect logs
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v29
+        with:
+          log_path_prefix: pgupgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          params: |
+            gpdb_src/src/bin/pg_upgrade/ f regression.diffs
+            gpdb_src/src/bin/pg_upgrade/ f partitions_regression.diffs
