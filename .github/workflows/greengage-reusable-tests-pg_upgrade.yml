@@ -27,6 +27,10 @@ jobs:
   pg_upgrade:
     runs-on: ubuntu-24.04
     steps:
+      - name: DEBUG echo IMAGE
+        if: always()
+        run: echo $IMAGE
+
       - name: Determine Greengage Image name
         run: |
           image=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
@@ -43,7 +47,8 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
           extract_ci: ci
 
-      - name: DEBUG
+      - name: DEBUG echo IMAGE
+        if: always()
         run: echo $IMAGE
 
       - name: Build ${{ env.IMAGE }}_pgupgrade image
