@@ -59,8 +59,12 @@ jobs:
             "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
             su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash; \
             test_exit_code=\$?; \
-            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/regression.diffs /logs/regression.diffs 2>/dev/null || true; \
-            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/partitions_regression.diffs /logs/partitions_regression.diffs 2>/dev/null || true; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/regression.diffs /logs/regression.diffs 2>/dev/null && \
+              echo 'copied regression.diffs' || \
+              echo 'regression.diffs not found (ok if test passed)'; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/partitions_regression.diffs /logs/partitions_regression.diffs 2>/dev/null && \
+              echo 'copied partitions_regression.diffs' || \
+              echo 'partitions_regression.diffs not found (ok if test passed)'; \
             (exit \$test_exit_code)"
 
       - name: Upload pg_upgrade logs
