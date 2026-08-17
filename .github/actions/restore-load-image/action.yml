@@ -26,16 +26,16 @@ runs:
     - name: Determine Greengage Image name
       shell: bash
       run: |
-        image=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-        echo "IMAGE=${image,,}" >> $GITHUB_ENV
+        RESTORE_LOAD_IMAGE=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+        echo -en "SAVE_TAR=${{ inputs.save_tar }}\nRESTORE_LOAD_IMAGE=${RESTORE_LOAD_IMAGE,,}\n" >> $GITHUB_ENV
 
     - name: Try pull from GHCR
       shell: bash
       continue-on-error: true
       id: pull
       run: |
-        docker pull $IMAGE
-        [ -n '${{ inputs.save_tar }}' ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar $IMAGE || true
+        docker pull $RESTORE_LOAD_IMAGE
+        [ -n "$SAVE_TAR" ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar $RESTORE_LOAD_IMAGE || true
 
     - name: Restore SHA image from cache
       if: steps.pull.outcome == 'failure'
@@ -49,13 +49,12 @@ runs:
       shell: bash
       run: |
         docker load < ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
-        [ -z '${{ inputs.save_tar }}' ] && rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar || true
-
+        [ -z "$SAVE_TAR" ] && rm -f ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar || true
 
     - name: Extract CI folder
       if: inputs.extract_ci != ''
       shell: bash
       run: |
-        docker create --name temp-container $IMAGE
+        docker create --name temp-container $RESTORE_LOAD_IMAGE
         docker cp temp-container:/home/gpadmin/gpdb_src/${{ inputs.extract_ci }}/. ./${{ inputs.extract_ci }}/
         docker rm temp-container

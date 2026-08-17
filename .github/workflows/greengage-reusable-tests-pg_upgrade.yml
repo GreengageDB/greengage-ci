@@ -27,15 +27,6 @@ jobs:
   pg_upgrade:
     runs-on: ubuntu-24.04
     steps:
-      - name: DEBUG echo IMAGE
-        if: always()
-        run: echo $IMAGE
-
-      - name: Determine Greengage Image name
-        run: |
-          image=ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          echo "IMAGE=${image,,}" >> $GITHUB_ENV
-
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v44
 
@@ -47,22 +38,21 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
           extract_ci: ci
 
-      - name: DEBUG echo IMAGE
-        if: always()
-        run: echo $IMAGE
+      - name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
+        run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
 
-      - name: Build ${{ env.IMAGE }}_pgupgrade image
+      - name: Build ${{ env.PG_UPGRADE_IMAGE }}
         uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           file: ci/Dockerfile.pg_upgrade
-          tags: ${{ env.IMAGE }}_pgupgrade:${{ github.sha }}
-          build-args: GGDB7_IMAGE=${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ env.PG_UPGRADE_IMAGE }}
+          build-args: GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
 
-      - name: Run pg_upgrade
+      - name: Run pg_upgrade_run_6X_to_7X_migration.bash
         run: |
-          docker run ${{ env.IMAGE }}_pgupgrade:${{ github.sha }} bash -c \
+          docker run $PG_UPGRADE_IMAGE bash -c \
             "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
              su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash"
 
