@@ -35,7 +35,7 @@ runs:
       id: pull
       run: |
         docker pull $IMAGE
-        [ -n '${{ inputs.save_tar }}' ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar $IMAGE
+        [ -n '${{ inputs.save_tar }}' ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar $IMAGE || true
 
     - name: Restore SHA image from cache
       if: steps.pull.outcome == 'failure'
