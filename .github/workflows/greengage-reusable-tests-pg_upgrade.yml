@@ -52,15 +52,22 @@ jobs:
 
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash
         run: |
-          docker run $PG_UPGRADE_IMAGE bash -c \
+          mkdir -p logs
+          docker run --rm \
+            -v "$(pwd)/logs:/logs" \
+            $PG_UPGRADE_IMAGE bash -c \
             "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
-             su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash"
+            su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash; \
+            test_exit_code=\$?; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/regression.diffs /logs/regression.diffs 2>/dev/null || true; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/partitions_regression.diffs /logs/partitions_regression.diffs 2>/dev/null || true; \
+            (exit \$test_exit_code)"
 
-      - name: Collect logs
+      - name: Upload pg_upgrade logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6130
+        uses: actions/upload-artifact@v7
         with:
-          log_path_prefix: pgupgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          params: |
-            gpdb_src/src/bin/pg_upgrade/ f regression.diffs
-            gpdb_src/src/bin/pg_upgrade/ f partitions_regression.diffs
+          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_diffs
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn
