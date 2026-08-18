@@ -7,7 +7,7 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v52`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v53`
 
 ## Purpose
 
@@ -77,7 +77,7 @@ It is designed to be called from a parent CI pipeline.
 ```yaml
 jobs:
   pg_upgrade:
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v52
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v53
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -94,7 +94,7 @@ jobs:
           - target_os: ubuntu
           - target_os: ubuntu
             target_os_version: 24.04
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v52
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v53
     with:
       target_os:         ${{ matrix.target_os }}
       target_os_version: ${{ matrix.target_os_version }}

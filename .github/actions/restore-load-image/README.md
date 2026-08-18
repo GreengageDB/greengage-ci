@@ -6,7 +6,7 @@ Restores a Docker image tarball from cache (or pulls from GHCR) and loads it int
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v52
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v53
   with:
     version: '6' # or '7'
     target_os: 'ubuntu'
@@ -17,7 +17,7 @@ With optional `ci/` folder extraction:
 
 ```yaml
 - name: Restore and load Docker image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v52
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v53
   with:
     version: '7'
     target_os: 'ubuntu'
@@ -29,7 +29,7 @@ With optional `ci/` folder extraction:
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v52`
+- `greengagedb/greengage-ci/.github/actions/restore-load-image/action.yml@v53`
 
 ## Inputs
 
@@ -53,7 +53,7 @@ Real-world example — used by the `pg_upgrade` test job to derive a name for th
 
 ```yaml
 - name: Restore & Load SHA image
-  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v52
+  uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v53
   with:
     version: 7
     target_os: ubuntu
