@@ -87,12 +87,17 @@ jobs:
 ```yaml
 jobs:
   pg_upgrade:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_os: ubuntu
+          - target_os: ubuntu
+            target_os_version: 24.04
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v52
     with:
-      include:
-        - target_os: ubuntu
-        - target_os: ubuntu
-          target_os_version: 24.04
+      target_os:         ${{ matrix.target_os }}
+      target_os_version: ${{ matrix.target_os_version }}
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
