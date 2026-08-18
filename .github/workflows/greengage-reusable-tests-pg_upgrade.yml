@@ -1,0 +1,84 @@
+# .github/workflows/greengage-reusable-tests-pg_upgrade.yml
+name: Greengage Reusable pg_upgrade test
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Greengage version upgrade to (caller)'
+        required: false
+        type: string
+        default: 7
+      target_os:
+        description: 'Target OS (ubuntu only)'
+        required: false
+        default: ubuntu
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 24.04)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ghcr_token:
+        description: 'GitHub token for GHCR access'
+        required: true
+
+jobs:
+  pg_upgrade:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check supported target_os
+        if: inputs.target_os != 'ubuntu'
+        run: |
+          echo "::error::pg_upgrade job currently supports target_os=ubuntu only, got '${{ inputs.target_os }}'"
+          exit 1
+
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v44
+
+      - name: Restore & Load SHA image
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v53
+        with:
+          version: ${{ inputs.version }}
+          target_os: ${{ inputs.target_os }}
+          target_os_version: ${{ inputs.target_os_version }}
+          extract_ci: ci
+
+      - name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
+        run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
+
+      - name: Build ${{ env.PG_UPGRADE_IMAGE }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          file: ci/Dockerfile.pg_upgrade
+          tags: ${{ env.PG_UPGRADE_IMAGE }}
+          build-args: GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
+
+      - name: Run pg_upgrade_run_6X_to_7X_migration.bash
+        run: |
+          mkdir -p logs
+          docker run --rm \
+            -v "$(pwd)/logs:/logs" \
+            $PG_UPGRADE_IMAGE bash -c \
+            "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
+            su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash; \
+            test_exit_code=\$?; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/regression.diffs /logs/regression.diffs 2>/dev/null && \
+              echo 'copied regression.diffs' || \
+              echo 'regression.diffs not found (ok if test passed)'; \
+            cp /home/gpadmin/gpdb_src/src/bin/pg_upgrade/partitions_regression.diffs /logs/partitions_regression.diffs 2>/dev/null && \
+              echo 'copied partitions_regression.diffs' || \
+              echo 'partitions_regression.diffs not found (ok if test passed)'; \
+            (exit \$test_exit_code)"
+
+      - name: Upload pg_upgrade logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_diffs
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn

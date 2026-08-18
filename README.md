@@ -23,6 +23,8 @@ The repository provides the following reusable workflows:
 - `tests-regression`: Performs regression tests with optimizer settings.
 - `tests-resgroup`: Conducts resource groups tests using QEMU VM.
 - `tests-jit`: Performs JIT tests with optimizer settings (version 7.x only).
+- `tests-pg_upgrade`: Verifies the 6.x → 7.x `pg_upgrade` path against the
+  built target image (Ubuntu only).
 - `package`: Builds Debian packages and tests deployment (version 6.x only).
 - `upload`: Retags and uploads GGDB images to GHCR and DockerHub.
 - `cleanup`: **(WIP)** Deletes branch images from GHCR. Not in use.
@@ -71,14 +73,24 @@ The repository provides the following reusable workflows:
    - Uses a matrix strategy to test both optimizer settings.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-7. **`package`**:
+7. **`tests-pg_upgrade`**:
+
+   - Restores the built target image, builds a combined 6.x/7.x test
+     image on top of it, and runs `pg_upgrade` to verify the upgrade
+     path.
+   - Uploads regression diffs as artifacts, always.
+   - Ubuntu only; `target_os`/`target_os_version` are accepted for
+     matrix consistency with other workflows but not otherwise varied.
+   - Uses inputs: `version`, `target_os`, `target_os_version`.
+
+8. **`package`**:
 
    - Builds Debian packages inside the Docker container.
    - Optionally tests deployment in Docker.
    - Uploads and caches Debian artifacts.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-8. **`upload`**:
+9. **`upload`**:
 
    - Restores and loads the SHA-tagged image from cache.
    - Retags based on the event:
@@ -87,11 +99,11 @@ The repository provides the following reusable workflows:
    - Pushes to GHCR and optionally to DockerHub.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-9. **`cleanup`** **(WIP — not in use)**:
+10. **`cleanup`** **(WIP — not in use)**:
 
-   - Deletes branch-related images from GHCR on branch deletion.
-   - Uses crane and GitHub API for tag removal.
-   - Uses inputs: `version`, `target_os`, `target_os_version`.
+    - Deletes branch-related images from GHCR on branch deletion.
+    - Uses crane and GitHub API for tag removal.
+    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
 ## Usage
 
@@ -238,6 +250,8 @@ directory of this repository:
   [REUSABLE-TESTS-REGRESSION.md](README/REUSABLE-TESTS-REGRESSION.md)
 - Resource group tests:
   [REUSABLE-TESTS-RESGROUP.md](README/REUSABLE-TESTS-RESGROUP.md)
+- pg_upgrade tests:
+  [REUSABLE-TESTS-PG_UPGRADE.md](README/REUSABLE-TESTS-PG_UPGRADE.md)
 - Upload process:
   [REUSABLE-UPLOAD.md](README/REUSABLE-UPLOAD.md)
 
