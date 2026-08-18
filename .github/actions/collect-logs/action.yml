@@ -41,16 +41,9 @@ runs:
         containers=$(docker ps -a --format '{{.Names}}')
 
         for container in $containers; do
-          echo "Collect logs from '$container'"
+          echo "Collect logs from $container"
 
-          is_running=$(docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null || echo false)
-
-          if [ "$is_running" != "true" ]; then
-            if ! docker start "$container" >/dev/null; then
-              echo "Failed to start container '$container', skipping" >&2
-              continue
-            fi
-          fi
+          docker start "$container" >/dev/null 2>&1 || true
 
           if ! docker exec \
             -e LOG_DIR \
@@ -58,6 +51,7 @@ runs:
             -e PARAMS \
             "$container" \
             bash -c '
+
               mkdir -p "$LOG_DIR"
               cd /home/gpadmin/
 
@@ -77,6 +71,6 @@ runs:
               chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
             '
           then
-            echo "Failed to collect logs from '$container'" >&2
+            echo 'Failed to collect logs from $container'
           fi
         done
