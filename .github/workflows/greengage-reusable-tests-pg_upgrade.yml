@@ -1,6 +1,6 @@
+# .github/workflows/greengage-reusable-tests-pg_upgrade.yml
 name: Greengage Reusable pg_upgrade test
 
-# Trigger for reusable workflow
 on:
   workflow_call:
     inputs:
