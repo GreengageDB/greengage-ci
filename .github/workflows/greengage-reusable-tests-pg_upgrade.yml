@@ -10,8 +10,9 @@ on:
         type: string
         default: 7
       target_os:
-        description: 'Target OS (e.g., ubuntu)'
-        required: true
+        description: 'Target OS (ubuntu only)'
+        required: false
+        default: ubuntu
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
@@ -27,6 +28,12 @@ jobs:
   pg_upgrade:
     runs-on: ubuntu-24.04
     steps:
+      - name: Check supported target_os
+        if: inputs.target_os != 'ubuntu'
+        run: |
+          echo "::error::pg_upgrade job currently supports target_os=ubuntu only, got '${{ inputs.target_os }}'"
+          exit 1
+
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v44
 
