@@ -64,8 +64,6 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@CI-6183
         with:
           version: 6
-          target_os: ${{ inputs.target_os }}
-          target_os_version: ${{ inputs.target_os_version }}
 
       - name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
         run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
