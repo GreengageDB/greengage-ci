@@ -37,7 +37,7 @@ runs:
         PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
       run: |
-        set -euo pipefail
+        set -euxo pipefail
 
         LOG_PATH_PREFIX="${LOG_PATH_PREFIX:-${GITHUB_JOB_ID}_logs}"
 
@@ -53,7 +53,7 @@ runs:
 
           # Temp dir to mirror copied container paths
           tmpdir=$(mktemp -d)
-          trap 'rm -rf "$tmpdir"; chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true' EXIT
+          trap 'rm -rf "$tmpdir"; chmod -R a+rwX "$LOG_DIR" || true' EXIT
 
           while IFS= read -r path type name; do
             [ -z "$path" ] && continue
@@ -65,7 +65,7 @@ runs:
 
             # Copy path from container filesystem without starting it
             if [ ! -e "$dst" ]; then
-              docker cp "${container}:${src}" "$dst" 2>/dev/null || true
+              docker cp "${container}:${src}" "$dst" || true
             fi
 
             # Search and archive matching files/dirs (--transform strips the temp copy prefix)
@@ -73,7 +73,7 @@ runs:
               find "$dst" -name "$name" -type "$type" \
                 -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" \
                   --transform="s#^${dst#/}#${path%/}#" \
-                  -C / "{}" \; 2>/dev/null || true
+                  -C / "{}" \; || true
             fi
           done <<< "$PARAMS"
 
@@ -81,4 +81,4 @@ runs:
           rm -rf "$tmpdir"
         done
 
-        chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
+        chmod -R a+rwX "$LOG_DIR" || true
