@@ -74,7 +74,7 @@ runs:
             safe_name=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
             find "$dst" -name "$name" -type "$type" \
               -exec tar --absolute-names -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_name}.tar" \
-                --transform="s|^${tmpdir#/}||" \
+                --transform="s|^${tmpdir}||" \
                 -C / "{}" \; || true
           done <<< "$PARAMS"
 
