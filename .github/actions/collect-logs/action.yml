@@ -55,7 +55,8 @@ runs:
           tmpdir=$(mktemp -d)
           trap 'rm -rf "$tmpdir"; chmod -R a+rwX "$LOG_DIR" || true' EXIT
 
-          while IFS= read -r path type name; do
+          while IFS= read -r param; do
+            read -r path type name <<< "$param"
             [ -z "$path" ] && continue
 
             # Resolve path inside container relative to WORKDIR
@@ -63,18 +64,17 @@ runs:
             src="${src%/}"
             dst="${tmpdir}${src}"
 
-            # Copy path from container filesystem without starting it
+            # Copy path from container filesystem without starting it if not exists
             if [ ! -e "$dst" ]; then
-              docker cp "${container}:${src}" "$dst" || true
+              mkdir -p "${dst%/*}"
+              docker cp "${container}:${src}" "${dst%/*}" || true
             fi
 
             # Search and archive matching files/dirs (--transform strips the temp copy prefix)
-            if [ -e "$dst" ]; then
-              find "$dst" -name "$name" -type "$type" \
-                -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" \
-                  --transform="s#^${dst#/}#${path%/}#" \
-                  -C / "{}" \; || true
-            fi
+            find "$dst" -name "$name" -type "$type" \
+              -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" \
+                --transform="s|^${tmpdir#/}||" \
+                -C / "{}" \; || true
           done <<< "$PARAMS"
 
           trap - EXIT
