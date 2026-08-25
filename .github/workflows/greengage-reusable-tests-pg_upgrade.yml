@@ -92,7 +92,7 @@ jobs:
 
       - name: Collect pg_upgrade logs
         if: failure()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6183
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
           log_dir: /logs
           log_path_prefix: "pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
