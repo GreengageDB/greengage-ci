@@ -15,10 +15,10 @@ on:
         default: ubuntu
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 24.04)'
+        description: 'Target OS version'
         required: false
         type: string
-        default: ''
+        default: '24.04'
       cleanup_script:
         description: 'Optional cleanup script to run after loading SQL_SCHEMA'
         required: false
