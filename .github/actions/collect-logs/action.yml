@@ -71,8 +71,9 @@ runs:
             fi
 
             # Search and archive matching files/dirs (--transform strips the temp copy prefix)
+            safe_name=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
             find "$dst" -name "$name" -type "$type" \
-              -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" \
+              -exec tar --absolute-names -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_name}.tar" \
                 --transform="s|^${tmpdir#/}||" \
                 -C / "{}" \; || true
           done <<< "$PARAMS"
