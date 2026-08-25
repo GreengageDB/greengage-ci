@@ -33,7 +33,7 @@ The extracted dump file is available through the `sql_dump` output:
 | ------------------- | --------------------------------- | -------- | ------------------- |
 | `version`           | Greengage version (e.g., 6, 7, 8) | Yes      | -                   |
 | `target_os`         | Target OS                         | No       | `ubuntu`            |
-| `target_os_version` | Target OS version (e.g., 24.04)   | No       | `''`                |
+| `target_os_version` | Target OS version (e.g., 24.04)   | No       | `'24.04`            |
 | `artifact_prefix`   | Prefix of the input artifact name | No       | `sqldump_ggdb`      |
 | `archive_suffix`    | Suffix of the output archive name | No       | `_postgres_sqldump` |
 

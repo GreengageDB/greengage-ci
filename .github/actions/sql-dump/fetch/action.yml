@@ -11,9 +11,9 @@ inputs:
     required: false
     default: ubuntu
   target_os_version:
-    description: Target OS version (e.g., 24.04)
+    description: Target OS version
     required: false
-    default: ''
+    default: 24.04
   artifact_prefix:
     description: Input artifact name prefix
     required: false
