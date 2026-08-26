@@ -23,12 +23,12 @@ on:
         description: 'Optional cleanup script to run after loading SQL_SCHEMA'
         required: false
         type: string
-        default: ''
+        default: '/home/gpadmin/gpdb_src/src/bin/pg_upgrade/cleanup_regression_dump_from_6X.sql'
       dump_options:
         description: 'Optional pg_dump parameters for pre- and post-upgrade dumps'
         required: false
         type: string
-        default: ''
+        default: '--data-only --extra-float-digits=-3'
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
