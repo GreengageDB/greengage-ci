@@ -6,7 +6,7 @@ inputs:
   log_dir:
     description: 'Directory where logs are stored'
     required: false
-    default: 'logs'
+    default: '/mnt/logs'
   log_path_prefix:
     description: 'Prefix for archive with logs. Defaults to "<job_id>_logs" if not set'
     default: ''
@@ -19,11 +19,11 @@ inputs:
     description: 'Params for find util'
     required: false
     default: |
-      ./ d gpAdminLogs
-      gpdb_src/src/test/ d results
-      gpdb_src/src/test/ f regression.diffs
-      gpdb_src/gpAux/gpdemo/datadirs/ d log
-      gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
+      gpAdminLogs d gpAdminLogs
+      gpdb_src/src/test d results
+      gpdb_src/src/test f regression.diffs
+      gpdb_src/gpAux/gpdemo/datadirs d log
+      gpdb_src/gpAux/gpdemo/datadirs d pg_log
 
 runs:
   using: "composite"

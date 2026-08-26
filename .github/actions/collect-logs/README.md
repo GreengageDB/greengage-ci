@@ -17,7 +17,7 @@ With optional parameters:
   with:
     log_dir: '/mnt/logs'
     params: |
-      ./ d gpAdminLogs
+      gpAdminLogs d gpAdminLogs
       gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
 ```
 
@@ -31,18 +31,18 @@ With optional parameters:
 
 Input | Description | Required | Default
 ----- | ----------- | -------- | -------
-`log_dir` | Directory on the runner host where log archives are stored | No | `/logs`
+`log_dir` | Directory on the runner host where log archives are stored | No | `/mnt/logs`
 `log_path_prefix` | Prefix for archive with logs. Defaults to `<job_id>_logs` if not set | No | *(empty, resolves to job id)*
 `params` | Params used for find util, paths are relative to container's WORKDIR | No | see below
 
 Default `params`:
 
 ```text
-./ d gpAdminLogs
-gpdb_src/src/test/ d results
-gpdb_src/src/test/ f regression.diffs
-gpdb_src/gpAux/gpdemo/datadirs/ d log
-gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
+gpAdminLogs d gpAdminLogs
+gpdb_src/src/test d results
+gpdb_src/src/test f regression.diffs
+gpdb_src/gpAux/gpdemo/datadirs d log
+gpdb_src/gpAux/gpdemo/datadirs d pg_log
 ```
 
 ## What it does

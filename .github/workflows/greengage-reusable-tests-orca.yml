@@ -70,16 +70,16 @@ jobs:
       - name: ORCA Unit test
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
-        run: |
-          export IMAGE=${IMAGE,,}
-          docker run \
-            -v $(pwd)/logs:/home/gpadmin/logs \
-            $IMAGE /bin/bash -c '
-              gpdb_src/concourse/scripts/unit_tests_gporca.bash
-              exitcode=$?
-              cp -rf gpdb_src/src/backend/gporca/build/Testing/Temporary/* logs/ 2>/dev/null
-              exit $exitcode
-              '
+        run: docker run ${IMAGE,,} /bin/bash -c 'gpdb_src/concourse/scripts/unit_tests_gporca.bash'
+
+      - name: Collect logs ${{ github.job }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        with:
+          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          params: |
+            gpAdminLogs d gpAdminLogs
+            gpdb_src/src/backend/gporca/build/Testing d Temporary
 
       # Upload ORCA artifacts
       - name: Upload ORCA artifacts
@@ -87,6 +87,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: logs
+          path: /mnt/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
