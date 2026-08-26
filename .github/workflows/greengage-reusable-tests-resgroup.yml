@@ -245,16 +245,15 @@ jobs:
       - name: Normalize permissions
         if: always()
         run: |
-          sudo chmod -R a+rwX vm-home/ vm-work/
-          ls -lah vm-home/* vm-work/* || true
-          tar -cf logs.tar vm-home/logs*
+          sudo chmod -R a+rwX vm-home/ vm-work/ logs
+          ls -lah vm-home/* vm-work/* logs/* || true
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
         uses: actions/upload-artifact@v7
         with:
           name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
-          path: logs.tar
+          path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
