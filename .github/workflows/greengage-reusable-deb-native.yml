@@ -62,14 +62,14 @@ jobs:
   build-deb:
     runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: ${{ inputs.fetch_depth }}
           path: src
 
       - name: Set up Go
         if: inputs.go_version != ''
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ inputs.go_version }}
 
@@ -94,7 +94,7 @@ jobs:
         run: cd src && ${{ inputs.build_command }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: "*.deb"

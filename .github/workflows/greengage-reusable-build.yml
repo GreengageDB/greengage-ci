@@ -48,7 +48,7 @@ jobs:
 
       # Checkout default branch
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
@@ -63,7 +63,7 @@ jobs:
           github.event_name == 'push' ||
           (github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository)
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -115,7 +115,7 @@ jobs:
 
       - name: Cache SHA image
         if: steps.push.outcome != 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}

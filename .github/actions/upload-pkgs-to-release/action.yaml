@@ -127,7 +127,7 @@ runs:
 
     - name: Restore packages from cache (fallback)
       if: steps.download.outputs.source == 'cache'
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       id: cache-restore
       with:
         path: ${{ inputs.artifact_prefix }}

@@ -39,7 +39,7 @@ jobs:
       run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
     steps:
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
@@ -97,14 +97,14 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
       - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v1
+        uses: docker/setup-compose-action@v2
 
       - name: Fetch SQL dump for ${{ matrix.feature }}
         if: matrix.feature == 'gpexpand'
@@ -152,7 +152,7 @@ jobs:
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.job }}_${{ matrix.feature }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
           path: |
@@ -176,7 +176,7 @@ jobs:
     steps:
       # Download artifacts from behave jobs
       - name: Download feature artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           pattern: behave_*_results
@@ -205,7 +205,7 @@ jobs:
 
       # Upload final artifact
       - name: Upload final artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.job }}_all_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: artifacts
