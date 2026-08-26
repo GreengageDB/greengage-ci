@@ -93,22 +93,39 @@ jobs:
             su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash"
 
       - name: Collect pg_upgrade logs
-        if: failure()
+        if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
           log_dir: logs
           log_path_prefix: "pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
           params: |
-            ./ d gpAdminLogs
             ./ d log
-            ./ f *.diffs
-            ./ f *.sql
+            ./ d gpAdminLogs
 
       - name: Upload pg_upgrade logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Collect pg_upgrade diffs and dumps
+        if: failure()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        with:
+          log_dir: dumps
+          log_path_prefix: "pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}"
+          params: |
+            gpdb_src/src/bin/pg_upgrade/tmp_check f *.sql
+            gpdb_src/src/bin/pg_upgrade f *.diffs
+
+      - name: Upload pg_upgrade diffs and dumps
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_diffs
-          path: logs
+          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
+          path: dumps
           retention-days: 7
           if-no-files-found: warn
