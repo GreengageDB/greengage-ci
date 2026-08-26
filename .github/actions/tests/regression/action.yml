@@ -23,7 +23,7 @@ inputs:
   log_dir:
     description: 'Directory for logs mount in container'
     required: false
-    default: '/mnt/logs'
+    default: '/tmp/logs'
   log_name:
     description: 'Container name for log collection'
     required: false

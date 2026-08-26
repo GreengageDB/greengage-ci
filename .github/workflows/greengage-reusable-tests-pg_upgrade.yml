@@ -38,7 +38,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v44
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v53
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}

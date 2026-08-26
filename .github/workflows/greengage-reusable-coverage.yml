@@ -38,7 +38,7 @@ jobs:
       COVERAGE_REPORT: coverage-combined/coverage-report.txt
     steps:
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}

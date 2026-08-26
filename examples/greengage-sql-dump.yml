@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: sqldump_ggdb${{ env.VERSION }}_${{ matrix.target_os }}${{ matrix.target_os_version }}
-          path: /mnt/logs/${{ matrix.target_os }}${{ matrix.target_os_version }}_postgres_sqldump.tar
+          path: /tmp/logs/${{ matrix.target_os }}${{ matrix.target_os_version }}_postgres_sqldump.tar
           if-no-files-found: error
 
       - name: Report artifact info

@@ -6,7 +6,7 @@ inputs:
   log_dir:
     description: 'Directory where logs are stored'
     required: false
-    default: '/mnt/logs'
+    default: '/tmp/logs'
   log_path_prefix:
     description: 'Prefix for archive with logs. Defaults to "<job_id>_logs" if not set'
     default: ''

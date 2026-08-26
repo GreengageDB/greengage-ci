@@ -48,7 +48,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -82,7 +82,7 @@ jobs:
         with:
           name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           path: |
-            /mnt/logs
+            /tmp/logs
             coverage/coverage-html/
             coverage/coverage-data
           retention-days: 7

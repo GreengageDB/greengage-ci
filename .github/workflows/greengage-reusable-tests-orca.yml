@@ -54,7 +54,7 @@ jobs:
           submodules: recursive
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -87,6 +87,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: /mnt/logs
+          path: /tmp/logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found

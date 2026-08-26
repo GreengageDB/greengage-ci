@@ -32,7 +32,7 @@ Name                | Description                                         | Requ
 `target_os`         | Target operating system (e.g., `ubuntu`)            | Yes      | String | -
 `target_os_version` | Target OS version (e.g., `22`, `7`)                 | Yes      | String | `''`
 `optimizer`         | Optimizer for tests (`postgres` or `orca`)          | Yes      | String | -
-`log_dir`           | Output logs directory for mount in container        | No       | String | `/mnt/logs`
+`log_dir`           | Output logs directory for mount in container        | No       | String | `/tmp/logs`
 `log_name`          | Container name for log collection                   | No       | String | `ggdb_test`
 `dump_db`           | Dump database after tests (set to `true` to enable) | No       | String | `''`
 
@@ -40,7 +40,7 @@ Name                | Description                                         | Requ
 
 - **Docker**: The action requires Docker to be available on the runner.
 - **Image Access**: Ensure the specified Docker image is accessible (e.g., from GHCR with appropriate permissions or locally).
-- **Log Directory**: The `log_dir` path must be writable by the runner. Default `/mnt/logs`.
+- **Log Directory**: The `log_dir` path must be writable by the runner. Default `/tmp/logs`.
 - **Kernel Parameters**: The action sets `kernel.sem=500 1024000 200 4096` via `--sysctl`.
 
 ### Examples

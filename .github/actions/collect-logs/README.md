@@ -15,7 +15,7 @@ With optional parameters:
 - name: Collect logs
   uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
   with:
-    log_dir: '/mnt/logs'
+    log_dir: '/tmp/logs'
     params: |
       gpAdminLogs d gpAdminLogs
       gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
@@ -31,7 +31,7 @@ With optional parameters:
 
 Input | Description | Required | Default
 ----- | ----------- | -------- | -------
-`log_dir` | Directory on the runner host where log archives are stored | No | `/mnt/logs`
+`log_dir` | Directory on the runner host where log archives are stored | No | `/tmp/logs`
 `log_path_prefix` | Prefix for archive with logs. Defaults to `<job_id>_logs` if not set | No | *(empty, resolves to job id)*
 `params` | Params used for find util, paths are relative to container's WORKDIR | No | see below
 
@@ -77,7 +77,7 @@ Example pattern:
   uses: actions/upload-artifact@v7
   with:
     name: logs-${{ matrix.optimizer }}
-    path: /mnt/logs
+    path: /tmp/logs
 ```
 
 ## Design rationale
