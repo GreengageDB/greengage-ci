@@ -239,7 +239,6 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
-          log_dir: '/logs'
           log_path_prefix: 'ggdb_test'
           docker_host: 'ssh://qemu-vm'
 
