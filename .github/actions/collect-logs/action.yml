@@ -1,22 +1,22 @@
 # .github/actions/collect-logs/action.yml
-name: "Collect Logs from Docker Container"
-description: "Collects logs from a Docker container after test execution"
+name: Collect Logs from Docker Container
+description: Collects logs from a Docker container after test execution
 
 inputs:
   log_dir:
-    description: 'Directory where logs are stored'
+    description: Directory where logs are stored
     required: false
-    default: '/tmp/logs'
+    default: /tmp/logs
   log_path_prefix:
-    description: 'Prefix for archive with logs. Defaults to "<job_id>_logs" if not set'
+    description: Prefix for archive with logs. Defaults to "<job_id>_logs" if not set
     default: ''
     required: false
   docker_host:
-    description: 'Docker host string (e.g., ssh://qemu-vm)'
+    description: Docker host string (e.g., ssh://qemu-vm)
     default: ''
     required: false
   params:
-    description: 'Params for find util'
+    description: Params for find util
     required: false
     default: |
       gpAdminLogs d gpAdminLogs
@@ -26,7 +26,7 @@ inputs:
       gpdb_src/gpAux/gpdemo/datadirs d pg_log
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Collect logs
       shell: bash
