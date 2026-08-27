@@ -1,20 +1,17 @@
 # Regression Tests Composite Action
 
-This composite action runs regression test suites for the Greengage project in a containerized environment. It executes tests with a specified optimizer configuration and collects comprehensive test artifacts.
+This composite action runs regression test suites for the Greengage project in a containerized environment.
+It executes tests with a specified optimizer configuration.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+- `greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187`
 
 ## Purpose
 
-The action executes regression tests using a Docker container with the specified Greengage image. It supports both ORCA and Postgres query optimizers and automatically collects test artifacts including:
+The action executes regression tests using a Docker container with the specified Greengage image. It supports both ORCA and Postgres query optimizers, and optionally collects a SQL dump of the database after the test run.
 
-- Regression test results
-- SQL dumps (when enabled)
-- `pg_log` directories
-- `gpAdminLogs`
-- `regression.diffs` files (if exists)
+Test artifacts (regression results, `regression.diffs`, `gpAdminLogs`, `pg_log`, coverage data, etc.) are left inside the container filesystem and are not collected by this action — use the [`collect-logs`](../../collect-logs/README.md) action as a separate step after this one to gather them.
 
 ## Usage
 
@@ -26,21 +23,18 @@ To integrate this action into your workflow:
 
 ### Inputs
 
-Name                | Description                                         | Required | Type   | Default
-------------------- | --------------------------------------------------- | -------- | ------ | -----------
-`image`             | Greengage Docker image for tests                    | Yes      | String | -
-`target_os`         | Target operating system (e.g., `ubuntu`)            | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22`, `7`)                 | Yes      | String | `''`
-`optimizer`         | Optimizer for tests (`postgres` or `orca`)          | Yes      | String | -
-`log_dir`           | Output logs directory for mount in container        | No       | String | `/tmp/logs`
-`log_name`          | Container name for log collection                   | No       | String | `ggdb_test`
-`dump_db`           | Dump database after tests (set to `true` to enable) | No       | String | `''`
+Name | Description | Required | Type | Default
+--- | --- | --- | --- | ---
+`image` | Greengage Docker image for tests | Yes | String | -
+`target_os` | Target operating system (e.g., `ubuntu`) | Yes | String | -
+`target_os_version` | Target OS version (e.g., `22`, `7`) | No | String | `''`
+`optimizer` | Optimizer for tests (`postgres` or `orca`) | Yes | String | -
+`dump_db` | Dump database after tests (set to `true` to enable) | No | String | `''`
 
 ### Requirements
 
 - **Docker**: The action requires Docker to be available on the runner.
 - **Image Access**: Ensure the specified Docker image is accessible (e.g., from GHCR with appropriate permissions or locally).
-- **Log Directory**: The `log_dir` path must be writable by the runner. Default `/tmp/logs`.
 - **Kernel Parameters**: The action sets `kernel.sem=500 1024000 200 4096` via `--sysctl`.
 
 ### Examples
@@ -70,40 +64,42 @@ Name                | Description                                         | Requ
       dump_db: 'true'
   ```
 
-- Custom log directory
+- Real usage from `greengage-reusable-tests-regression.yml`, with log collection as a separate step
 
   ```yaml
-  - name: Run regression tests
+  - name: Regression tests with optimizer '${{ matrix.optimizer }}'
     uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
-      optimizer: postgres
-      target_os: ubuntu
-      target_os_version: '22.04'
-      log_dir: /tmp/test-logs
+      image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
+      optimizer: ${{ matrix.optimizer }}
+      target_os: ${{ inputs.target_os }}
+      target_os_version: ${{ inputs.target_os_version }}
+
+  - name: Collect regression logs
+    if: always()
+    uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+    with:
+      name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+      params: |
+          /tmp/coverage-data d coverage-data
+          gpAdminLogs d gpAdminLogs
+          gpdb_src/src/test d results
+          gpdb_src/src/test f regression.diffs
+          gpdb_src/gpAux/gpdemo/datadirs d log
+          gpdb_src/gpAux/gpdemo/datadirs d pg_log
   ```
 
 ### Outputs
 
-The action generates tar archives in the specified `log_dir` with the following naming pattern:
-
-- `{target_os}_{optimizer}_sqldump.tar` - SQL database dumps (when `dump_db` is enabled)
-- `{target_os}_{optimizer}_gpAdminLogs.tar` - GP admin logs
-- `{target_os}_{optimizer}_results.tar` - Test results
-- `{target_os}_{optimizer}_regression.diffs.tar` - Regression diff files (if exists)
-- `{target_os}_{optimizer}_log.tar` - Log directories
-- `{target_os}_{optimizer}_pg_log.tar` - PostgreSQL log directories
-
-All artifacts are created with world-readable permissions (`a+rwX`) for easy access in subsequent workflow steps.
+- When `dump_db` is enabled, a `{target_os}{target_os_version}_postgres_sqldump.tar` archive is created in the workspace root, containing the SQL dump (`dump.sql`).
+- All other test artifacts (results, logs, coverage data) remain inside the container filesystem; collect them with the [`collect-logs`](../../collect-logs/README.md) action.
 
 ### Notes
 
 - The action runs tests using the `installcheck-world` make target with the optimizer specified via `PGOPTIONS`.
 - The optimizer input accepts `orca` (sets `optimizer=on`) or `postgres` (sets `optimizer=off`).
 - Database dumps are typically collected with the Postgres optimizer (`optimizer=off`), though the action allows dumps with any optimizer configuration at the developer's discretion.
-- SSH is configured within the container to support distributed test scenarios.
 - The action returns the exit code from the test script, allowing the workflow to fail appropriately on test failures.
-- Artifacts are collected even if tests fail, ensuring logs are available for debugging.
 - The test environment is configured via `gpdb_src/concourse/scripts/ic_gpdb.bash`.
 
 For further details, refer to the action definition in `.github/actions/tests/regression/action.yml`.
