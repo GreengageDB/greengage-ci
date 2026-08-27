@@ -20,6 +20,10 @@ inputs:
     description: 'Dump database after tests'
     required: false
     default: ''
+  version:
+    description: 'Greengage version'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -52,3 +56,11 @@ runs:
         docker cp "regress:/home/gpadmin/sqldump/dump.sql" dump.sql
         tar -rf "${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" dump.sql
         rm dump.sql
+
+    - name: Upload DB dump
+      if: always() && inputs.dump_db != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+        path: "${{ inputs.target_os }}${{ inputs.target_os_version }}_postgres_sqldump.tar"
+        if-no-files-found: error
