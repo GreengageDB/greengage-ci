@@ -50,7 +50,7 @@ runs:
           ${IMAGE,,} \
           /bin/bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash
 
-    - name: Collect DB dump
+    - name: Collect SQL Dump
       if: always() && inputs.dump_db != ''
       shell: bash
       env:
@@ -61,7 +61,7 @@ runs:
         tar -rf "${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" dump.sql
         rm dump.sql
 
-    - name: Upload DB dump
+    - name: Upload SQL Dump # Renaming this step will break the Greengage SQL Dump workflow
       if: always() && inputs.dump_db != ''
       id: upload-dump
       uses: actions/upload-artifact@v7

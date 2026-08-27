@@ -74,22 +74,15 @@ jobs:
 
       - name: Create SQL Dump via regression tests
         if: steps.image-pull.outcome == 'success'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
+        id: regression-test
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
         with:
           image: ${{ env.IMAGE }}
           optimizer: postgres
           target_os: ${{ env.TARGET_OS }}
           target_os_version: ${{ env.TARGET_OS_VERSION }}
           dump_db: "true"
-
-      - name: Upload SQL Dump
-        if: steps.image-pull.outcome == 'success'
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: sqldump_ggdb${{ env.VERSION }}_${{ env.TARGET_OS }}${{ env.TARGET_OS_VERSION }}
-          path: /mnt/logs/${{ env.TARGET_OS }}${{ env.TARGET_OS_VERSION }}_postgres_sqldump.tar
-          if-no-files-found: error
+          version: ${{ env.VERSION }}
 
       - name: Report artifact info
         if: steps.image-pull.outcome == 'success'
@@ -99,7 +92,7 @@ jobs:
           | Field         | Value |
           |---------------|-------|
           | Artifact name | sqldump_ggdb${VERSION}_${TARGET_OS}${TARGET_OS_VERSION} |
-          | Artifact URL  | https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.upload.outputs.artifact-id }} |
+          | Artifact URL  | https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.regression-test.outputs.artifact-id }} |
           EOF
 
   verify-dumps-created:
@@ -111,6 +104,7 @@ jobs:
       - name: Verify at least one SQL dump was created
         env:
           GH_TOKEN: ${{ github.token }}
+        # name == "Upload SQL Dump" MUST match the step name in tests/regression/action.yml
         run: |
           success_count=$(gh api \
             "/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" \
