@@ -72,7 +72,7 @@ jobs:
 
       - name: Create SQL Dump via regression tests
         if: steps.image-pull.outcome == 'success'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v25
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
         with:
           image: ${{ env.IMAGE }}
           optimizer: postgres
@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: sqldump_ggdb${{ env.VERSION }}_${{ matrix.target_os }}${{ matrix.target_os_version }}
-          path: /tmp/logs/${{ matrix.target_os }}${{ matrix.target_os_version }}_postgres_sqldump.tar
+          path: ${{ matrix.target_os }}${{ matrix.target_os_version }}_postgres_sqldump.tar
           if-no-files-found: error
 
       - name: Report artifact info

@@ -62,28 +62,22 @@ jobs:
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@v49
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
-          log_name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 
-      - name: Collect logs optimizer ${{ matrix.optimizer }}
+      - name: Collect regression logs
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
-          log_path_prefix: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-
-      - name: Upload regression optimizer ${{ matrix.optimizer }} artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-          path: |
-            /tmp/logs
-            coverage/coverage-html/
-            coverage/coverage-data
-          retention-days: 7
-          if-no-files-found: warn  # Warning if no artifacts are found
+          name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+          params: |
+              /tmp/coverage-data d coverage-data
+              gpAdminLogs d gpAdminLogs
+              gpdb_src/src/test d results
+              gpdb_src/src/test f regression.diffs
+              gpdb_src/gpAux/gpdemo/datadirs d log
+              gpdb_src/gpAux/gpdemo/datadirs d pg_log

@@ -20,14 +20,6 @@ inputs:
     description: 'Dump database after tests'
     required: false
     default: ''
-  log_dir:
-    description: 'Directory for logs mount in container'
-    required: false
-    default: '/tmp/logs'
-  log_name:
-    description: 'Container name for log collection'
-    required: false
-    default: 'ggdb_test'
 
 runs:
   using: "composite"
@@ -40,14 +32,8 @@ runs:
         TEST_OS: ${{ inputs.target_os }}
         DUMP_DB: ${{ inputs.dump_db }}
         MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
-        LOG_DIR:  ${{ inputs.log_dir  }}
-        LOG_NAME: ${{ inputs.log_name }}
       run: |
-        mkdir -p coverage
-
-        docker run --name $LOG_NAME \
-          -v $LOG_DIR:/logs \
-          -v ${PWD}/coverage:/tmp/coverage-data \
+        docker run --name regress \
           -e CI \
           -e TEST_OS \
           -e DUMP_DB \
@@ -60,11 +46,9 @@ runs:
       if: always() && inputs.dump_db != ''
       shell: bash
       env:
-        LOG_NAME: ${{ inputs.log_name }}
         TEST_OS: ${{ inputs.target_os }}
         TEST_OS_VERSION: ${{ inputs.target_os_version }}
-        LOG_DIR: ${{ inputs.log_dir }}
       run: |
-        mkdir -p "$LOG_DIR" sqldump
-        docker cp "$LOG_NAME:/home/gpadmin/sqldump/dump.sql" ./sqldump/dump.sql
-        tar -rf "${LOG_DIR}/${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" sqldump/dump.sql
+        docker cp "regress:/home/gpadmin/sqldump/dump.sql" dump.sql
+        tar -rf "${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" dump.sql
+        rm dump.sql

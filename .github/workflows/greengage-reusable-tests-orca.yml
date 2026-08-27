@@ -76,17 +76,7 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
-          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           params: |
             gpAdminLogs d gpAdminLogs
             gpdb_src/src/backend/gporca/build/Testing d Temporary
-
-      # Upload ORCA artifacts
-      - name: Upload ORCA artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-          path: /tmp/logs
-          retention-days: 7
-          if-no-files-found: warn  # Warning if no artifacts are found

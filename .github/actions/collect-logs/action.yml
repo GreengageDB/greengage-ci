@@ -3,12 +3,8 @@ name: Collect Logs from Docker Container
 description: Collects logs from a Docker container after test execution
 
 inputs:
-  log_dir:
-    description: Directory where logs are stored
-    required: false
-    default: /tmp/logs
-  log_path_prefix:
-    description: Prefix for archive with logs. Defaults to "<job_id>_logs" if not set
+  name:
+    description: Archive logs name. Defaults to "<job>" if not set
     default: ''
     required: false
   docker_host:
@@ -31,21 +27,18 @@ runs:
     - name: Collect logs
       shell: bash
       env:
-        LOG_DIR: ${{ inputs.log_dir }}
-        LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
-        GITHUB_JOB_ID: ${{ github.job }}
+        LOG_DIR: logs # Also, change it in 'Upload logs' step
+        LOG_NAME: ${{ inputs.name || github.job }}
         PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
       run: |
         set -euxo pipefail
 
-        LOG_PATH_PREFIX="${LOG_PATH_PREFIX:-${GITHUB_JOB_ID}_logs}"
-
         mkdir -p "$LOG_DIR"
         containers=$(docker ps -a --format '{{.Names}}')
 
         for container in $containers; do
-          echo "Collect logs from $container"
+          echo ">>> Collect logs from container '$container'"
 
           # Determine container's WORKDIR, it may differ between images
           workdir=$(docker inspect --format '{{.Config.WorkingDir}}' "$container")
@@ -71,9 +64,9 @@ runs:
             fi
 
             # Search and archive matching files/dirs (--transform strips the temp copy prefix)
-            safe_name=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
-            find "$dst" -name "$name" -type "$type" \
-              -exec tar --absolute-names -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_name}.tar" \
+            safe_suffix=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
+            find "$dst" -name "$name" -type "$type" -print \
+              -exec tar --absolute-names -rvf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar" \
                 --transform="s|^${tmpdir}||" \
                 -C / "{}" \; || true
           done <<< "$PARAMS"
@@ -83,3 +76,10 @@ runs:
         done
 
         chmod -R a+rwX "$LOG_DIR" || true
+
+    - name: Upload logs
+      uses: actions/upload-artifact@v7
+      with:
+        path: logs
+        name: ${{ inputs.name || github.job }}
+        if-no-files-found: warn
