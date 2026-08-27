@@ -1,10 +1,9 @@
 {
   "name": "regression-tests",
   "version": "0.0.1",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/main.js --bundle --platform=node --target=node20 --outfile=dist/index.js && esbuild src/post.js --bundle --platform=node --target=node20 --outfile=dist/post.js --minify"
+    "build": "esbuild src/main.js --bundle --platform=node --target=node24 --outfile=dist/index.js && esbuild src/post.js --bundle --platform=node --target=node24 --outfile=dist/post.js --minify"
   },
   "dependencies": {
     "@actions/artifact": "^6.2.1",
@@ -15,5 +14,8 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }
