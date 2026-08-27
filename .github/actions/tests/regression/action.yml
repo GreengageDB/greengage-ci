@@ -24,6 +24,10 @@ inputs:
     description: 'Greengage version'
     required: false
     default: ''
+outputs:
+  artifact-id:
+    description: 'ID of the uploaded SQL dump artifact'
+    value: ${{ steps.upload-dump.outputs.artifact-id }}
 
 runs:
   using: "composite"
@@ -59,6 +63,7 @@ runs:
 
     - name: Upload DB dump
       if: always() && inputs.dump_db != ''
+      id: upload-dump
       uses: actions/upload-artifact@v7
       with:
         name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
