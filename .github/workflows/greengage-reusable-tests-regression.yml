@@ -48,7 +48,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187-js
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -62,22 +62,10 @@ jobs:
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-js
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
-
-      - name: Collect regression logs
-        if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
-        with:
-          name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-          params: |
-              /tmp/coverage-data d coverage-data
-              gpAdminLogs d gpAdminLogs
-              gpdb_src/src/test d results
-              gpdb_src/src/test f regression.diffs
-              gpdb_src/gpAux/gpdemo/datadirs d log
-              gpdb_src/gpAux/gpdemo/datadirs d pg_log
+          dump_db: 'true'

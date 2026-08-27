@@ -1,6 +1,5 @@
-# .github/actions/tests/regression/action.yml
 name: "Regression Tests"
-description: "Run regression tests with specified optimizer"
+description: "Run regression tests with specified optimizer and always collect logs via docker cp"
 
 inputs:
   image:
@@ -24,48 +23,13 @@ inputs:
     description: 'Greengage version'
     required: false
     default: ''
+
 outputs:
   artifact-id:
-    description: 'ID of the uploaded SQL dump artifact'
-    value: ${{ steps.upload-dump.outputs.artifact-id }}
+    description: 'ID of the uploaded SQL dump artifact (if dump_db is set)'
+    value: ${{ steps.upload-dump.outputs.artifact-id }}   # set in post step
 
 runs:
-  using: "composite"
-  steps:
-    - name: Regression Tests with optimizer '${{ inputs.optimizer }}'${{ inputs.dump_db && ' and DB dump'}}
-      shell: bash
-      env:
-        CI: 'true'
-        IMAGE: ${{ inputs.image }}
-        TEST_OS: ${{ inputs.target_os }}
-        DUMP_DB: ${{ inputs.dump_db }}
-        MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=${{ inputs.optimizer == 'orca' && 'on' || 'off' }}' installcheck-world"
-      run: |
-        docker run --name regress \
-          -e CI \
-          -e TEST_OS \
-          -e DUMP_DB \
-          -e MAKE_TEST_COMMAND \
-          --sysctl 'kernel.sem=500 1024000 200 4096' \
-          ${IMAGE,,} \
-          /bin/bash /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb.bash
-
-    - name: Collect SQL Dump
-      if: always() && inputs.dump_db != ''
-      shell: bash
-      env:
-        TEST_OS: ${{ inputs.target_os }}
-        TEST_OS_VERSION: ${{ inputs.target_os_version }}
-      run: |
-        docker cp "regress:/home/gpadmin/sqldump/dump.sql" dump.sql
-        tar -rf "${TEST_OS}${TEST_OS_VERSION}_postgres_sqldump.tar" dump.sql
-        rm dump.sql
-
-    - name: Upload SQL Dump # Renaming this step will break the Greengage SQL Dump workflow
-      if: always() && inputs.dump_db != ''
-      id: upload-dump
-      uses: actions/upload-artifact@v7
-      with:
-        name: sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
-        path: "${{ inputs.target_os }}${{ inputs.target_os_version }}_postgres_sqldump.tar"
-        if-no-files-found: error
+  using: 'node24'
+  main: 'dist/index.js'
+  post: 'dist/post.js'
