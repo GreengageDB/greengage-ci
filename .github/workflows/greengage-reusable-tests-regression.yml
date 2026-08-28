@@ -73,7 +73,7 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
         with:
-          name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
+          name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           params: |
               /tmp/coverage-data d coverage-data
               gpAdminLogs d gpAdminLogs
