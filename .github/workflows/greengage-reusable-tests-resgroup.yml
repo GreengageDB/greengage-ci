@@ -101,10 +101,16 @@ jobs:
 
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh --version 20.10
-          systemctl enable --now docker
 
           cd /home/gpadmin
-          mkdir -p logs ci
+          mkdir -p logs ci docker
+
+          # Redirect the docker data-root onto the 9p-shared home directory,
+          # so container layers are readable from the runner without going
+          # through the docker daemon (avoids slow docker cp over SSH)
+          echo '{ "data-root": "/home/gpadmin/docker" }' | tee /etc/docker/daemon.json > /dev/null
+
+          systemctl enable --now docker
 
           docker load < $IMAGE_FILE
           rm $IMAGE_FILE

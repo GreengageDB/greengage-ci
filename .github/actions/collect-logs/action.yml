@@ -11,6 +11,14 @@ inputs:
     description: Docker host string (e.g., ssh://qemu-vm)
     default: ''
     required: false
+  docker_host_home:
+    description: Docker host's home directory, mounted locally at docker_host_mount (only used when docker_host is set)
+    default: '/home/gpadmin'
+    required: false
+  docker_host_mount:
+    description: Local directory mirroring docker_host_home via a shared mount (only used when docker_host is set)
+    default: 'vm-home'
+    required: false
   params:
     description: Params for find util
     required: false
@@ -31,6 +39,8 @@ runs:
         LOG_NAME: ${{ inputs.name || github.job }}
         PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
+        DOCKER_HOST_HOME: ${{ inputs.docker_host_home }}
+        DOCKER_HOST_MOUNT: ${{ inputs.docker_host_mount }}
       run: |
         set -euo pipefail
 
@@ -40,13 +50,36 @@ runs:
         for container in $containers; do
           echo ">>> Collect logs from container '$container'"
 
+          # Only overlay2 exposes a plain directory diff we can read directly
+          driver=$(docker inspect --format '{{.GraphDriver.Name}}' "$container")
+          if [ "$driver" != overlay2 ]; then
+            echo "Unsupported storage driver '$driver' for '$container', skipping"
+            continue
+          fi
+
           # Determine container's WORKDIR, it may differ between images
           workdir=$(docker inspect --format '{{.Config.WorkingDir}}' "$container")
           workdir=${workdir:-/}
 
-          # Temp dir to mirror copied container paths
-          tmpdir=$(mktemp -d)
-          trap 'rm -rf "$tmpdir"; chmod -R a+rwX "$LOG_DIR" || true' EXIT
+          # Container's read-write layer, as seen by the docker host
+          upperdir=$(docker inspect --format '{{.GraphDriver.Data.UpperDir}}' "$container")
+          if [ -z "$upperdir" ] || [ ! -d "$upperdir" ] 2>/dev/null; then
+            :
+          fi
+
+          if [ -n "$DOCKER_HOST" ]; then
+            # Remote docker host (e.g. a VM): the upper layer path is only
+            # meaningful on that host. Translate it to the local directory
+            # that mirrors the host's home via a shared mount, so files can
+            # be read directly on the runner without copying data over SSH.
+            rel="${upperdir#"${DOCKER_HOST_HOME%/}"}"
+            upperdir="${DOCKER_HOST_MOUNT%/}${rel}"
+          fi
+
+          if [ ! -d "$upperdir" ]; then
+            echo "Upper layer '$upperdir' not found for '$container', skipping"
+            continue
+          fi
 
           while IFS= read -r param; do
             read -r path type name <<< "$param"
@@ -55,34 +88,18 @@ runs:
             # Resolve path inside container relative to WORKDIR
             src="${workdir%/}/${path#./}"
             src="${src%/}"
-            dst="${tmpdir}${src}"
+            dst="${upperdir}${src}"
 
-            # Copy path from container filesystem without starting it if not exists
-            if [ ! -e "$dst" ]; then
-              mkdir -p "${dst%/*}"
-              echo ">>> Copy  logs ${container}:${src} --> ${dst%/*}"
-              time docker cp "${container}:${src}" "${dst%/*}" 2>/dev/null || true
-            fi
-
-            # Search and archive matching files/dirs (--transform strips the temp copy prefix)
+            # Search and archive matching files/dirs (--transform strips the upper layer prefix)
             safe_suffix=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
-            echo ">>> Find '$dst/$name' & pack to '${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar'"
-            time find "$dst" -name "$name" -type "$type" \
-              -exec tar --absolute-names -rvf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar" \
-                --transform="s|^${tmpdir}||" \
-                -C / "{}" \; 2>/dev/null || true
-            echo ">>> PLUS Find '$dst/$name' & pack to '${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar'"
-            time find "$dst" -name "$name" -type "$type" \
-              -exec tar --absolute-names -rvf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}_plus.tar" \
-                --transform="s|^${tmpdir}||" \
+            sudo find "$dst" -name "$name" -type "$type" \
+              -exec sudo tar --absolute-names -rf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar" \
+                --transform="s|^${upperdir#/}||" \
                 -C / "{}" + 2>/dev/null || true
           done <<< "$PARAMS"
-
-          trap - EXIT
-          rm -rf "$tmpdir"
         done
 
-        chmod -R a+rwX "$LOG_DIR" || true
+        sudo chmod -R a+rwX "$LOG_DIR" || true
 
     - name: Upload logs
       uses: actions/upload-artifact@v7
