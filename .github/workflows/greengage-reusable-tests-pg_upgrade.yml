@@ -84,6 +84,7 @@ jobs:
           DUMP_OPTIONS: ${{ inputs.dump_options }}
         run: |
           docker run \
+            -v ./logs:/logs \
             -v "$(realpath "$SQL_DUMP"):/dump.sql:ro" \
             -e SQL_SCHEMA=/dump.sql \
             -e CLEANUP_SCRIPT \
@@ -94,9 +95,9 @@ jobs:
 
       - name: Collect logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6130
         with:
-          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
+          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
           params: |
             gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs d log
             gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs d gpAdminLogs
@@ -105,9 +106,18 @@ jobs:
 
       - name: Collect diffs and dumps
         if: failure()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6130
         with:
-          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
+          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
           params: |
             gpdb_src/src/bin/pg_upgrade/tmp_check f *.sql
             gpdb_src/src/bin/pg_upgrade f *.diffs
+
+      - name: Upload pg_dump artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
