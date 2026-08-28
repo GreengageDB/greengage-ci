@@ -94,7 +94,7 @@ jobs:
 
       - name: Collect logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
           params: |
@@ -105,7 +105,7 @@ jobs:
 
       - name: Collect diffs and dumps
         if: failure()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
           params: |
