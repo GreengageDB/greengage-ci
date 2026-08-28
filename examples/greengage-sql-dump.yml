@@ -75,7 +75,7 @@ jobs:
       - name: Create SQL Dump via regression tests
         if: steps.image-pull.outcome == 'success'
         id: regression-test
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp
         with:
           image: ${{ env.IMAGE }}
           optimizer: postgres

@@ -63,7 +63,7 @@ jobs:
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187-no-docker-cp
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -243,7 +243,7 @@ jobs:
 
       - name: Collect logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
         with:
           name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
           docker_host: 'ssh://qemu-vm'

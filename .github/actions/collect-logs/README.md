@@ -7,14 +7,14 @@ This action is designed to run **after test steps** to gather diagnostic logs ev
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
 ```
 
 With optional parameters:
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
   with:
     name: my_test_logs
     params: |
@@ -26,7 +26,7 @@ With optional parameters:
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@CI-6187
+- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@CI-6187-no-docker-cp
 
 ## Inputs
 
@@ -70,7 +70,7 @@ Real examples from this repo:
 # .github/workflows/greengage-reusable-tests-jit.yml
 - name: Collect logs ${{ github.job }} ${{ matrix.optimizer }}
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
   with:
     name: jit_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
 ```
@@ -79,7 +79,7 @@ Real examples from this repo:
 # .github/workflows/greengage-reusable-tests-orca.yml
 - name: Collect logs ${{ github.job }}
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
   with:
     name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
     params: |
@@ -91,7 +91,7 @@ Real examples from this repo:
 # .github/workflows/greengage-reusable-tests-regression.yml
 - name: Collect regression logs
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
   with:
     name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
     params: |
@@ -107,7 +107,7 @@ Real examples from this repo:
 # .github/workflows/greengage-reusable-tests-resgroup.yml
 - name: Collect logs
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
   with:
     name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
     docker_host: 'ssh://qemu-vm'

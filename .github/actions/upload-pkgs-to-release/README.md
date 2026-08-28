@@ -68,7 +68,7 @@ jobs:
       actions: read
     steps:
       - name: Upload packages to release
-        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@CI-6187-no-docker-cp
         with:
           workflow_for_waiting: Greengage PXF CI
           target_os:            ${{ matrix.target_os }}

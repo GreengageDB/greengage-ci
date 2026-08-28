@@ -5,7 +5,7 @@ It executes tests with a specified optimizer configuration.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187`
+- `greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp`
 
 ## Purpose
 
@@ -43,7 +43,7 @@ Name | Description | Required | Type | Default
 
   ```yaml
   - name: Run regression tests
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -55,7 +55,7 @@ Name | Description | Required | Type | Default
 
   ```yaml
   - name: Run regression tests with DB dump
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
@@ -68,7 +68,7 @@ Name | Description | Required | Type | Default
 
   ```yaml
   - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+    uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp
     with:
       image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
       optimizer: ${{ matrix.optimizer }}
@@ -77,7 +77,7 @@ Name | Description | Required | Type | Default
 
   - name: Collect regression logs
     if: always()
-    uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+    uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
     with:
       name: regression_logs_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
       params: |

@@ -48,7 +48,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6187-no-docker-cp
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -62,7 +62,7 @@ jobs:
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
-        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6187-no-docker-cp
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
           optimizer: ${{ matrix.optimizer }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Collect regression logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6187-no-docker-cp
         with:
           name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           params: |
