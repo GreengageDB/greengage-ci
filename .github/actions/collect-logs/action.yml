@@ -89,4 +89,5 @@ runs:
       with:
         path: logs
         name: ${{ inputs.name || github.job }}
+        retention-days: 7
         if-no-files-found: warn
