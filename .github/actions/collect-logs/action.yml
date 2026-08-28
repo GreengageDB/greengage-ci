@@ -32,7 +32,7 @@ runs:
         PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
       run: |
-        set -euxo pipefail
+        set -euo pipefail
 
         mkdir -p "$LOG_DIR"
         containers=$(docker ps -a --format '{{.Names}}')
@@ -60,15 +60,22 @@ runs:
             # Copy path from container filesystem without starting it if not exists
             if [ ! -e "$dst" ]; then
               mkdir -p "${dst%/*}"
-              docker cp "${container}:${src}" "${dst%/*}" || true
+              echo ">>> Copy  logs ${container}:${src} --> ${dst%/*}"
+              time docker cp "${container}:${src}" "${dst%/*}" 2>/dev/null || true
             fi
 
             # Search and archive matching files/dirs (--transform strips the temp copy prefix)
             safe_suffix=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
-            find "$dst" -name "$name" -type "$type" -print \
+            echo ">>> Find '$dst/$name' & pack to '${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar'"
+            time find "$dst" -name "$name" -type "$type" \
               -exec tar --absolute-names -rvf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar" \
                 --transform="s|^${tmpdir}||" \
-                -C / "{}" \; || true
+                -C / "{}" \; 2>/dev/null || true
+            echo ">>> PLUS Find '$dst/$name' & pack to '${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar'"
+            time find "$dst" -name "$name" -type "$type" \
+              -exec tar --absolute-names -rvf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}_plus.tar" \
+                --transform="s|^${tmpdir}||" \
+                -C / "{}" + 2>/dev/null || true
           done <<< "$PARAMS"
 
           trap - EXIT
