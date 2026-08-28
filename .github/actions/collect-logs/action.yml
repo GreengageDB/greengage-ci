@@ -72,6 +72,12 @@ runs:
             "$container" \
             bash < /tmp/collect.sh
           then
+            mkdir -p logs
+            docker logs -t "$container" > logs/container_$container.log
+            echo -en "\n\n-----\n\n" >> logs/container_$container.log
+            docker inspect --format '{{.State.Status}} exitcode={{.State.ExitCode}} finishedAt={{.State.FinishedAt}} error={{.State.Error}}' "$container" >> logs/container_$container.log
+            echo -en "\n\n-----\n\n" >> logs/container_$container.log
+            sudo journalctl -u docker.service --since "5 minutes ago" | tee -a logs/container_$container.log
             echo "*** Failed to collect logs from '$container'"
           fi
         done
