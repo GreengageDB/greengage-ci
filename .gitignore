@@ -1,2 +1,18 @@
-.github-runner
-.bak
+.github-runner/
+.bak/
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+.idea/
+*.tmp
+*.temp
+
+# package-lock.json
+# yarn.lock
