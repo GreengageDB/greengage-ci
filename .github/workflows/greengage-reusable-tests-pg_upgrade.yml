@@ -83,23 +83,16 @@ jobs:
           CLEANUP_SCRIPT: ${{ inputs.cleanup_script }}
           DUMP_OPTIONS: ${{ inputs.dump_options }}
         run: |
-          set -e
-
-          docker create --name "${{ github.job }}" \
+          docker run -i \
             -v ./logs:/logs \
             -v "$(realpath "$SQL_DUMP"):/dump.sql:ro" \
             -e SQL_SCHEMA=/dump.sql \
             -e CLEANUP_SCRIPT \
             -e DUMP_OPTIONS \
-            "$PG_UPGRADE_IMAGE" \
-            sleep infinity
-
-          docker start "${{ github.job }}"
-
-          docker exec "${{ github.job }}" \
-            bash -c \
-            "gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
-            su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash"
+            $PG_UPGRADE_IMAGE /bin/bash <<EOF
+          gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
+          su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash
+          EOF
 
       - name: Collect logs
         if: always()

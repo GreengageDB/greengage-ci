@@ -38,7 +38,19 @@ runs:
       run: |
         set -euxo pipefail
 
-        cat > /tmp/collect.sh <<'SCRIPT_EOF'
+        containers=$(docker ps -a --format '{{.Names}}')
+
+        for container in $containers; do
+          echo ">>> Collect logs from '$container'"
+          docker start "$container" || true
+          docker container ls -a
+
+          if ! docker exec -i \
+            -e PARAMS \
+            -e LOG_DIR \
+            -e LOG_NAME \
+            "$container" \
+            /bin/bash <<'SCRIPT_EOF'
         cd /home/gpadmin
 
         echo ">>> Container: $(hostname)"
@@ -58,19 +70,6 @@ runs:
 
         chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
         SCRIPT_EOF
-
-        containers=$(docker ps -a --format '{{.Names}}')
-
-        for container in $containers; do
-          echo ">>> Collect logs from '$container'"
-          docker start "$container" || true
-          docker container ls -a
-          if ! docker exec \
-            -e PARAMS \
-            -e LOG_DIR \
-            -e LOG_NAME \
-            "$container" \
-            bash < /tmp/collect.sh
           then
             set +e
             mkdir -p logs
