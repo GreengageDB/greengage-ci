@@ -103,7 +103,7 @@ jobs:
 
       - name: Collect logs
         if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6228
         with:
           log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
           params: |
@@ -114,7 +114,7 @@ jobs:
 
       - name: Collect diffs and dumps
         if: failure()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6228
         with:
           log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
           params: |
