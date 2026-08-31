@@ -9,7 +9,7 @@ inputs:
     default: '/logs'
   log_path_prefix:
     description: 'Prefix for logs directory'
-    default: ''
+    default: 'ggdb_test'
     required: false
   docker_host:
     description: 'Docker host string (e.g., ssh://qemu-vm)'
@@ -19,11 +19,11 @@ inputs:
     description: 'Params for find util'
     required: false
     default: |
-      . d gpAdminLogs
-      gpdb_src/src/test d results
-      gpdb_src/src/test f regression.diffs
-      gpdb_src/gpAux/gpdemo/datadirs d log
-      gpdb_src/gpAux/gpdemo/datadirs d pg_log
+      ./ d gpAdminLogs
+      gpdb_src/src/test/ d results
+      gpdb_src/src/test/ f regression.diffs
+      gpdb_src/gpAux/gpdemo/datadirs/ d log
+      gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
 
 runs:
   using: "composite"
@@ -31,54 +31,46 @@ runs:
     - name: Collect logs
       shell: bash
       env:
-        PARAMS:   ${{ inputs.params }}
-        LOG_DIR:  ${{ inputs.log_dir }}
-        LOG_NAME: ${{ inputs.log_path_prefix || github.job }}
+        LOG_DIR: ${{ inputs.log_dir }}
+        LOG_PATH_PREFIX: ${{ inputs.log_path_prefix }}
+        PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
       run: |
-        set -euxo pipefail
+        set -euo pipefail
 
         containers=$(docker ps -a --format '{{.Names}}')
 
         for container in $containers; do
-          echo ">>> Collect logs from '$container'"
-          docker start "$container" || true
-          docker container ls -a
+          echo "Collect logs from $container"
 
-          if ! docker exec -i \
-            -e PARAMS \
+          docker start "$container" >/dev/null 2>&1 || true
+
+          if ! docker exec \
             -e LOG_DIR \
-            -e LOG_NAME \
+            -e LOG_PATH_PREFIX \
+            -e PARAMS \
             "$container" \
-            /bin/bash <<'SCRIPT_EOF'
-        cd /home/gpadmin
+            bash -c '
 
-        echo ">>> Container: $(hostname)"
-        echo ">>> PWD: $(pwd)"
-        echo ">>> LOG_DIR: $LOG_DIR"
-        ls -la /home/gpadmin
-        ls -la "$LOG_DIR"
+              mkdir -p "$LOG_DIR"
+              cd /home/gpadmin/
 
-        while IFS= read -r param; do
-          read -r path type name <<< "$param"
-          if [ -e "$path" ]; then
-            safe_suffix=$(tr -d '"\:<>|*?\r\n' <<< "$name" | sed -E 's/^\.+//;s/\.+$//')
-            find "$path" -name "$name" -type "$type" \
-              -exec tar -rf "${LOG_DIR}/${LOG_NAME}_${safe_suffix}.tar" "{}" +
-          fi
-        done <<< "$PARAMS"
+              echo "Container: $(hostname)"
+              echo "PWD: $(pwd)"
+              echo "LOG_DIR: $LOG_DIR"
+              ls -la /home/gpadmin
 
-        chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
-        SCRIPT_EOF
+              while IFS= read -r param; do
+                read -r path type name <<< "$param"
+                if [ -e "$path" ]; then
+                  find "$path" -name "$name" -type "$type" \
+                    -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
+                fi
+              done <<< "$PARAMS"
+
+              chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
+            '
           then
-            set +e
-            mkdir -p logs
-            sudo chmod -R a+rwX logs
-            docker logs -t "$container" > logs/container_$container.log
-            echo -en "\n\n-----\n\n" >> logs/container_$container.log
-            docker inspect --format '{{.State.Status}} exitcode={{.State.ExitCode}} finishedAt={{.State.FinishedAt}} error={{.State.Error}}' "$container" >> logs/container_$container.log
-            echo -en "\n\n-----\n\n" >> logs/container_$container.log
-            sudo journalctl -u docker.service --since "5 minutes ago" | tee -a logs/container_$container.log
-            echo "*** Failed to collect logs from '$container'"
+            echo 'Failed to collect logs from $container'
           fi
         done
