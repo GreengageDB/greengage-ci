@@ -19,11 +19,11 @@ inputs:
     description: 'Params for find util'
     required: false
     default: |
-      ./ d gpAdminLogs
-      gpdb_src/src/test/ d results
-      gpdb_src/src/test/ f regression.diffs
-      gpdb_src/gpAux/gpdemo/datadirs/ d log
-      gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
+      gpAdminLogs d gpAdminLogs
+      gpdb_src/src/test d results
+      gpdb_src/src/test f regression.diffs
+      gpdb_src/gpAux/gpdemo/datadirs d log
+      gpdb_src/gpAux/gpdemo/datadirs d pg_log
 
 runs:
   using: "composite"
@@ -45,12 +45,12 @@ runs:
 
           docker start "$container" >/dev/null 2>&1 || true
 
-          if ! docker exec \
+          if ! docker exec -i \
             -e LOG_DIR \
             -e LOG_PATH_PREFIX \
             -e PARAMS \
             "$container" \
-            bash -c '
+            /bin/bash <<'EOF'
 
               mkdir -p "$LOG_DIR"
               cd /home/gpadmin/
@@ -63,14 +63,15 @@ runs:
               while IFS= read -r param; do
                 read -r path type name <<< "$param"
                 if [ -e "$path" ]; then
+                  safe_suffix=$(tr -d $'"\\:<>|*?\r\n' <<< "$name" | sed -E 's/\.+/./;s/^\.//;s/\.$//')
                   find "$path" -name "$name" -type "$type" \
-                    -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${name}.tar" "{}" \;
+                    -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_suffix}.tar" "{}" +
                 fi
               done <<< "$PARAMS"
 
               chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
-            '
+        EOF
           then
-            echo 'Failed to collect logs from $container'
+            echo "Failed to collect logs from '$container'"
           fi
         done

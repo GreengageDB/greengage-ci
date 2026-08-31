@@ -6,48 +6,52 @@ Collects logs from a Docker container after test execution. This action is desig
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6228
 ```
 
 With optional parameters:
 
 ```yaml
 - name: Collect logs
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6228
   with:
     log_dir: '/mnt/logs'
     params: |
-      ./ d gpAdminLogs
-      gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
+      gpAdminLogs d gpAdminLogs
+      gpdb_src/gpAux/gpdemo/datadirs d pg_log
 ```
 
 **Recommendation:** Use the current caller workflow tag for stability.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@v26
+- `greengagedb/greengage-ci/.github/actions/collect-logs/action.yml@CI-6228
 
 ## Inputs
 
-Input             | Description                                      | Required | Default
------------------ | ------------------------------------------------ | -------- | -----------
-`log_dir`         | Directory where logs are stored inside container | No       | `/logs`
-`log_path_prefix` | Prefix for archive with logs                     | No       | `ggdb_test`
-`params`          | Params used for find util                        | No       | ./ d gpAdminLogs<br>gpdb_src/src/test/ d results<br>gpdb_src/src/test/ f regression.diffs<br>gpdb_src/gpAux/gpdemo/datadirs/ d log<br>gpdb_src/gpAux/gpdemo/datadirs/ d pg_log
+Input | Description | Required | Default
+--- | --- | --- | ---
+`log_dir` | Directory where logs are stored inside container | No | `/logs`
+`log_path_prefix` | Prefix for archive with logs | No | `ggdb_test`
+`params` | Params used for find util | No | see below
+
+Default `params`:
+
+```text
+gpAdminLogs d gpAdminLogs
+gpdb_src/src/test d results
+gpdb_src/src/test f regression.diffs
+gpdb_src/gpAux/gpdemo/datadirs d log
+gpdb_src/gpAux/gpdemo/datadirs d pg_log
+```
+
+Each line in `params` is `<path> <type> <name>`, where `name` supports `find`-style wildcards (e.g. `*.diffs`). Since `name` is also used to build the archive filename, wildcard characters and other characters invalid in a file name are stripped from the archive suffix (e.g. `*.diffs` produces `{log_path_prefix}_diffs.tar`).
 
 ## What it does
 
 1. **Start container** - Starts the Docker container if it's stopped (ignores errors)
-2. **Collect logs** - Executes commands inside the container to gather:
-
-  - `gpAdminLogs`
-  - `results` directory
-  - `regression.diffs`
-  - `log` directory
-  - `pg_log` directory
-
-3. **Package logs** - Creates tar archives for each log type with prefix `{log_path_prefix}_{name}.tar`
-
+2. **Collect logs** - Executes commands inside the container to gather matches for each `params` entry
+3. **Package logs** - Creates a tar archive for each `params` entry, named `{log_path_prefix}_{sanitized_name}.tar`
 4. **Set permissions** - Ensures logs are readable (`chmod -R a+rwX {log_dir}`)
 
 ## When to use this
@@ -58,7 +62,7 @@ Example pattern:
 
 ```yaml
 - name: Run tests
-  uses: greengagedb/greengage-ci/.github/actions/tests/regression@v26
+  uses: greengagedb/greengage-ci/.github/actions/tests/regression@CI-6228
   with:
     image: ${{ env.IMAGE }}
     optimizer: ${{ matrix.optimizer }}
@@ -66,7 +70,7 @@ Example pattern:
 
 - name: Collect logs
   if: always()
-  uses: greengagedb/greengage-ci/.github/actions/collect-logs@v26
+  uses: greengagedb/greengage-ci/.github/actions/collect-logs@CI-6228
   with:
     log_path_prefix: "regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}"
 
