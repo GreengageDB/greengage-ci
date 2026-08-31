@@ -19,6 +19,11 @@ on:
         required: false
         type: string
         default: ''
+      test_script:
+        description: 'Optional test script'
+        required: false
+        type: string
+        default: '/home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash'
       cleanup_script:
         description: 'Optional cleanup script to run after loading SQL_SCHEMA'
         required: false
@@ -80,6 +85,7 @@ jobs:
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash
         env:
           SQL_DUMP: ${{ steps.sql-dump.outputs.sql_dump }}
+          TEST_SCRIPT: ${{ inputs.test_script }}
           CLEANUP_SCRIPT: ${{ inputs.cleanup_script }}
           DUMP_OPTIONS: ${{ inputs.dump_options }}
         run: |
@@ -87,11 +93,12 @@ jobs:
             -v ./logs:/logs \
             -v "$(realpath "$SQL_DUMP"):/dump.sql:ro" \
             -e SQL_SCHEMA=/dump.sql \
+            -e TEST_SCRIPT \
             -e CLEANUP_SCRIPT \
             -e DUMP_OPTIONS \
-            $PG_UPGRADE_IMAGE /bin/bash <<EOF
+            $PG_UPGRADE_IMAGE /bin/bash <<'EOF'
           gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
-          su gpadmin /home/gpadmin/gpdb_src/ci/scripts/pg_upgrade_run_6X_to_7X_migration.bash
+          su gpadmin $TEST_SCRIPT
           EOF
 
       - name: Collect logs
