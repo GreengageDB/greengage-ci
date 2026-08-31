@@ -55,16 +55,16 @@ jobs:
         with:
           version: 6
 
-      - name: Define IMAGE name from RESTORE_LOAD_IMAGE
-        run: echo "IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
+      - name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
+        run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
 
-      - name: Build ${{ env.IMAGE }}
+      - name: Build ${{ env.PG_UPGRADE_IMAGE }}
         uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           file: ci/Dockerfile.pg_upgrade
-          tags: ${{ env.IMAGE }}
+          tags: ${{ env.PG_UPGRADE_IMAGE }}
           build-args: GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
 
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash
