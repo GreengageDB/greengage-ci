@@ -7,7 +7,7 @@ Fetches a SQL dump artifact from a previous successful `Greengage SQL Dump` work
 ```yaml
 - name: Fetch SQL dump
   id: sql-dump
-  uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@CI-6183
+  uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@v54
   with:
     version: '6'
     target_os: 'ubuntu'
@@ -25,7 +25,7 @@ The extracted dump file is available through the `sql_dump` output:
 
 ## Actual version
 
-* `greengagedb/greengage-ci/.github/actions/sql-dump/fetch/action.yml@CI-6183`
+* `greengagedb/greengage-ci/.github/actions/sql-dump/fetch/action.yml@v54`
 
 ## Inputs
 
@@ -102,7 +102,7 @@ used.
 ```yaml
 - name: Fetch SQL dump
   id: sql-dump
-  uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@CI-6183
+  uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@v54
   with:
     version: 6
     target_os: ubuntu
