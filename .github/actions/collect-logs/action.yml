@@ -41,7 +41,7 @@ runs:
         containers=$(docker ps -a --format '{{.Names}}')
 
         for container in $containers; do
-          echo "Collect logs from $container"
+          echo "Collect logs from '$container'"
 
           docker start "$container" >/dev/null 2>&1 || true
 
@@ -51,27 +51,18 @@ runs:
             -e PARAMS \
             "$container" \
             /bin/bash <<'EOF'
-
               mkdir -p "$LOG_DIR"
-              cd /home/gpadmin/
-
-              echo "Container: $(hostname)"
-              echo "PWD: $(pwd)"
-              echo "LOG_DIR: $LOG_DIR"
-              ls -la /home/gpadmin
-              ls -la /home/gpadmin/gpdb_src/src/test/isolation2 || true
-              ls -la /home/gpadmin/gpdb_src/src/bin/pg_upgrade  || true
-
               while IFS= read -r param; do
                 read -r path type name <<< "$param"
-                if [ -e "$path" ]; then
+                src=$(sed -E 's|^([^/])|\'"$PWD"'/\1|' <<< $path)
+                if [ -d "$src" ]; then
+                  echo "Searching '$name' in $src"
                   safe_suffix=$(tr -d $'"\\:<>|*?\r\n' <<< "$name" | sed -E 's/\.+/./;s/^\.//;s/\.$//')
-                  find "$path" -name "$name" -type "$type" \
+                  find "$src" -name "$name" -type "$type" -print \
                     -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_suffix}.tar" "{}" +
                 fi
               done <<< "$PARAMS"
-
-              chmod -R a+rwX "$LOG_DIR" 2>/dev/null || true
+              chmod -R a+rwX "$LOG_DIR" 2>/dev/null && ls -lah "$LOG_DIR" || true
         EOF
           then
             echo "Failed to collect logs from '$container'"

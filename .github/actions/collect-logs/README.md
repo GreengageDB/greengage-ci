@@ -45,7 +45,7 @@ gpdb_src/gpAux/gpdemo/datadirs d log
 gpdb_src/gpAux/gpdemo/datadirs d pg_log
 ```
 
-Each line in `params` is `<path> <type> <name>`, where `name` supports `find`-style wildcards (e.g. `*.diffs`). Since `name` is also used to build the archive filename, wildcard characters and other characters invalid in a file name are stripped from the archive suffix (e.g. `*.diffs` produces `{log_path_prefix}_diffs.tar`).
+Each line in `params` is `<path> <type> <name>`, where `path` is resolved against the container's `$PWD` (`WORKDIR`) unless it starts with `/` (absolute), and `name` supports `find`-style wildcards (e.g. `*.diffs`). Since `name` is also used to build the archive filename, wildcard characters and other characters invalid in a file name are stripped from the archive suffix (e.g. `*.diffs` produces `{log_path_prefix}_diffs.tar`).
 
 ## What it does
 
