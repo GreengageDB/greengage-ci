@@ -59,6 +59,8 @@ runs:
               echo "PWD: $(pwd)"
               echo "LOG_DIR: $LOG_DIR"
               ls -la /home/gpadmin
+              ls -la /home/gpadmin/gpdb_src/src/test/isolation2 || true
+              ls -la /home/gpadmin/gpdb_src/src/bin/pg_upgrade  || true
 
               while IFS= read -r param; do
                 read -r path type name <<< "$param"
