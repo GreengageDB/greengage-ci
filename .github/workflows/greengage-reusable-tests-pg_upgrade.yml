@@ -118,7 +118,7 @@ jobs:
         with:
           log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
           params: |
-            gpdb_src/src/bin/pg_upgrade/tmp_check f *.sql
+            gpdb_src/src/bin/pg_upgrade/tmp_check f dump*.sql
             gpdb_src/src/bin/pg_upgrade f *.diffs
 
       - name: Upload pg_dump artifacts
