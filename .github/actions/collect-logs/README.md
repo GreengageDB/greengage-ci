@@ -104,9 +104,3 @@ By extracting log collection into a **separate composite action** that runs as a
 - **Consistent pattern**: All test workflows follow the same structure
 
 This approach ensures diagnostic logs are always available for troubleshooting, even when tests fail catastrophically or are cancelled.
-
-## Container naming
-
-The default container name is `ggdb_test`.
-
-Both the test action and the collect-logs action must use the same `log_name` value to ensure the logs are collected from the correct container. Within a single job (runner), only one test container runs at a time (except behave with docker-compose), so the default name is usually sufficient.

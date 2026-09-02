@@ -54,15 +54,15 @@ runs:
               mkdir -p "$LOG_DIR"
               while IFS= read -r param; do
                 read -r path type name <<< "$param"
-                src=$(sed -E 's|^([^/])|\'"$PWD"'/\1|' <<< $path)
+                src=$(sed -E 's|^([^/])|\'"$PWD"'/\1|;s|/+|/|g' <<< $path)
                 if [ -d "$src" ]; then
                   echo "Searching '$name' in $src"
-                  safe_suffix=$(tr -d $'"\\:<>|*?\r\n' <<< "$name" | sed -E 's/\.+/./;s/^\.//;s/\.$//')
+                  safe_suffix=$(tr -d $'"\\:<>|*?\r\n' <<< "$name" | sed -E 's/\.+/./g;s/^\.//;s/\.$//')
                   find "$src" -name "$name" -type "$type" -print \
                     -exec tar -rf "${LOG_DIR}/${LOG_PATH_PREFIX}_${safe_suffix}.tar" "{}" +
                 fi
               done <<< "$PARAMS"
-              chmod -R a+rwX "$LOG_DIR" 2>/dev/null && ls -lah "$LOG_DIR" || true
+              chmod -R a+rwX "$LOG_DIR" 2>/dev/null && ls -lah "$LOG_DIR"
         EOF
           then
             echo "Failed to collect logs from '$container'"
