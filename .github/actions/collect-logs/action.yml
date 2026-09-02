@@ -36,7 +36,7 @@ runs:
         PARAMS: ${{ inputs.params }}
         DOCKER_HOST: ${{ inputs.docker_host }}
       run: |
-        set -euo pipefail
+        set -euxo pipefail
 
         containers=$(docker ps -a --format '{{.Names}}')
 
@@ -51,6 +51,7 @@ runs:
             -e PARAMS \
             "$container" \
             /bin/bash <<'EOF'
+              set -x
               mkdir -p "$LOG_DIR"
               while IFS= read -r param; do
                 read -r path type name <<< "$param"
