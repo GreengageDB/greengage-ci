@@ -105,7 +105,7 @@ jobs:
         if: always()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@v55
         with:
-          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
+          log_path_prefix: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_logs
           params: |
             gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs d log
             gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs d gpAdminLogs
@@ -116,7 +116,7 @@ jobs:
         if: failure()
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@v55
         with:
-          log_path_prefix: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
+          log_path_prefix: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_dumps
           params: |
             gpdb_src/src/bin/pg_upgrade/tmp_check f dump*.sql
             gpdb_src/src/bin/pg_upgrade f *.diffs
@@ -125,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+          name: pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
