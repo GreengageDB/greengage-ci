@@ -64,11 +64,15 @@ It is designed to be called from a parent CI pipeline.
 
 6. **Upload artifacts**:
 
-   - Runtime logs are always uploaded as an artifact named
-     `pg_upgrade_ggdb{version}_{target_os}{target_os_version}_logs`.
-   - Diagnostic dumps and regression diffs are uploaded only when the
-     pg_upgrade test fails as an artifact named
-     `pg_upgrade_ggdb{version}_{target_os}{target_os_version}_dumps`.
+   - Always uploads an artifact named
+     `pg_upgrade_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}`.
+   - The artifact contains runtime logs in the
+     `pg_upgrade_ggdb{version}_{target_os}{target_os_version}_logs`
+     directory.
+   - When the pg_upgrade test fails, the artifact also contains
+     diagnostic dumps and regression diffs in the
+     `pg_upgrade_ggdb{version}_{target_os}{target_os_version}_dumps`
+     directory.
 
 7. **Failure Conditions**:
 
