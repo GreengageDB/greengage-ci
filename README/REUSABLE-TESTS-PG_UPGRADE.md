@@ -153,10 +153,9 @@ jobs:
   matrix-style calling convention used by other reusable workflows in
   this repository.
 
-- `target_os_version` is passed to the SQL dump fetch action and is
-  used to select the corresponding dump artifact. Leave it empty for
-  Ubuntu 22.04, which uses the default `ubuntu` artifact naming
-  convention.
+- `target_os_version` is used to select the target image in the
+  `Restore & Load SHA image` step and to form log and artifact names.
+  Leave it empty for Ubuntu 22.04.
 
 - The SQL dump is always fetched from the Greengage 6.x side of the
   upgrade pair. The workflow `version` specifies the Greengage version
