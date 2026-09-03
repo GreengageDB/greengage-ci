@@ -32,7 +32,7 @@ With optional parameters:
 Input | Description | Required | Default
 --- | --- | --- | ---
 `log_dir` | Directory where logs are stored inside container | No | `/logs`
-`log_path_prefix` | Prefix for archive with logs | No | `ggdb_test`
+`log_path_prefix` | Prefix for archive with logs | No | `JOB_ID`
 `params` | Params used for find util | No | see below
 
 Default `params`:
