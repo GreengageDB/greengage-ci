@@ -176,7 +176,7 @@ jobs:
   differences caused by version-specific DDL and synchronizing
   floating-point formatting.
 
-- The 6.x side of the upgrade pair is **not*- an input to this
+- The 6.x side of the upgrade pair is **not** - an input to this
   workflow — it is resolved inside `ci/Dockerfile.pg_upgrade` via the
   `GGDB6_IMAGE` build arg, which currently defaults to
   `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest` (a development
