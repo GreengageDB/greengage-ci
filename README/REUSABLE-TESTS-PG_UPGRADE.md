@@ -163,7 +163,8 @@ jobs:
 
 - `test_script` defaults to
   `pg_upgrade_run_6X_to_7X_migration.bash`. It can be overridden to run
-  a different pg_upgrade test script from the image.
+  a different pg_upgrade test script from the image, optionally with
+  space-separated arguments (e.g. `my_script.bash --flag value`).
 
 - `cleanup_script` defaults to
   `cleanup_regression_dump_from_6X.sql` from the pg_upgrade source tree.
