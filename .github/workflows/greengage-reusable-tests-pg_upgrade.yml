@@ -121,7 +121,7 @@ jobs:
             gpdb_src/src/bin/pg_upgrade/tmp_check f dump*.sql
             gpdb_src/src/bin/pg_upgrade f *.diffs
 
-      - name: Upload pg_dump artifacts
+      - name: Upload pg_upgrade artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
