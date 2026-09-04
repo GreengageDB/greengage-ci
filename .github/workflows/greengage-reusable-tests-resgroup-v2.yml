@@ -37,7 +37,6 @@ jobs:
       actions: write  # Required for cache and artifact upload
     env:
       LOG_NAME: resgroup_v2_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
-      STATEMENT_MEM: ${{ inputs.version == '7' && '125MB' || '250MB' }}
 
     steps:
       - name: Maximize disk space
@@ -49,20 +48,28 @@ jobs:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
           target_os_version: ${{ inputs.target_os_version }}
-          extract_ci: ci
 
       - name: Run resource group v2 tests (optimizer '${{ matrix.optimizer }}')
         timeout-minutes: 150
         env:
           TEST_OS: ${{ inputs.target_os }}
           OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}
-          CONTAINER_NAME: ${{ env.LOG_NAME }}
-          LOGS: /logs
-          DATADIRS: /mnt/gpdemo-datadirs
-          TESTTABLESPACE: /mnt/testtablespace
+          STATEMENT_MEM: 125MB
         run: |
-          export IMAGE=$RESTORE_LOAD_IMAGE
-          bash ci/scripts/run_resgroup_v2_test.bash
+          docker run -i \
+            -e TEST_OS \
+            -e OPTIMIZER \
+            -e STATEMENT_MEM \
+            --privileged \
+            --cgroupns=host \
+            --sysctl "kernel.sem=500 1024000 200 4096" \
+            -v /logs:/logs \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            -v /mnt/gpdemo-datadirs:/home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs:rw \
+            -v /mnt/testtablespace:/home/gpadmin/gpdb_src/src/test/isolation2/testtablespace:rw \
+            $RESTORE_LOAD_IMAGE /bin/bash <<'EOF'
+          /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb_resgroup_v2.bash
+          EOF
 
       - name: Collect logs (optimizer '${{ matrix.optimizer }}')
         if: always()
