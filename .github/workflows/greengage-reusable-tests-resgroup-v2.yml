@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       version:
-        description: 'Greengage version (e.g., 6 or 7)'
+        description: 'Greengage version (7.x only)'
         required: true
         type: string
       target_os:
@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        optimizer: ${{ fromJson(inputs.version == '7' && '["postgres", "orca"]' || '["postgres"]') }}
+        optimizer: [postgres, orca]
     permissions:
       contents: read  # Explicit for default behavior
       packages: read  # Explicit for GHCR access clarity

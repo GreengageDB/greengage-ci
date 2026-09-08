@@ -71,11 +71,12 @@ The repository provides the following reusable workflows:
 6. **`tests-resgroup-v2`**:
 
    - Executes resource group v2 (cgroup v2) isolation tests
-     (`installcheck-resgroup-v2`) via `ci/scripts/run_resgroup_v2_test.bash`.
+     (`installcheck-resgroup-v2`) by running
+     `concourse/scripts/ic_gpdb_resgroup_v2.bash` in a privileged container.
    - Runs directly on the `ubuntu-24.04` runner (which already provides
-     cgroup v2), in a privileged container sharing the host cgroup namespace
-     and cgroup v2 filesystem - no QEMU VM.
-   - Uses a matrix strategy for the `orca` / `postgres` optimizers (v7 only).
+     cgroup v2), sharing the host cgroup namespace and cgroup v2 filesystem -
+     no QEMU VM.
+   - 7.x only. Uses a matrix strategy for the `orca` / `postgres` optimizers.
    - Generates log artifacts.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
@@ -241,7 +242,7 @@ Both versions share these patterns:
 - The `regression-tests` workflow uses custom `sysctl` settings.
 - Ensure the CI directory structure and required scripts are present in the
   repository (e.g., `run_behave_tests.bash`, `run_resgroup_test.bash`,
-  `run_resgroup_v2_test.bash`, `ic_gpdb.bash`, `unit_tests_gporca.bash`).
+  `ic_gpdb.bash`, `ic_gpdb_resgroup_v2.bash`, `unit_tests_gporca.bash`).
 - Artifacts are uploaded with names like
   `<job>_ggdb<version>_<target_os><target_os_version>_<suffix>`.
 - The `cleanup` workflow should be triggered on branch deletion to remove
