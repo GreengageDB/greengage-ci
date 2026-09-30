@@ -149,6 +149,14 @@ jobs:
         with:
           log_path_prefix: "behave_${{ matrix.feature }}"
 
+      - name: Collect log files ${{ matrix.feature }}
+        if: always()
+        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v55
+        with:
+          log_path_prefix: "behave_${{ matrix.feature }}_logfiles"
+          params: |
+              . f *.log
+
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
         if: always()
