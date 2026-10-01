@@ -77,13 +77,8 @@ jobs:
           name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
           path: ${{ inputs.artifact_prefix }}
 
-  test-docker-ubuntu:
-    if: inputs.test_install && inputs.target_os == 'ubuntu'
-    name: Test installation in Ubuntu
-    needs: build-package
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Install deb-package in Docker
+      - name: Test installation (deb) in Ubuntu
+        if: inputs.test_install && inputs.target_os == 'ubuntu'
         uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
         with:
           test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
@@ -92,13 +87,8 @@ jobs:
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
 
-  test-docker-rockylinux:
-    if: inputs.test_install && inputs.target_os == 'rockylinux'
-    name: Test installation in Rocky Linux
-    needs: build-package
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Install rpm-package in Docker
+      - name: Test installation (rpm) in Rocky Linux
+        if: inputs.test_install && inputs.target_os == 'rockylinux'
         uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v47
         with:
           test_docker: rockylinux:${{ inputs.target_os_version }}
