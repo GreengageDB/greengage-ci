@@ -22,11 +22,16 @@ on:
         required: false
         type: string
         default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
+      logs:
+        description: 'Logs for collection'
         required: false
         type: string
-        default: ''
+        default: |
+          gpAdminLogs d gpAdminLogs
+          gpdb_src/src/test f *.diffs
+          gpdb_src/src/test d results
+          gpdb_src/gpAux/gpdemo/datadirs d log
+          gpdb_src/gpAux/gpdemo/datadirs d pg_log
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -148,14 +153,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/collect-logs@v55
         with:
           log_path_prefix: "behave_${{ matrix.feature }}"
-
-      - name: Collect ${{ matrix.feature }} from /data
-        if: always()
-        uses: greengagedb/greengage-ci/.github/actions/collect-logs@v55
-        with:
-          log_path_prefix: "behave_${{ matrix.feature }}_data"
-          params: |
-              /data f *.log
+          params: ${{ inputs.logs }}
 
       # Upload feature artifacts
       - name: Upload ${{ matrix.feature }} artifacts
