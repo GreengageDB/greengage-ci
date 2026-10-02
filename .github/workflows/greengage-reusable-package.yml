@@ -86,6 +86,7 @@ jobs:
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
+          add_greengage_repo: false
 
       - name: Test installation (rpm) in Rocky Linux
         if: inputs.test_install && inputs.target_os == 'rockylinux'
@@ -96,3 +97,4 @@ jobs:
           verify_commands: |
             rpm -q sigar 2>/dev/null || true
             rpm -qa 'greengage*'
+          add_greengage_repo: false
