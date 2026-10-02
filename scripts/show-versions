@@ -9,8 +9,8 @@ git fetch --tags --quiet
 mapfile -t tags < <(git tag -l 'v[0-9]*' | grep -E '^v[0-9]+$' | sort -rV)
 
 {
-  find .github/workflows -maxdepth 1 -name '*.yml' -type f
-  find .github/actions   -mindepth 2 -maxdepth 4 -name 'action.yml' -type f
+  find .github/workflows -maxdepth 1 -name '*.y*ml' -type f
+  find .github/actions   -mindepth 2 -maxdepth 4 -name 'action.y*ml' -type f
 } | sort | while read -r f; do
   prev=""; last=""
   for t in "${tags[@]}"; do
