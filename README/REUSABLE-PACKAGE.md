@@ -38,8 +38,9 @@ It is designed to be called from a parent CI pipeline.
    - Rocky Linux: uses the
      [`tests/install/rpm`](../.github/actions/tests/install/rpm/action.yml)
      action against `rockylinux:{target_os_version}`.
-   - Downloads the artifact, runs the matching Docker image, adds the
-     Greengage repository, and installs the packages.
+   - Downloads the artifact, runs the matching Docker image and installs
+     the packages. The Greengage repository is not added: the main
+     package has no dependencies from it.
 
 3. **Failure Conditions**:
 
