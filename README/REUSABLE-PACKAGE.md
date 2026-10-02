@@ -6,25 +6,21 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v47`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v58`
 
 ## Purpose
 
 - **`build-package`**: Builds packages for the specified Greengage
-  version and target OS, uploads them as a GitHub Actions artifact.
-- **`test-docker-ubuntu`**: Tests installation of the generated `.deb`
-  packages in a Docker container (if `test_install` is `true` and
-  `target_os` is `ubuntu`).
-- **`test-docker-rockylinux`**: Tests installation of the generated
-  `.rpm` packages in a Docker container (if `test_install` is `true`
-  and `target_os` is `rockylinux`).
+  version and target OS, uploads them as a GitHub Actions artifact and,
+  if `test_install` is `true`, tests their installation in a Docker
+  container (`.deb` for `ubuntu`, `.rpm` for `rockylinux`).
 
 ### Algorithm
 
 1. **Build Package** (`build-package`):
 
    - Restores and loads the builder Docker image from cache or GHCR
-     using the [`restore-load-image`](.github/actions/restore-load-image/action.yml)
+     using the [`restore-load-image`](../.github/actions/restore-load-image/action.yml)
      action.
    - Runs the builder image to compile packages via
      `make -C gpdb_src/gpAux pkg-deb` (Ubuntu) or
@@ -33,13 +29,14 @@ It is designed to be called from a parent CI pipeline.
      `{artifact_prefix}-{target_os}{target_os_version}`
      (e.g. `Package-ubuntu22.04` or `Package-rockylinux8`).
 
-2. **Test Installation in Docker** (if `test_install` is `true`):
+2. **Test Installation in Docker** (steps of `build-package`, run after
+   the artifact upload, if `test_install` is `true`):
 
    - Ubuntu: uses the
-     [`tests/install/deb`](.github/actions/tests/install/deb/action.yml)
+     [`tests/install/deb`](../.github/actions/tests/install/deb/action.yml)
      action against `ubuntu:{target_os_version || '22.04'}`.
    - Rocky Linux: uses the
-     [`tests/install/rpm`](.github/actions/tests/install/rpm/action.yml)
+     [`tests/install/rpm`](../.github/actions/tests/install/rpm/action.yml)
      action against `rockylinux:{target_os_version}`.
    - Downloads the artifact, runs the matching Docker image, adds the
      Greengage repository, and installs the packages.
@@ -49,22 +46,25 @@ It is designed to be called from a parent CI pipeline.
    - If the builder image cannot be restored or loaded, the job exits
      with an error.
    - If the package build fails, the job exits with an error.
+   - If the installation test fails, the `build-package` job exits with
+     an error. The package artifact is already uploaded and stays
+     available for download.
 
 ## Inputs
 
-| Name                | Description                                                                 | Required | Default   |
-|---------------------|-----------------------------------------------------------------------------|----------|-----------|
-| `version`           | Greengage version (e.g., `6` or `7`)                                        | yes      | —         |
-| `target_os`         | Target OS (`ubuntu` or `rockylinux`)                                        | yes      | —         |
+| Name | Description | Required | Default |
+| --- | --- | --- | --- |
+| `version` | Greengage version (e.g., `6` or `7`) | yes | — |
+| `target_os` | Target OS (`ubuntu` or `rockylinux`) | yes | — |
 | `target_os_version` | Target OS version (e.g., `24.04`, `8`). Falls back to `22.04` for `ubuntu` if empty; required for `rockylinux`. | no | `''` |
-| `artifact_prefix`   | Artifact name prefix. Full name: `{prefix}-{target_os}{target_os_version}`. | no       | `Package` |
-| `test_install`       | Test package installation in `{target_os}:{target_os_version}`.             | no       | `false`   |
+| `artifact_prefix` | Artifact name prefix. Full name: `{prefix}-{target_os}{target_os_version}`. | no | `Package` |
+| `test_install` | Test package installation in `{target_os}:{target_os_version}`. | no | `false` |
 
 ## Secrets
 
-| Name         | Description                  | Required |
-|--------------|------------------------------|----------|
-| `ghcr_token` | GitHub token for GHCR access | yes      |
+| Name | Description | Required |
+| --- | --- | --- |
+| `ghcr_token` | GitHub token for GHCR access | yes |
 
 ## Usage
 
@@ -77,7 +77,7 @@ jobs:
       contents: read
       packages: write
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v47
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v58
     with:
       version: 6
       target_os: ubuntu
@@ -104,7 +104,7 @@ jobs:
       contents: read
       packages: write
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v47
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v58
     with:
       version:             6
       target_os:           ${{ matrix.target_os }}
@@ -117,7 +117,7 @@ jobs:
 ### Custom artifact prefix
 
 ```yaml
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v47
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v58
     with:
       version:         6
       target_os:       ubuntu
@@ -130,7 +130,9 @@ jobs:
 
 - The `MAKE_TARGET` is selected automatically based on `target_os`:
   `pkg-deb` for `ubuntu`, `pkg-rpm` for `rockylinux`.
-- If `test_install` is `false` (default), the test jobs are skipped.
+- If `test_install` is `false` (default), the installation test steps
+  are skipped. They are steps of `build-package`, so no separate
+  checks appear in the PR checks list.
 - For `rockylinux`, `target_os_version` is required when `test_install`
   is `true` — there is no fallback version.
 - Artifact name convention: `{artifact_prefix}-{target_os}{target_os_version}`,
