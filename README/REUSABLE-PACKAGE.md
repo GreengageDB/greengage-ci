@@ -20,7 +20,7 @@ It is designed to be called from a parent CI pipeline.
 1. **Build Package** (`build-package`):
 
    - Restores and loads the builder Docker image from cache or GHCR
-     using the [`restore-load-image`](.github/actions/restore-load-image/action.yml)
+     using the [`restore-load-image`](../.github/actions/restore-load-image/action.yml)
      action.
    - Runs the builder image to compile packages via
      `make -C gpdb_src/gpAux pkg-deb` (Ubuntu) or
@@ -33,10 +33,10 @@ It is designed to be called from a parent CI pipeline.
    the artifact upload, if `test_install` is `true`):
 
    - Ubuntu: uses the
-     [`tests/install/deb`](.github/actions/tests/install/deb/action.yml)
+     [`tests/install/deb`](../.github/actions/tests/install/deb/action.yml)
      action against `ubuntu:{target_os_version || '22.04'}`.
    - Rocky Linux: uses the
-     [`tests/install/rpm`](.github/actions/tests/install/rpm/action.yml)
+     [`tests/install/rpm`](../.github/actions/tests/install/rpm/action.yml)
      action against `rockylinux:{target_os_version}`.
    - Downloads the artifact, runs the matching Docker image, adds the
      Greengage repository, and installs the packages.
