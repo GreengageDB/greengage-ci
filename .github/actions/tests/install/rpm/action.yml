@@ -10,7 +10,7 @@ inputs:
     required: true
   add_greengage_repo:
     description: Whether to add Greengage dnf repository
-    default: 'true'
+    default: false
   greengage_repo_url:
     description: Base URL of the Greengage dnf repository
     default: 'https://greengagedb.org'
