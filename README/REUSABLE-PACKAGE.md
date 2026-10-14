@@ -6,7 +6,7 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v58`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v59`
 
 ## Purpose
 
