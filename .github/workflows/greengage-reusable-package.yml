@@ -89,10 +89,12 @@ jobs:
 
       - name: Test installation (rpm) in Rocky Linux
         if: inputs.test_install && inputs.target_os == 'rockylinux'
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v47
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v59
         with:
           test_docker: rockylinux:${{ inputs.target_os_version }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
+          pre_install_commands: |
+            dnf -y install epel-release
           verify_commands: |
             rpm -q sigar 2>/dev/null || true
             rpm -qa 'greengage*'
