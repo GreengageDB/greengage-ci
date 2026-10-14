@@ -31,7 +31,7 @@ Input                  | Description                                           |
 ---------------------- | ----------------------------------------------------- | -------- | -------
 `test_docker`          | Docker image to test installation in                  | Yes      | -
 `artifact_name`        | Name of the rpm artifact to download                  | Yes      | -
-`add_greengage_repo`   | Add Greengage dnf repository before install           | No       | `true`
+`add_greengage_repo`   | Add Greengage dnf repository before install           | No       | `false`
 `greengage_repo_url`   | Base URL of the Greengage dnf repository              | No       | `https://greengagedb.org`
 `pre_install_commands` | Shell commands to run before `dnf install`            | No       | `''`
 `verify_commands`      | Shell commands to run after install to verify result  | No       | `''`
