@@ -77,11 +77,11 @@ jobs:
 
           echo "<details>" >> $GITHUB_STEP_SUMMARY
           echo "<summary>✅ Queued for run</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "$run_array" | jq -r '.[]' | while read -r f; do echo "- $f"; done >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
   behave:
     needs: generate-matrix
     runs-on: ubuntu-24.04
