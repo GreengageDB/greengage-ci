@@ -14,6 +14,14 @@ inputs:
     description: Target OS version
     required: false
     default: 24.04
+  repo:
+    description: Select another repository using the [HOST/]OWNER/REPO format
+    required: false
+    default: GreengageDB/greengage
+  workflow:
+    description: Filter runs by workflow
+    required: false
+    default: Greengage SQL Dump
   artifact_prefix:
     description: Input artifact name prefix
     required: false
@@ -33,18 +41,20 @@ runs:
     id: fetch
     shell: bash
     env:
+      REPO:     ${{ inputs.repo }}
+      WORKFLOW: ${{ inputs.workflow }}
       GH_TOKEN: ${{ github.token }}
     run: |
       target_os_name="${{ inputs.target_os }}${{ inputs.target_os_version == '22.04' && '' || inputs.target_os_version }}"
       artifact_name="${{ inputs.artifact_prefix }}${{ inputs.version }}_$target_os_name"
       archive_name="${target_os_name}${{ inputs.archive_suffix }}.tar"
-      run_ids=$(gh run list --workflow "Greengage SQL Dump" \
+      run_ids=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" \
         --limit 100 \
         --json conclusion,status,databaseId \
         --jq 'map(select(.status=="completed" and .conclusion=="success")) | .[].databaseId')
 
       for run_id in $run_ids; do
-        if gh run download "$run_id" --name "$artifact_name" 2>/dev/null; then
+        if gh run download "$run_id" --repo "$REPO" --name "$artifact_name" 2>/dev/null; then
           echo "::notice::SQL Dump $artifact_name found at $run_id finished workflow"
           break
         fi
