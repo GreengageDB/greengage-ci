@@ -12,7 +12,7 @@ Fetches a SQL dump artifact from a previous successful `Greengage SQL Dump` work
     version: '6'
     target_os: 'ubuntu'
     target_os_version: '24.04'
-````
+```
 
 The extracted dump file is available through the `sql_dump` output:
 
@@ -29,13 +29,15 @@ The extracted dump file is available through the `sql_dump` output:
 
 ## Inputs
 
-| Input               | Description                       | Required | Default             |
-| ------------------- | --------------------------------- | -------- | ------------------- |
-| `version`           | Greengage version (e.g., 6, 7, 8) | Yes      | -                   |
-| `target_os`         | Target OS                         | No       | `ubuntu`            |
-| `target_os_version` | Target OS version (e.g., 24.04)   | No       | `'24.04`            |
-| `artifact_prefix`   | Prefix of the input artifact name | No       | `sqldump_ggdb`      |
-| `archive_suffix`    | Suffix of the output archive name | No       | `_postgres_sqldump` |
+| Input               | Description                                                       | Required | Default                 |
+| ------------------- | ----------------------------------------------------------------- | -------- | ----------------------- |
+| `version`           | Greengage version (e.g., 6, 7, 8)                                 | Yes      | -                       |
+| `target_os`         | Target OS                                                         | No       | `ubuntu`                |
+| `target_os_version` | Target OS version (e.g., 24.04)                                   | No       | `'24.04'`               |
+| `repo`              | Repository to fetch the artifact from, in `[HOST/]OWNER/REPO` form | No       | `GreengageDB/greengage` |
+| `workflow`          | Workflow name to filter runs by                                   | No       | `Greengage SQL Dump`    |
+| `artifact_prefix`   | Prefix of the input artifact name                                 | No       | `sqldump_ggdb`          |
+| `archive_suffix`    | Suffix of the output archive name                                 | No       | `_postgres_sqldump`     |
 
 `target_os_version` is omitted from the generated OS name when its value is
 `22.04`. This preserves the default naming convention for Ubuntu 22.04.
@@ -68,8 +70,8 @@ ${{ steps.sql-dump.outputs.sql_dump }}
    `target_os` and `target_os_version`
 2. **Determine artifact name** - Builds the SQL dump artifact name from
    `artifact_prefix`, `version`, and the target OS name
-3. **Find successful workflow runs** - Queries the `Greengage SQL Dump`
-   workflow and gets up to 100 completed successful runs
+3. **Find successful workflow runs** - Queries the configured `workflow`
+   in the configured `repo` and gets up to 100 completed successful runs
 4. **Find SQL dump artifact** - Tries to download the requested artifact
    from each successful workflow run until it is found
 5. **Extract SQL dump** - Extracts the dump archive and captures the name
@@ -112,3 +114,26 @@ used.
   run: |
     ./run-test.sh "${{ steps.sql-dump.outputs.sql_dump }}"
 ```
+
+## Cross-repository usage
+
+The action works from any repository in the GreengageDB organization. By
+default it looks for runs in `GreengageDB/greengage`, but the `repo` and
+`workflow` inputs let callers point it elsewhere:
+
+```yaml
+- name: Fetch SQL dump
+  id: sql-dump
+  uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@v54
+  with:
+    version: 6
+    target_os: ubuntu
+    target_os_version: 24.04
+    repo: GreengageDB/greengage
+    workflow: Greengage SQL Dump
+```
+
+This relies on the organization-level setting that allows `GITHUB_TOKEN`
+from one repository to read Actions artifacts of another repository within
+the same organization. The default `github.token` is used; no PAT is
+required for callers inside the organization.
