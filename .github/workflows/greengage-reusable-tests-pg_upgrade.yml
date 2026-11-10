@@ -80,7 +80,9 @@ jobs:
           push: false
           file: ci/Dockerfile.pg_upgrade
           tags: ${{ env.PG_UPGRADE_IMAGE }}
-          build-args: GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
+          build-args: |
+            GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
+            GGDB6_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu${{ inputs.target_os_version }}:latest
 
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash
         env:
