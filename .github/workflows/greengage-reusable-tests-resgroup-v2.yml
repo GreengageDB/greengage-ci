@@ -18,6 +18,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 13–16.
+          Acceptable: 18.
+        required: false
+        type: number
+        default: 30
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -26,7 +34,7 @@ on:
 jobs:
   optimizer:  # Resource group v2 isolation tests (installcheck-resgroup-v2)
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: ${{ inputs.timeout }}
     strategy:
       fail-fast: false
       matrix:

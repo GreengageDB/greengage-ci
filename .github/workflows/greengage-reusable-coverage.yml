@@ -21,6 +21,14 @@ on:
         description: 'Minimum coverage percentage required (e.g., 75)'
         required: true
         type: number
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 1–2.
+          Acceptable: 5.
+        required: false
+        type: number
+        default: 10
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -29,6 +37,7 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout }}
     permissions:
       contents: read
       packages: read

@@ -23,6 +23,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 14–20.
+          Acceptable: 35.
+        required: false
+        type: number
+        default: 45
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -31,7 +39,7 @@ on:
 jobs:
   optimizer:
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: ${{ inputs.timeout }}
     strategy:
       fail-fast: false
       matrix:

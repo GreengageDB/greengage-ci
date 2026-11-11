@@ -27,6 +27,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 45–55.
+          Acceptable: 60.
+        required: false
+        type: number
+        default: 70
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -35,6 +43,7 @@ on:
 jobs:
   generate-matrix:
     runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout }}
     outputs:
       run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
     steps:

@@ -34,6 +34,14 @@ on:
         required: false
         type: string
         default: '--data-only --extra-float-digits=-3'
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 15–35.
+          Acceptable: 50–95.
+        required: false
+        type: number
+        default: 100
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -42,6 +50,7 @@ on:
 jobs:
   pg_upgrade:
     runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout }}
     steps:
       - name: Check supported target_os
         if: inputs.target_os != 'ubuntu'
