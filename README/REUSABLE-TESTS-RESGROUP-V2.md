@@ -18,7 +18,7 @@ both the `postgres` and `orca` optimizers.
 ## How it differs from `tests-resgroup` (cgroup v1)
 
 | | `tests-resgroup` (v1) | `tests-resgroup-v2` (this workflow) |
-|---|---|---|
+| --- | --- | --- |
 | cgroup mode | v1 | v2 |
 | Execution | QEMU VM booted with `systemd.unified_cgroup_hierarchy=0` | Directly on the runner |
 | Make target | `installcheck-resgroup` (`src/test/regress`) | `installcheck-resgroup-v2` (`src/test/isolation2`) |
@@ -39,10 +39,11 @@ block devices and the container script rejects Docker overlay / tmpfs paths.
 ### Inputs
 
 | Name                | Description                                       | Required | Type    | Default |
-|---------------------|--------------------------------------------------|----------|---------|---------|
-| `version`           | Greengage version (`7`; 7.x only)                | Yes      | String  | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`)         | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)            | No       | String  | `''`    |
+|---------------------|---------------------------------------------------|----------|---------|---------|
+| `version`           | Greengage version (`7`; 7.x only)                 | Yes      | String  | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
+| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 30      |
 
 ### Secrets
 

@@ -34,6 +34,7 @@ To integrate this workflow into your pipeline:
 | `target_os`           | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
 | `target_os_version`   | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
 | `coverage_threshold`  | Minimum coverage percentage required (e.g., `75`)    | Yes      | Number  | -       |
+| `timeout`             | Test timeout in minutes (int, 1–360)                 | No       | Number  | 10      |
 
 ### Secrets
 

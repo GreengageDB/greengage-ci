@@ -32,6 +32,7 @@ To integrate this workflow into your pipeline:
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
 | `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
+| `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 150     |
 
 ### Secrets
 

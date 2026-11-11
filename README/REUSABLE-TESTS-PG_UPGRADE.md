@@ -92,6 +92,7 @@ It is designed to be called from a parent CI pipeline.
 | `test_script` | Test script to execute as `gpadmin` | no | `pg_upgrade_run_6X_to_7X_migration.bash` |
 | `cleanup_script` | Cleanup script to run after loading `SQL_SCHEMA` | no | `cleanup_regression_dump_from_6X.sql` |
 | `dump_options` | `pg_dump` parameters for pre- and post-upgrade dumps | no | `--data-only --extra-float-digits=-3` |
+| `timeout` | Test timeout in minutes (int, 1–360) | no | 100 |
 
 ## Secrets
 
