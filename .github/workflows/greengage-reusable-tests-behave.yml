@@ -43,7 +43,6 @@ on:
 jobs:
   generate-matrix:
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.timeout }}
     outputs:
       run_matrix: ${{ steps.set-matrix.outputs.run_matrix }}
     steps:
@@ -94,6 +93,7 @@ jobs:
   behave:
     needs: generate-matrix
     runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout }}
     strategy:
       fail-fast: false
       matrix:
