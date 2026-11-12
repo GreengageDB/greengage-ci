@@ -49,7 +49,7 @@ composite action to manage package deployment. Currently supported for version
 6.x only; package build and release upload are not yet available for version
 7.x.
 
-### Key Features
+### Release Key Features
 
 - **Triggers:** `release: [published]` — runs when a release is published,
   including re-publishing.
@@ -65,7 +65,7 @@ composite action to manage package deployment. Currently supported for version
 - **Safe Uploads:** Uploads packages with fixed naming patterns and optional
   overwrite (`clobber` flag).
 
-### Behavior
+### Release Behavior
 
 1. **Normal Flow (Cache Available):** Restores packages from cache, renames
    them to the pattern `${PACKAGE_NAME}${VERSION}.${EXT}`, and uploads to the
@@ -85,7 +85,7 @@ A separate workflow `Greengage SQL Dump` is responsible for generating SQL dump
 artifacts after the main CI process completes successfully. It is triggered
 automatically upon the completion of the `Greengage CI` workflow.
 
-### Key Features
+### SQL Dump Key Features
 
 - **Triggers:** `workflow_run: workflows: ["Greengage CI"],
   types: [completed]`
@@ -121,7 +121,7 @@ automatically upon the completion of the `Greengage CI` workflow.
   (which consumes this artifact as a consumer) resets this retention period to
   90 days when it downloads the artifact.
 
-### Behavior
+### SQL Dump Behavior
 
 1. **Triggering:** Automatically starts after the `Greengage CI` workflow
    finishes on the `6.x` or `7.x` branch for push events where the conclusion
@@ -193,12 +193,14 @@ To use this pipeline:
 > the configuration.
 >
 > **Recommended approach**:
+>
 > - For `ubuntu`, **omit** `target_os_version` (leave it empty) to use the
 >   default behavior.
 > - Specify `target_os_version: "24.04"` only when you explicitly need Ubuntu
 >   24.04.
 >
 > **Example**:
+>
 > ```yaml
 > # Correct for default Ubuntu (recommended)
 > - target_os: ubuntu
@@ -220,7 +222,9 @@ of the `greengagedb/greengage-ci` repository:
 - Build process:
   [README/REUSABLE-BUILD.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-BUILD.md)
 - Package process:
-  [README/REUSABLE-PACKAGE.md](https://github.com/greengagedb/greengage-ci/blob/main/README/README/REUSABLE-PACKAGE.md)
+  [README/REUSABLE-PACKAGE.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-PACKAGE.md)
+- Coverage tests:
+  [README/REUSABLE-COVERAGE.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-COVERAGE.md)
 - Behave tests:
   [README/REUSABLE-TESTS-BEHAVE.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-TESTS-BEHAVE.md)
 - Orca tests:
@@ -229,6 +233,8 @@ of the `greengagedb/greengage-ci` repository:
   [README/REUSABLE-TESTS-REGRESSION.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-TESTS-REGRESSION.md)
 - Resource group tests:
   [README/REUSABLE-TESTS-RESGROUP.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-TESTS-RESGROUP.md)
+- Resource group v2 tests:
+  [README/REUSABLE-TESTS-RESGROUP-V2.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-TESTS-RESGROUP-V2.md)
 - Upload process:
   [README/REUSABLE-UPLOAD.md](https://github.com/greengagedb/greengage-ci/blob/main/README/REUSABLE-UPLOAD.md)
 

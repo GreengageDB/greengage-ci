@@ -4,7 +4,7 @@ This workflow runs regression test suites for the Greengage project in a contain
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v26`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v64`
 
 ## Purpose
 
@@ -62,7 +62,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v26
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v64
       with:
         version: 6
         target_os: ubuntu
@@ -88,7 +88,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v26
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression.yml@v64
       with:
         version: 7
         target_os: ${{ matrix.target_os }}

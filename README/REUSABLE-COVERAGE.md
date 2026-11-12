@@ -4,7 +4,7 @@ This workflow aggregates Python coverage data from Behave and regression test ru
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v46`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64`
 
 ## Purpose
 
@@ -62,7 +62,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v46
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64
       with:
         version: 7
         target_os: ubuntu
@@ -88,7 +88,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v46
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

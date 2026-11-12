@@ -4,7 +4,7 @@ This workflow deletes branch-specific Docker images from the GitHub Container Re
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v25`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v32`
 
 ## Purpose
 
@@ -47,7 +47,7 @@ To integrate this workflow into your pipeline:
     cleanup:
       permissions:
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v25
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v32
       with:
         version: 7
         target_os: ubuntu
@@ -69,7 +69,7 @@ To integrate this workflow into your pipeline:
               target_os_version: '24.04'
       permissions:
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v25
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@v32
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

@@ -18,6 +18,7 @@ when checking Pull Requests.
 The repository provides the following reusable workflows:
 
 - `build`: Builds GGDB Docker images and pushes to GHCR with commit SHA tag.
+- `coverage`: Aggregates Python coverage data from Behave and regression tests.
 - `tests-behave`: Executes Behave test suites, generates artifacts and report.
 - `tests-orca`: Runs ORCA linter and unit tests, produces test artifacts.
 - `tests-regression`: Performs regression tests with optimizer settings.
@@ -40,21 +41,31 @@ The repository provides the following reusable workflows:
    - Pushes the image to GHCR.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-2. **`tests-behave`**:
+2. **`coverage`**:
+
+   - Restores the GGDB Docker image tagged with the commit SHA.
+   - Downloads `coverage-data` artifacts from the Behave and regression tests.
+   - Combines the data in a Docker container and generates HTML and text reports.
+   - Checks the total coverage against `coverage_threshold`. Fails the job if it is lower.
+   - Adds a coverage table to the job summary.
+   - Uploads the combined report as an artifact (kept for 14 days).
+   - Uses inputs: `version`, `target_os`, `target_os_version`, `coverage_threshold`, `timeout`.
+
+3. **`tests-behave`**:
 
    - Runs Behave tests for features in a Docker container.
    - Generates artifacts and an aggregated Allure report.
    - Uses a matrix strategy to test multiple features.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-3. **`tests-orca`**:
+4. **`tests-orca`**:
 
    - Executes ORCA linter and unit tests in a Docker container.
    - Builds a linter image using `ci/Dockerfile.linter`.
    - Uploads artifacts.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-4. **`tests-regression`**:
+5. **`tests-regression`**:
 
    - Runs regression tests with optimizer settings (`orca`, `postgres`).
    - Uses a custom GitHub Action for test execution.
@@ -62,13 +73,13 @@ The repository provides the following reusable workflows:
    - Uses a matrix strategy to test both optimizer settings.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-5. **`tests-resgroup`**:
+6. **`tests-resgroup`**:
 
    - Executes resource groups (cgroup v1) tests using QEMU VM with cloud-init.
    - Generates log artifacts.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-6. **`tests-resgroup-v2`**:
+7. **`tests-resgroup-v2`**:
 
    - Executes resource group v2 (cgroup v2) isolation tests
      (`installcheck-resgroup-v2`) by running
@@ -80,14 +91,14 @@ The repository provides the following reusable workflows:
    - Generates log artifacts.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-7. **`tests-jit`**:
+8. **`tests-jit`**:
 
    - Runs JIT tests with optimizer settings (`orca`, `postgres`).
    - Generates log artifacts stored in a volume.
    - Uses a matrix strategy to test both optimizer settings.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-8. **`tests-pg_upgrade`**:
+9. **`tests-pg_upgrade`**:
 
    - Restores the built target image, builds a combined 6.x/7.x test
      image on top of it, and runs `pg_upgrade` to verify the upgrade
@@ -97,14 +108,14 @@ The repository provides the following reusable workflows:
      matrix consistency with other workflows but not otherwise varied.
    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-9. **`package`**:
+10. **`package`**:
 
-   - Builds Debian packages inside the Docker container.
-   - Optionally tests deployment in Docker.
-   - Uploads and caches Debian artifacts.
-   - Uses inputs: `version`, `target_os`, `target_os_version`.
+    - Builds Debian and/or RPM packages inside the Docker container.
+    - Optionally tests deployment in Docker.
+    - Uploads and caches package artifacts.
+    - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-10. **`upload`**:
+11. **`upload`**:
 
     - Restores and loads the SHA-tagged image from cache.
     - Retags based on the event:
@@ -113,7 +124,7 @@ The repository provides the following reusable workflows:
     - Pushes to GHCR and optionally to DockerHub.
     - Uses inputs: `version`, `target_os`, `target_os_version`.
 
-11. **`cleanup`** **(WIP — not in use)**:
+12. **`cleanup`** **(WIP — not in use)**:
 
     - Deletes branch-related images from GHCR on branch deletion.
     - Uses crane and GitHub API for tag removal.
@@ -131,7 +142,7 @@ To integrate these workflows into your pipeline:
 ### Inputs
 
 | Name | Description | Required | Type |
-|------|-------------|----------|------|
+| ------ | ------------- | ---------- | ------ |
 | `version` | Greengage version (`6` or `7`) | Yes | String |
 | `target_os` | Target OS (e.g., `ubuntu`) | Yes | String |
 | `target_os_version` | Target OS version (`22.04`, `24.04`) | No | String |
@@ -139,7 +150,7 @@ To integrate these workflows into your pipeline:
 ### Secrets
 
 | Name | Description | Required |
-|------|-------------|----------|
+| ------ | ------------- | ---------- |
 | `ghcr_token` | GitHub token for GHCR access | Yes |
 | `DOCKERHUB_USERNAME` | DockerHub username (for upload) | No |
 | `DOCKERHUB_TOKEN` | DockerHub token (for upload) | No |
@@ -177,12 +188,14 @@ To integrate these workflows into your pipeline:
 > the configuration.
 >
 > **Recommended approach**:
+>
 > - For `ubuntu`, **omit** `target_os_version` (leave it empty) to use the
 >   default behavior.
 > - Specify `target_os_version: "24.04"` only when you explicitly need Ubuntu
 >   24.04.
 >
 > **Example**:
+>
 > ```yaml
 > # Correct for default Ubuntu (recommended)
 > - target_os: ubuntu
@@ -201,9 +214,11 @@ To integrate these workflows into your pipeline:
 Real-world examples are available in the [`examples/`](examples/) directory:
 
 | File | Description |
-|------|-------------|
+| ------ | ------------- |
 | [`greengage-ci-6x.yml`](examples/greengage-ci-6x.yml) | CI for 6.x |
+| [`greengage-no-tests-6x.yml`](examples/greengage-no-tests-6x.yml) | CI for 6.x without tests |
 | [`greengage-ci-7x.yml`](examples/greengage-ci-7x.yml) | CI for 7.x |
+| [`greengage-no-tests-7x.yml`](examples/greengage-no-tests-7x.yml) | CI for 7.x without tests |
 | [`greengage-release.yml`](examples/greengage-release.yml) | Release upload |
 | [`greengage-sql-dump.yml`](examples/greengage-sql-dump.yml) | SQL dump |
 
@@ -258,6 +273,8 @@ directory of this repository:
   [REUSABLE-BUILD.md](README/REUSABLE-BUILD.md)
 - Package process:
   [REUSABLE-PACKAGE.md](README/REUSABLE-PACKAGE.md)
+- Coverage tests:
+  [REUSABLE-COVERAGE.md](README/REUSABLE-COVERAGE.md)
 - Behave tests:
   [REUSABLE-TESTS-BEHAVE.md](README/REUSABLE-TESTS-BEHAVE.md)
 - Orca tests:
