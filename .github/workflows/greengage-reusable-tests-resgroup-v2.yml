@@ -34,7 +34,6 @@ on:
 jobs:
   optimizer:  # Resource group v2 isolation tests (installcheck-resgroup-v2)
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.timeout }}
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +57,7 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
 
       - name: Run resource group v2 tests (optimizer '${{ matrix.optimizer }}')
-        timeout-minutes: 150
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           TEST_OS: ${{ inputs.target_os }}
           OPTIMIZER: ${{ matrix.optimizer == 'orca' && 'on' || 'off' }}

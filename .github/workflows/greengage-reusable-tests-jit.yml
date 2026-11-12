@@ -42,7 +42,6 @@ on:
 jobs:
   optimizer:  # JIT tests
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.timeout }}
     strategy:
       fail-fast: false
       matrix:
@@ -75,6 +74,7 @@ jobs:
 
       # Run JIT tests
       - name: JIT test ${{ github.job }} ${{ matrix.optimizer }}
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           ARCH: 'x86-64'
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}

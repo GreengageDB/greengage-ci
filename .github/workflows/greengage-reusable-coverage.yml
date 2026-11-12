@@ -23,7 +23,7 @@ on:
         type: number
       timeout:
         description: |
-          Test timeout in minutes (int, 1–360).
+          Job timeout in minutes (int, 1–360).
           Normal: 1–2.
           Acceptable: 5.
         required: false

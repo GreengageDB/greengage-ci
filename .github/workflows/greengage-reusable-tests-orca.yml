@@ -43,7 +43,6 @@ on:
 jobs:
   orca:
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.timeout }}
     permissions:
       contents: read  # Explicit for default behavior
       actions: write  # Required for cache and artifact upload
@@ -77,6 +76,7 @@ jobs:
 
       # Run ORCA Unit test using the passed image tag
       - name: ORCA Unit test
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
