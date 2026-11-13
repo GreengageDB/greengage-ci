@@ -4,7 +4,7 @@ This workflow runs resource groups test suites for the Greengage project using Q
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v29`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64`
 
 ## Purpose
 
@@ -50,6 +50,7 @@ To integrate this workflow into your pipeline:
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
 | `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
+| `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 45      |
 
 ### Secrets
 
@@ -91,7 +92,7 @@ jobs:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v29
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64
       with:
         version: 7
         target_os: ubuntu
@@ -115,7 +116,7 @@ jobs:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-resgroup-tests.yml@v29
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64
       with:
         version: 7
         target_os: ${{ matrix.target_os }}

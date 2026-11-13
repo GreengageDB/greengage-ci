@@ -34,6 +34,14 @@ on:
         required: false
         type: string
         default: '--data-only --extra-float-digits=-3'
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 15–35.
+          Acceptable: 50–95.
+        required: false
+        type: number
+        default: 100
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -85,6 +93,7 @@ jobs:
             GGDB6_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu${{ inputs.target_os_version }}:latest
 
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           SQL_DUMP: ${{ steps.sql-dump.outputs.sql_dump }}
           TEST_SCRIPT: ${{ inputs.test_script }}

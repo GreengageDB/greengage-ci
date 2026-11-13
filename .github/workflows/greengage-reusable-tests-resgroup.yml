@@ -23,6 +23,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 14–20.
+          Acceptable: 35.
+        required: false
+        type: number
+        default: 45
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -31,7 +39,6 @@ on:
 jobs:
   optimizer:
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -229,7 +236,7 @@ jobs:
           exit $EXIT_CODE
 
       - name: Run resgorup tests
-        timeout-minutes: 150
+        timeout-minutes: ${{ inputs.timeout }}
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
@@ -252,7 +259,7 @@ jobs:
 
       - name: Upload resgroup ${{ github.job }} ${{ matrix.optimizer }} artifacts
         if: always()  # Run even if previous step fails
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: resgroup_${{ env.IMAGE_NAME }}_${{ github.job }}_${{ matrix.optimizer }}
           path: logs.tar

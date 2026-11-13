@@ -7,7 +7,7 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v56`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64`
 
 ## Purpose
 
@@ -92,6 +92,7 @@ It is designed to be called from a parent CI pipeline.
 | `test_script` | Test script to execute as `gpadmin` | no | `pg_upgrade_run_6X_to_7X_migration.bash` |
 | `cleanup_script` | Cleanup script to run after loading `SQL_SCHEMA` | no | `cleanup_regression_dump_from_6X.sql` |
 | `dump_options` | `pg_dump` parameters for pre- and post-upgrade dumps | no | `--data-only --extra-float-digits=-3` |
+| `timeout` | Test timeout in minutes (int, 1–360) | no | 100 |
 
 ## Secrets
 
@@ -106,7 +107,7 @@ It is designed to be called from a parent CI pipeline.
 ```yaml
 jobs:
   pg_upgrade:
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v56
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -123,7 +124,7 @@ jobs:
           - target_os: ubuntu
           - target_os: ubuntu
             target_os_version: 24.04
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v56
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
     with:
       target_os: ${{ matrix.target_os }}
       target_os_version: ${{ matrix.target_os_version }}
@@ -136,7 +137,7 @@ jobs:
 ```yaml
 jobs:
   pg_upgrade:
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v56
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
     with:
       test_script: /path/to/custom-test-script.bash
       cleanup_script: /path/to/custom-cleanup.sql

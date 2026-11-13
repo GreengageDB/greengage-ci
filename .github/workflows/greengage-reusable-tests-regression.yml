@@ -23,6 +23,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 87–137.
+          Acceptable: 140.
+        required: false
+        type: number
+        default: 150
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -31,7 +39,6 @@ on:
 jobs:
   optimizer:  # Regression tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -55,13 +62,14 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
 
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           submodules: recursive
 
       - name: Regression tests with optimizer '${{ matrix.optimizer }}'
+        timeout-minutes: ${{ inputs.timeout }}
         uses: greengagedb/greengage-ci/.github/actions/tests/regression@v49
         with:
           image: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
@@ -78,7 +86,7 @@ jobs:
 
       - name: Upload regression optimizer ${{ matrix.optimizer }} artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ matrix.optimizer }}
           path: |

@@ -27,6 +27,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 45–55.
+          Acceptable: 60.
+        required: false
+        type: number
+        default: 70
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -147,7 +155,7 @@ jobs:
           fi
 
       - name: Run Behave feature ${{ matrix.feature }}
-        # continue-on-error: true
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |

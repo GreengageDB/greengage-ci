@@ -4,7 +4,7 @@ This workflow runs Behave test suites for the Greengage project in a containeriz
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v26`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v64`
 
 ## Purpose
 
@@ -45,6 +45,7 @@ To integrate this workflow into your pipeline:
 | `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
 | `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
+| `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 70      |
 
 ### Secrets
 
@@ -72,7 +73,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v26
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v64
       with:
         version: 7
         target_os: ubuntu
@@ -97,7 +98,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v26
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-behave.yml@v64
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

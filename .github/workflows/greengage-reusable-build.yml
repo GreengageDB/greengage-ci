@@ -48,7 +48,7 @@ jobs:
 
       # Checkout default branch
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}

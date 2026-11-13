@@ -27,6 +27,14 @@ on:
         required: false
         type: string
         default: ''
+      timeout:
+        description: |
+          Test timeout in minutes (int, 1–360).
+          Normal: 14–32.
+          Acceptable: 35.
+        required: false
+        type: number
+        default: 45
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -47,7 +55,7 @@ jobs:
 
       # Checkout repository with shallow clone
       - name: Checkout Greengage repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
@@ -68,6 +76,7 @@ jobs:
 
       # Run ORCA Unit test using the passed image tag
       - name: ORCA Unit test
+        timeout-minutes: ${{ inputs.timeout }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}:${{ github.sha }}
         run: |
@@ -84,7 +93,7 @@ jobs:
       # Upload ORCA artifacts
       - name: Upload ORCA artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.job }}_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: logs
