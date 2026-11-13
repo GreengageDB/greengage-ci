@@ -117,7 +117,7 @@ Artifacts are retained for 7 days and include a warning if no files are found.
 ### Notes
 
 - The workflow uses a matrix strategy with `fail-fast: false` to ensure all optimizer combinations run even if one fails.
-- The timeout for the entire job is set to 180 minutes (3 hours).
+- The timeout for the entire job is set to 150 minutes (2 hours 30 minutes).
 - Docker storage is relocated to `/mnt/docker` to maximize available disk space.
 - The workflow expects images to be available in GitHub Actions cache from a prior build job and uses the full commit SHA (`github.sha`) for cache key matching.
 - The `restore-load-image` composite action restores the Docker image from GitHub Actions cache and loads it into the runner's local Docker registry for use in tests.
