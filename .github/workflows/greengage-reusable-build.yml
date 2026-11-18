@@ -13,10 +13,9 @@ on:
         required: true
         type: string
       target_os_version:
-        description: 'Target OS version (e.g., 24.04)'
-        required: false
+        description: 'Target OS version (e.g., 22.04)'
+        required: true
         type: string
-        default: ''
       skip_unittests:
         description: 'Skip Unit tests before building'
         required: false
@@ -35,10 +34,14 @@ jobs:
       packages: write # Required to push to GHCR
       actions: write  # Required for cache
     env:
-      IMAGE: ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      IMAGE:          ghcr.io/${{ github.repository }}/ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      IMAGE_BASE:     ghcr.io/${{ github.repository }}/base_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
+      IMAGE_BASE_HUB: greengagedb/base_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
       TARGET_OS:  ${{ inputs.target_os }}
-      OS_VERSION: ${{ inputs.target_os_version || 22.04 }}
+      OS_VERSION: ${{ inputs.target_os_version }}
       SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
+      # Push to GHCR is possible for pushes and for PRs from this repository only
+      CAN_PUSH: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
@@ -59,18 +62,23 @@ jobs:
 
       # Login to GitHub Container Registry for local PRs OR push
       - name: Login to GitHub Container Registry
-        if: >
-          github.event_name == 'push' ||
-          (github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository)
+        if: env.CAN_PUSH == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Build Docker intermediate image with commit SHA tag
-      - name: Build Docker image
+      # Branch name for PRs, branch or tag name for pushes
+      - name: Compute ref tag
+        env:
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          REF_TAG=$(echo "$REF_NAME" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          echo "REF_TAG=${REF_TAG:-unknown}" >> "$GITHUB_ENV"
+
+      # Base image is always built: unchanged layers come from the cache
+      - name: Build base image
         run: |
           case "$TARGET_OS" in
             ubuntu)
@@ -84,27 +92,44 @@ jobs:
               ;;
           esac
           docker build $docker_options \
+            --provenance=false \
             --build-arg OS_VERSION \
+            --build-arg TARGET_OS \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --cache-from ${IMAGE_BASE,,}:$REF_TAG \
+            --cache-from ${IMAGE_BASE,,}:latest \
+            --cache-from $IMAGE_BASE_HUB:latest \
+            --tag ${IMAGE_BASE,,}:$REF_TAG \
+            -f ci/Dockerfile.base \
+            .
+
+      # Push right after the build: the next run finds this base as cache
+      # even if the main build below fails
+      - name: Push base image
+        if: env.CAN_PUSH == 'true'
+        run: docker push ${IMAGE_BASE,,}:$REF_TAG
+
+      # Build Docker intermediate image with commit SHA tag
+      - name: Build Docker image
+        run: |
+          docker build \
+            --provenance=false \
             --build-arg SKIP_UNITTESTS \
+            --build-arg BASE_IMAGE=${IMAGE_BASE,,}:$REF_TAG \
             --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ci/Dockerfile.$TARGET_OS \
+            -f ci/Dockerfile \
             .
 
       # Push developer's and SHA tag image for internal PRs and pushes
       - name: Push developer's and SHA tag image
         id: push
-        if: >
-          github.event_name == 'push' ||
-          (github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository)
+        if: env.CAN_PUSH == 'true'
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
           if [ -n "$HEAD_REF" ]; then
-            DEV_TAG=$(echo "$HEAD_REF" | sed 's/[^a-zA-Z0-9._-]/_/g')
-            DEV_TAG=${DEV_TAG:-unknown}
-            docker tag  ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$DEV_TAG
-            docker push ${IMAGE,,}:$DEV_TAG
+            docker tag  ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$REF_TAG
+            docker push ${IMAGE,,}:$REF_TAG
           fi
           docker push ${IMAGE,,}:${{ github.sha }}
 
