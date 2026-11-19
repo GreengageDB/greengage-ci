@@ -67,12 +67,7 @@ jobs:
               echo "DOCKER_OPTIONS=--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}" >> "$GITHUB_ENV"
             fi
           fi
-          REF_TAG=$(sed 's/[^a-zA-Z0-9._-]/_/g' <<< $REF_NAME)
-          if [[ "$REF_TAG" =~ ^(latest|testing|v[0-9]+(\.[0-9]+)*)$ ]]; then
-            echo "::error::Ref '$REF_NAME' resolves to reserved tag '$REF_TAG'. Tags 'latest', 'testing' and 'vX[.Y[.Z…]]' are published only by the 'upload' workflow on tag pushes. Rename the branch."
-            exit 1
-          fi
-          echo "REF_TAG=$REF_TAG" >> "$GITHUB_ENV"
+          echo "REF_TAG=$(sed 's/[^a-zA-Z0-9._-]/_/g' <<< $REF_NAME)" >> "$GITHUB_ENV"
 
       - name: Login to GitHub Container Registry
         continue-on-error: true

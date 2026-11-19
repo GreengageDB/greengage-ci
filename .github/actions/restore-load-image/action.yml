@@ -35,7 +35,7 @@ runs:
       continue-on-error: true
       id: pull
       run: |
-        docker pull $IMAGE_BASE
+        docker pull $IMAGE_BASE || true
         docker pull $IMAGE_DEVELOPER
         [ -n "$SAVE_TAR" ] && docker save -o ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar $IMAGE_DEVELOPER || true
 
