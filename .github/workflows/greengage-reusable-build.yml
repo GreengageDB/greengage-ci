@@ -40,8 +40,6 @@ jobs:
       TARGET_OS:      ${{ inputs.target_os }}
       OS_VERSION:     ${{ inputs.target_os_version }}
       SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
-      # Push to GHCR is possible for pushes and for PRs from this repository only
-      PUSH_GHCR: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     steps:
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
@@ -59,26 +57,30 @@ jobs:
           fetch-tags: true  # Default 'false'
           filter: blob:none # without BLOBs
 
-      - name: Login to GitHub Container Registry
-        if: env.PUSH_GHCR == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.ghcr_token }}
-
       - name: Prepare environment
         env:
           REF_NAME: ${{ github.head_ref || github.ref_name }} # Branch name for PRs, branch or tag name for pushes
         run: |
-          REF_TAG=$(echo "$REF_NAME" | sed 's/[^a-zA-Z0-9._-]/_/g')
-          echo "REF_TAG=${REF_TAG:-unknown}" >> "$GITHUB_ENV"
-          if [[ "$TARGET_OS" == "ubuntu" ]] ; then
+          if [[ "$TARGET_OS" == "ubuntu" ]] ; then # Set GitHub mirrors for Ubuntu
             mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
             if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
               echo "DOCKER_OPTIONS=--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}" >> "$GITHUB_ENV"
             fi
           fi
+          REF_TAG=$(sed 's/[^a-zA-Z0-9._-]/_/g' <<< $REF_NAME)
+          if [[ "$REF_TAG" =~ ^(latest|testing|v[0-9]+(\.[0-9]+)*)$ ]]; then
+            echo "::error::Ref '$REF_NAME' resolves to reserved tag '$REF_TAG'. Tags 'latest', 'testing' and 'vX[.Y[.Z…]]' are published only by the 'upload' workflow on tag pushes. Rename the branch."
+            exit 1
+          fi
+          echo "REF_TAG=$REF_TAG" >> "$GITHUB_ENV"
+
+      - name: Login to GitHub Container Registry
+        continue-on-error: true
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ghcr_token }}
 
       # Base image is always built: unchanged layers come from the cache
       - name: Build base image
@@ -91,15 +93,20 @@ jobs:
             --cache-from ${IMAGE_BASE,,}:$REF_TAG \
             --cache-from ${IMAGE_BASE,,}:latest \
             --cache-from $IMAGE_BASE_HUB:latest \
-            --tag ${IMAGE_BASE,,}:$REF_TAG \
+            --tag ${IMAGE_BASE,,}:${{ github.sha }} \
             -f ci/Dockerfile.base \
             .
 
-      # Push right after the build: the next run finds this base as cache
-      # even if the main build below fails
-      - name: Push base image
-        if: env.PUSH_GHCR == 'true'
-        run: docker push ${IMAGE_BASE,,}:$REF_TAG
+      - name: Push base images
+        continue-on-error: true
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ -n "$HEAD_REF" ]; then # On PRs only
+            docker tag  ${IMAGE_BASE,,}:${{ github.sha }} ${IMAGE_BASE,,}:$REF_TAG
+            docker push ${IMAGE_BASE,,}:$REF_TAG
+          fi
+          docker push ${IMAGE_BASE,,}:${{ github.sha }}
 
       # Build developer intermediate image with commit SHA tag
       - name: Build developer image
@@ -107,19 +114,18 @@ jobs:
           docker build \
             --provenance=false \
             --build-arg SKIP_UNITTESTS \
-            --build-arg BASE_IMAGE=${IMAGE_BASE,,}:$REF_TAG \
+            --build-arg BASE_IMAGE=${IMAGE_BASE,,}:${{ github.sha }} \
             --tag ${IMAGE,,}:${{ github.sha }} \
             -f ci/Dockerfile \
             .
 
-      # Push developer's and SHA tag image for internal PRs and pushes
-      - name: Push developer's and SHA tag image
+      - name: Push developer images
         id: push
-        if: env.PUSH_GHCR == 'true'
+        continue-on-error: true
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          if [ -n "$HEAD_REF" ]; then
+          if [ -n "$HEAD_REF" ]; then # On PRs only
             docker tag  ${IMAGE,,}:${{ github.sha }} ${IMAGE,,}:$REF_TAG
             docker push ${IMAGE,,}:$REF_TAG
           fi
@@ -132,7 +138,7 @@ jobs:
 
       - name: Cache SHA image
         if: steps.push.outcome != 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}.tar
           key:  ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_${{ github.sha }}
