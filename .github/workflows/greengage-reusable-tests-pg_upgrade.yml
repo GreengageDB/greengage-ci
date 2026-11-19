@@ -78,8 +78,8 @@ jobs:
         with:
           version: 6
 
-      - name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
-        run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
+      - name: Define PG_UPGRADE_IMAGE name from IMAGE_DEVELOPER
+        run: echo "PG_UPGRADE_IMAGE=${IMAGE_DEVELOPER/:/_pgupgrade:}" >> $GITHUB_ENV
 
       - name: Build ${{ env.PG_UPGRADE_IMAGE }}
         uses: docker/build-push-action@v7
@@ -89,7 +89,7 @@ jobs:
           file: ci/Dockerfile.pg_upgrade
           tags: ${{ env.PG_UPGRADE_IMAGE }}
           build-args: |
-            GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
+            GGDB7_IMAGE=${{ env.IMAGE_DEVELOPER }}
             GGDB6_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu${{ inputs.target_os_version }}:latest
 
       - name: Run pg_upgrade_run_6X_to_7X_migration.bash

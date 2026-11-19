@@ -74,7 +74,7 @@ jobs:
             -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
             -v /mnt/gpdemo-datadirs:/home/gpadmin/gpdb_src/gpAux/gpdemo/datadirs:rw \
             -v /mnt/testtablespace:/home/gpadmin/gpdb_src/src/test/isolation2/testtablespace:rw \
-            $RESTORE_LOAD_IMAGE /bin/bash <<'EOF'
+            $IMAGE_DEVELOPER /bin/bash <<'EOF'
           /home/gpadmin/gpdb_src/concourse/scripts/ic_gpdb_resgroup_v2.bash
           EOF
 

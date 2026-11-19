@@ -47,7 +47,7 @@ This action doesn't declare formal `outputs`, but exports the resolved image ref
 
 Variable               | Description
 ---------------------- | -----------------------------------------------------------
-`RESTORE_LOAD_IMAGE`   | Full resolved image reference (`ghcr.io/{repo}/ggdb{version}_{target_os}{target_os_version}:{sha}`, lowercased) that was pulled or loaded.
+`IMAGE_DEVELOPER`   | Full resolved image reference (`ghcr.io/{repo}/ggdb{version}_{target_os}{target_os_version}:{sha}`, lowercased) that was pulled or loaded.
 
 Real-world example — used by the `pg_upgrade` test job to derive a name for the built pg_upgrade image and to pin it to the exact restored image:
 
@@ -60,8 +60,8 @@ Real-world example — used by the `pg_upgrade` test job to derive a name for th
     target_os_version: 22.04
     extract_ci: ci
 
-- name: Define PG_UPGRADE_IMAGE name from RESTORE_LOAD_IMAGE
-  run: echo "PG_UPGRADE_IMAGE=${RESTORE_LOAD_IMAGE/:/_pgupgrade:}" >> $GITHUB_ENV
+- name: Define PG_UPGRADE_IMAGE name from IMAGE_DEVELOPER
+  run: echo "PG_UPGRADE_IMAGE=${IMAGE_DEVELOPER/:/_pgupgrade:}" >> $GITHUB_ENV
 
 - name: Build ${{ env.PG_UPGRADE_IMAGE }}
   uses: docker/build-push-action@v7
@@ -70,12 +70,12 @@ Real-world example — used by the `pg_upgrade` test job to derive a name for th
     push: false
     file: ci/Dockerfile.pg_upgrade
     tags: ${{ env.PG_UPGRADE_IMAGE }}
-    build-args: GGDB7_IMAGE=${{ env.RESTORE_LOAD_IMAGE }}
+    build-args: GGDB7_IMAGE=${{ env.IMAGE_DEVELOPER }}
 ```
 
 ## What it does
 
-1. **Determine image name** - Resolves the target image reference and exports it as `RESTORE_LOAD_IMAGE`
+1. **Determine image name** - Resolves the target image reference and exports it as `IMAGE_DEVELOPER`
 2. **Try pull from GHCR** - Attempts to pull the image from GitHub Container Registry
 3. **Restore from cache** - If pull fails, restores the image tarball from GitHub Actions cache
 4. **Load Docker image** - Loads the image into Docker; removes tarball unless `save_tar` is set
