@@ -43,7 +43,7 @@ To integrate this workflow into your pipeline:
 - **OS-specific mirrors**: During build, mirror optimization is applied per target OS.
   For `ubuntu`, `azure.archive.ubuntu.com` is resolved and injected via `--add-host` for `archive.ubuntu.com` and `security.ubuntu.com`, falling back to default mirrors if unreachable.
   For other OSes (e.g., `rockylinux`), no mirror override is applied.
-- **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v4` with a key matching the image tag.
+- **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v6` with a key matching the image tag.
 
 ### Examples
 
