@@ -109,8 +109,8 @@ jobs:
         if: env.PUSH_GHCR == 'true'
         run: docker push ${IMAGE_BASE,,}:$REF_TAG
 
-      # Build Docker intermediate image with commit SHA tag
-      - name: Build Docker image
+      # Build developer intermediate image with commit SHA tag
+      - name: Build developer image
         run: |
           docker build \
             --provenance=false \
