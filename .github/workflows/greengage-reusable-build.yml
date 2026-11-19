@@ -49,7 +49,6 @@ jobs:
       - name: Enable Docker IPv6
         uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 
-      # Checkout default branch
       - name: Checkout Greengage repo
         uses: actions/checkout@v7
         with:
@@ -60,7 +59,6 @@ jobs:
           fetch-tags: true  # Default 'false'
           filter: blob:none # without BLOBs
 
-      # Login to GitHub Container Registry for local PRs OR push
       - name: Login to GitHub Container Registry
         if: env.PUSH_GHCR == 'true'
         uses: docker/login-action@v4
@@ -69,29 +67,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ghcr_token }}
 
-      # Branch name for PRs, branch or tag name for pushes
-      - name: Compute ref tag
+      - name: Prepare environment
         env:
-          REF_NAME: ${{ github.head_ref || github.ref_name }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }} # Branch name for PRs, branch or tag name for pushes
         run: |
           REF_TAG=$(echo "$REF_NAME" | sed 's/[^a-zA-Z0-9._-]/_/g')
           echo "REF_TAG=${REF_TAG:-unknown}" >> "$GITHUB_ENV"
+          if [[ "$TARGET_OS" == "ubuntu" ]] ; then
+            mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
+            if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
+              echo "DOCKER_OPTIONS=--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}" >> "$GITHUB_ENV"
+            fi
+          fi
 
       # Base image is always built: unchanged layers come from the cache
       - name: Build base image
         run: |
-          case "$TARGET_OS" in
-            ubuntu)
-              mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
-              if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
-                docker_options="--add-host=archive.ubuntu.com:${mirror_ip} --add-host=security.ubuntu.com:${mirror_ip}"
-              fi
-              ;;
-            rockylinux)
-              # TODO: add Azure mirror for Rocky Linux if available
-              ;;
-          esac
-          docker build $docker_options \
+          docker build $DOCKER_OPTIONS \
             --provenance=false \
             --build-arg OS_VERSION \
             --build-arg TARGET_OS \
