@@ -4,7 +4,7 @@ This workflow builds Docker images for the Greengage project and caches them for
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@CI-6587`
 
 ## Purpose
 
@@ -43,7 +43,7 @@ To integrate this workflow into your pipeline:
 - **OS-specific mirrors**: During build, mirror optimization is applied per target OS.
   For `ubuntu`, `azure.archive.ubuntu.com` is resolved and injected via `--add-host` for `archive.ubuntu.com` and `security.ubuntu.com`, falling back to default mirrors if unreachable.
   For other OSes (e.g., `rockylinux`), no mirror override is applied.
-- **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v4` with a key matching the image tag.
+- **Caching**: The built image is saved as a `.tar` file and cached using `actions/cache/save@v6` with a key matching the image tag.
 
 ### Examples
 
@@ -56,7 +56,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@CI-6587
       with:
         version: 7
         target_os: ubuntu
@@ -80,7 +80,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: write
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@CI-6587
       with:
         version: 6
         target_os: ${{ matrix.target_os }}

@@ -6,7 +6,7 @@ called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@CI-6587`
 
 ## Purpose
 
@@ -76,7 +76,7 @@ jobs:
       contents: read
       packages: read
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@v64
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@CI-6587
     with:
       version: 7
       target_os: ubuntu

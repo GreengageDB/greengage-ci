@@ -4,7 +4,7 @@ This workflow runs ORCA test suites for the Greengage project in a containerized
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@CI-6587`
 
 ## Purpose
 
@@ -59,7 +59,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@CI-6587
       with:
         version: 7
         target_os: ubuntu
@@ -84,7 +84,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-orca.yml@CI-6587
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
