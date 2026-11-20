@@ -91,7 +91,7 @@ jobs:
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "$REF" =~ ^refs/tags/ ]]; then
             # Current Git tag
-            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/_/g')
             # All HEAD ref tags
             SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
             # Get the latest semantic tag
