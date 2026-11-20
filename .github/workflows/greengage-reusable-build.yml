@@ -114,7 +114,7 @@ jobs:
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --cache-from ${IMAGE,,}:${{ github.sha }} \
             --tag ${IMAGE,,}:${{ github.sha }} \
-            -f ci/Dockerfile \
+            -f ci/Dockerfile.developer \
             .
 
       - name: Push developer images
