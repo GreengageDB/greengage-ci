@@ -4,7 +4,7 @@ This workflow aggregates Python coverage data from Behave and regression test ru
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@CI-6587`
 
 ## Purpose
 
@@ -34,7 +34,7 @@ To integrate this workflow into your pipeline:
 | `target_os`           | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
 | `target_os_version`   | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
 | `coverage_threshold`  | Minimum coverage percentage required (e.g., `75`)    | Yes      | Number  | -       |
-| `timeout`             | Job timeout in minutes (int, 1–360)                 | No       | Number  | 10      |
+| `timeout`             | Job timeout in minutes (int, 1–360)                  | No       | Number  | 10      |
 
 ### Secrets
 
@@ -62,7 +62,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@CI-6587
       with:
         version: 7
         target_os: ubuntu
@@ -88,7 +88,7 @@ To integrate this workflow into your pipeline:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-coverage.yml@CI-6587
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
