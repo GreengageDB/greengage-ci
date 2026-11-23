@@ -94,21 +94,15 @@ automatically upon the completion of the `Greengage CI` workflow.
   based on the triggering branch (`6.x` → version 6, `7.x` → version 7).
   Since `Greengage SQL Dump` is not branch-specific itself, the version is
   derived at runtime from the branch of the triggering `Greengage CI` run.
-- **Matrix Strategy:** Runs across multiple OS configurations to generate dumps
-  for all available build targets. The set of configurations mirrors what was
-  built in `Greengage CI`:
-  - `ubuntu` (default, no version suffix — compatible with Ubuntu 22.04
-    artifact naming)
-  - `ubuntu24.04` (version 6.x only)
 - **Image Pull Check:** Before creating a SQL dump, the workflow attempts to
-  pull the Docker image from GHCR. This handles cases where the matrix includes
-  OS versions for which no image was built in the triggering CI run.
+  pull the Docker image from GHCR. This handles cases where OS versions for
+  which no image was built in the triggering CI run.
 - **Conditional Dump Generation:** If the image is pulled successfully, the
   workflow runs the regression test suite with the `dump_db: "true"` parameter
   to generate a SQL dump archive. If the pull fails, the dump creation and
   upload steps are skipped for that matrix entry.
 - **Artifact Upload:** Uploads the generated SQL dump archive as a named
-  artifact (e.g., `sqldump_ggdb6_ubuntu`, `sqldump_ggdb7_ubuntu24.04`).
+  artifact (e.g., `sqldump_ggdb6_ubuntu24.04`, `sqldump_ggdb7_ubuntu24.04`).
 - **Verification Job:** A final job checks if at least one SQL dump was created
   across all matrix configurations by querying the GitHub Actions jobs API. If
   no dumps were uploaded, the workflow fails with an error.
@@ -138,7 +132,7 @@ automatically upon the completion of the `Greengage CI` workflow.
    the regression test suite with the `dump_db` option enabled, which creates a
    `*_postgres_sqldump.tar` file.
 6. **Artifact Upload:** Uploads the generated SQL dump archive as a named
-   artifact (e.g., `sqldump_ggdb6_ubuntu`, `sqldump_ggdb7_ubuntu24.04`).
+   artifact (e.g., `sqldump_ggdb6_ubuntu24.04`, `sqldump_ggdb7_ubuntu24.04`).
 7. **Artifact Reporting:** Logs the artifact name and direct URL for each
    successfully uploaded dump.
 8. **Verification:** A final job queries the GitHub Actions jobs API to count
@@ -157,12 +151,9 @@ The workflow is parameterized to support flexibility:
   automatically from the triggering branch in the SQL Dump workflow, and
   hardcoded per branch in the CI workflow.
 - **Target OS**: Supports multiple operating systems, defined in the matrix
-  strategy. Ubuntu 22.04 uses no version suffix for backward compatibility with
-  existing artifact naming; Ubuntu 24.04 support is currently available for
-  version 6.x only.
+  strategy.
 - **Package Build and Release**: Debian package build and upload to GitHub
-  releases are currently supported for version 6.x only. Version 7.x does not
-  yet include package build steps in the CI workflow.
+  releases.
 
 ## Usage
 
@@ -183,36 +174,9 @@ To use this pipeline:
 
 ## Important Notes on `target_os_version`
 
-> **⚠️ BACKWARD COMPATIBILITY WARNING**
->
-> For `ubuntu`, specifying `target_os_version: "22.04"` explicitly is **not
-> recommended** and may break backward compatibility with previous CI versions.
->
-> **Reason**: In earlier CI versions, Ubuntu version was not versioned — it was
-> hardcoded as the only possible option. The version did not appear anywhere in
-> the configuration.
->
-> **Recommended approach**:
->
-> - For `ubuntu`, **omit** `target_os_version` (leave it empty) to use the
->   default behavior.
-> - Specify `target_os_version: "24.04"` only when you explicitly need Ubuntu
->   24.04.
->
-> **Example**:
->
-> ```yaml
-> # Correct for default Ubuntu (recommended)
-> - target_os: ubuntu
->
-> # Correct for explicit Ubuntu 24.04
-> - target_os: ubuntu
->   target_os_version: "24.04"
->
-> # NOT recommended (breaks backward compatibility)
-> - target_os: ubuntu
->   target_os_version: "22.04"
-> ```
+> **⚠️ `target_os_version` is required.**
+> Set it for every OS, for example `"22.04"`, `"24.04"` or `"9"`.
+> An empty value does not mean Ubuntu 22.04 any more.
 
 ## Additional Documentation
 
@@ -244,9 +208,9 @@ of the `greengagedb/greengage-ci` repository:
   are executed, even if one fails. This allows the SQL Dump workflow to check
   all OS configurations and skip missing images gracefully.
 - The full process, including build, tests, and upload, runs only before pull
-  request approval. For push events (branches `6.x`, `7.x` or tags `6.*`,
-  `7.*`), a build occurs to ensure correct commit references and product
-  version, using the closest tag to HEAD, followed by upload.
+  request approval. For push events (branches `6.x`, `7.x`, `next` or tags
+  `6.*`, `7.*`, `8.*`), a build occurs to ensure correct commit references and
+  product version, using the closest tag to HEAD, followed by upload.
 - For `greengagedb/greengage`, DockerHub credentials (`DOCKERHUB_TOKEN`,
   `DOCKERHUB_USERNAME`) are mandatory — login failure will stop the workflow.
   For other repositories they are optional — if missing or invalid, DockerHub

@@ -92,8 +92,7 @@ To integrate this workflow into your pipeline:
 |---------------------|--------------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)                   | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`, `rockylinux`) | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `9`).       | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                       | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)                 | Yes      | String  | -       |
 
 ### Secrets
 
@@ -113,7 +112,7 @@ To integrate this workflow into your pipeline:
 
 ### Examples
 
-- Single
+- **Single Configuration**
 
   ```yaml
   jobs:
@@ -125,15 +124,14 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: '24.04'
-        python3: ''
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
-- Matrix
+- **Matrix Configuration**
 
   ```yaml
   jobs:
@@ -143,9 +141,9 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
-              target_os_version: '22.04'
+              target_os_version: "22.04"
             - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: write
@@ -160,7 +158,7 @@ To integrate this workflow into your pipeline:
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
-### Notes
+## Notes
 
 - The workflow fetches all tags to resolve the version correctly.
 - For further details, refer to the workflow file in the `.github/workflows/` directory.

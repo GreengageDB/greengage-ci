@@ -32,7 +32,7 @@ To integrate this workflow into your pipeline:
 |-----------------------|------------------------------------------------------|----------|---------|---------|
 | `version`             | Greengage version (e.g., `6` or `7`)                 | Yes      | String  | -       |
 | `target_os`           | Target operating system (e.g., `ubuntu`)             | Yes      | String  | -       |
-| `target_os_version`   | Target OS version (e.g., ``, `24.04`)                | No       | String  | `''`    |
+| `target_os_version`   | Target OS version (e.g., `24.04`, `9`)               | Yes      | String  | -       |
 | `coverage_threshold`  | Minimum coverage percentage required (e.g., `75`)    | Yes      | Number  | -       |
 | `timeout`             | Job timeout in minutes (int, 1–360)                  | No       | Number  | 10      |
 
@@ -66,6 +66,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
+        target_os_version: "24.04"
         coverage_threshold: 75
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -82,8 +83,7 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
-            - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: read

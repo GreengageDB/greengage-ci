@@ -30,7 +30,7 @@ Name                | Description                                         | Requ
 ------------------- | --------------------------------------------------- | -------- | ------ | -----------
 `image`             | Greengage Docker image for tests                    | Yes      | String | -
 `target_os`         | Target operating system (e.g., `ubuntu`)            | Yes      | String | -
-`target_os_version` | Target OS version (e.g., `22`, `7`)                 | Yes      | String | `''`
+`target_os_version` | Target OS version (e.g., `24.04`, `9`)              | Yes      | String | -
 `optimizer`         | Optimizer for tests (`postgres` or `orca`)          | Yes      | String | -
 `log_dir`           | Output logs directory for mount in container        | No       | String | `/mnt/logs`
 `log_name`          | Container name for log collection                   | No       | String | `ggdb_test`
@@ -54,7 +54,7 @@ Name                | Description                                         | Requ
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
       target_os: ubuntu
-      target_os_version: '22.04'
+      target_os_version: "22.04"
   ```
 
 - With database dump (typically used with Postgres optimizer)
@@ -66,7 +66,7 @@ Name                | Description                                         | Requ
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
       target_os: ubuntu
-      target_os_version: '22.04'
+      target_os_version: "22.04"
       dump_db: 'true'
   ```
 
@@ -79,7 +79,7 @@ Name                | Description                                         | Requ
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu22.04:1c1bfa51989c52423e6b332128ad41aca938e5f3
       optimizer: postgres
       target_os: ubuntu
-      target_os_version: '22.04'
+      target_os_version: "22.04"
       log_dir: /tmp/test-logs
   ```
 

@@ -29,9 +29,8 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)            | Yes      | String  | -       |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 | `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 150     |
 
 ### Secrets
@@ -51,7 +50,7 @@ To integrate this workflow into your pipeline:
 
 ### Examples
 
-- Single OS configuration
+- **Single Configuration**
 
   ```yaml
   jobs:
@@ -66,11 +65,12 @@ To integrate this workflow into your pipeline:
       with:
         version: 6
         target_os: ubuntu
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
 
-- Matrix strategy for multiple operating systems
+- **Matrix Configuration**
 
   ```yaml
   jobs:
@@ -82,8 +82,7 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
-            - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: read
@@ -114,7 +113,7 @@ Each artifact contains tar archives with test logs, results, and diagnostics:
 
 Artifacts are retained for 7 days and include a warning if no files are found.
 
-### Notes
+## Notes
 
 - The workflow uses a matrix strategy with `fail-fast: false` to ensure all optimizer combinations run even if one fails.
 - The timeout for the entire job is set to 150 minutes (2 hours 30 minutes).

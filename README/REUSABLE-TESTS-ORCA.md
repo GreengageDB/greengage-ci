@@ -29,9 +29,8 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)            | Yes      | String  | -       |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 | `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 45      |
 
 ### Secrets
@@ -48,9 +47,9 @@ To integrate this workflow into your pipeline:
 - **Repository Access**: The workflow checks out the repository specified in `github.repository`.
 - **Artifacts**: The workflow uploads artifacts (e.g., `gpAux/ext`) to GitHub Actions.
 
-### Examples
+## Examples
 
-- Single
+- **Single Configuration**
 
   ```yaml
   jobs:
@@ -63,12 +62,12 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        python3: ''
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
 
-- Matrix
+- **Matrix Configuration**
 
   ```yaml
   jobs:
@@ -78,8 +77,7 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
-            - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: read
@@ -93,10 +91,10 @@ To integrate this workflow into your pipeline:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
 
-### Notes
+## Notes
 
 - If `ref` is not provided, the workflow checks out the default branch.
-- The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
+- The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu24.04:<full-sha>`).
 - Artifacts are uploaded with the name `orca_ggdb<version>_<target_os><target_os_version>`.
 - Ensure the ORCA test environment is configured correctly in the repository (e.g., `ci/Dockerfile.linter`, `gpdb_src/concourse/scripts/unit_tests_gporca.bash`).
 

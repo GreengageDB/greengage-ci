@@ -24,7 +24,7 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `22.04`, `24.04`, `9`)   | Yes      | String  | -       |
 
 ### Secrets
 
@@ -51,6 +51,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -65,8 +66,9 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
+              target_os_version: "22.04"
             - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         packages: write
       uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-cleanup.yml@CI-6587

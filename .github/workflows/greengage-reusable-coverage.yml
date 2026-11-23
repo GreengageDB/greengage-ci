@@ -14,9 +14,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
       coverage_threshold:
         description: 'Minimum coverage percentage required (e.g., 75)'
         required: true

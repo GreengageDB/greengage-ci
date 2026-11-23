@@ -10,9 +10,9 @@ workflow run and extracts it on the runner.
   id: sql-dump
   uses: greengagedb/greengage-ci/.github/actions/sql-dump/fetch@v62
   with:
-    version: '6'
+    version: 6
     target_os: ubuntu
-    target_os_version: '24.04'
+    target_os_version: "24.04"
 ```
 
 The extracted dump file is available through the `sql_dump` output:
@@ -40,14 +40,12 @@ Input | Description | Required | Default
 `artifact_prefix` | Prefix of the SQL dump artifact name | No | `sqldump_ggdb`
 `archive_suffix` | Suffix of the SQL dump archive name | No | `_postgres_sqldump`
 
-The target OS name is formed from `target_os` and `target_os_version`. Version
-`22.04` is omitted to preserve the existing Ubuntu 22.04 naming convention.
+The target OS name is formed from `target_os` and `target_os_version`.
 
 For example:
 
 ```text
-ubuntu + ''     → ubuntu
-ubuntu + 22.04  → ubuntu
+ubuntu + 22.04  → ubuntu22.04
 ubuntu + 24.04  → ubuntu24.04
 ```
 

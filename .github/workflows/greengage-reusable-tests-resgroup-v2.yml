@@ -15,9 +15,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
       timeout:
         description: |
           Test timeout in minutes (int, 1–360).

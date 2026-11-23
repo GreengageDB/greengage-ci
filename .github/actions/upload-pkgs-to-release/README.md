@@ -55,11 +55,11 @@ jobs:
       matrix:
         include:
         - target_os: ubuntu
-          target_os_version: 22.04
+          target_os_version: "22.04"
           extensions:       deb ddeb
           artifact_prefix:  deb-packages-pxf6
         - target_os: ubuntu
-          target_os_version: 24.04
+          target_os_version: "24.04"
           extensions:       deb ddeb
           artifact_prefix:  deb-packages-pxf6
     runs-on: ubuntu-latest

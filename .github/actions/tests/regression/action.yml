@@ -11,8 +11,7 @@ inputs:
     required: true
   target_os_version:
     description: 'Target OS version (e.g., 22.04)'
-    required: false
-    default: ''
+    required: true
   optimizer:
     description: 'Optimizer for tests (e.g., postgres, orca)'
     required: true

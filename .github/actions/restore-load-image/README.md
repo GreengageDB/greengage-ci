@@ -8,9 +8,9 @@ Pulls the Docker images from GHCR (or restores the developer image tarball from 
 - name: Restore and load Docker image
   uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
   with:
-    version: '6' # or '7'
-    target_os: 'ubuntu'
-    target_os_version: '22.04'
+    version: 6
+    target_os: ubuntu
+    target_os_version: "22.04"
 ```
 
 With optional `ci/` folder extraction:
@@ -19,9 +19,9 @@ With optional `ci/` folder extraction:
 - name: Restore and load Docker image
   uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
   with:
-    version: '7'
-    target_os: 'ubuntu'
-    target_os_version: '24.04'
+    version: 7
+    target_os: ubuntu
+    target_os_version: "24.04"
     extract_ci: ci
 ```
 
@@ -60,7 +60,7 @@ Real-world example — used by the `pg_upgrade` test job to derive a name for th
   with:
     version: 7
     target_os: ubuntu
-    target_os_version: 22.04
+    target_os_version: "24.04"
     extract_ci: ci
 
 - name: Define PG_UPGRADE_IMAGE name from IMAGE_DEVELOPER

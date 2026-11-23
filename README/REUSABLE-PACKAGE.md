@@ -27,14 +27,14 @@ It is designed to be called from a parent CI pipeline.
      `make -C gpdb_src/gpAux pkg-rpm` (Rocky Linux).
    - Uploads generated packages as artifact named
      `{artifact_prefix}-{target_os}{target_os_version}`
-     (e.g. `Package-ubuntu22.04` or `Package-rockylinux8`).
+     (e.g. `Package-ubuntu22.04` or `Package-rockylinux9`).
 
 2. **Test Installation in Docker** (steps of `build-package`, run after
    the artifact upload, if `test_install` is `true`):
 
    - Ubuntu: uses the
      [`tests/install/deb`](../.github/actions/tests/install/deb/action.yml)
-     action against `ubuntu:{target_os_version || '22.04'}`.
+     action against `ubuntu:{target_os_version}`.
    - Rocky Linux: uses the
      [`tests/install/rpm`](../.github/actions/tests/install/rpm/action.yml)
      action against `rockylinux:{target_os_version}`.
@@ -56,7 +56,7 @@ It is designed to be called from a parent CI pipeline.
 | --- | --- | --- | --- |
 | `version` | Greengage version (e.g., `6` or `7`) | yes | — |
 | `target_os` | Target OS (`ubuntu` or `rockylinux`) | yes | — |
-| `target_os_version` | Target OS version (e.g., `24.04`, `8`). Falls back to `22.04` for `ubuntu` if empty; required for `rockylinux`. | no | `''` |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`). | yes | — |
 | `artifact_prefix` | Artifact name prefix. Full name: `{prefix}-{target_os}{target_os_version}`. | no | `Package` |
 | `test_install` | Test package installation in `{target_os}:{target_os_version}`. | no | `false` |
 
@@ -81,6 +81,7 @@ jobs:
     with:
       version: 6
       target_os: ubuntu
+      target_os_version: "22.04"
       test_install: true
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
@@ -96,20 +97,21 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
           - target_os: ubuntu
-            target_os_version: '24.04'
+            target_os_version: "24.04"
           - target_os: rockylinux
-            target_os_version: '8'
+            target_os_version: 9
     permissions:
       contents: read
       packages: write
       actions: write
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@CI-6587
     with:
-      version:             6
-      target_os:           ${{ matrix.target_os }}
-      target_os_version:   ${{ matrix.target_os_version }}
-      test_install:         true
+      version:           6
+      target_os:         ${{ matrix.target_os }}
+      target_os_version: ${{ matrix.target_os_version }}
+      test_install:      true
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -119,9 +121,11 @@ jobs:
 ```yaml
     uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@CI-6587
     with:
-      version:         6
-      target_os:       ubuntu
+      version:           7
+      target_os:         ubuntu
+      target_os_version: "24.04"
       artifact_prefix: deb-packages-greengage6
+      test_install:      true
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -133,9 +137,7 @@ jobs:
 - If `test_install` is `false` (default), the installation test steps
   are skipped. They are steps of `build-package`, so no separate
   checks appear in the PR checks list.
-- For `rockylinux`, `target_os_version` is required when `test_install`
-  is `true` — there is no fallback version.
 - Artifact name convention: `{artifact_prefix}-{target_os}{target_os_version}`,
-  e.g. `Package-ubuntu22.04` or `Package-rockylinux8`.
+  e.g. `Package-ubuntu22.04` or `Package-rockylinux9`.
 - The `upload-pkgs-to-release` action expects the artifact name to follow
   this convention — ensure `artifact_prefix` matches between workflows.

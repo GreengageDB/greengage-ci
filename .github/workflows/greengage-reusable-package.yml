@@ -13,9 +13,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
       artifact_prefix:
         description: |
           Artifact name prefix. The full artifact name is constructed as
@@ -74,15 +73,15 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: ${{ inputs.artifact_prefix }}
 
       - name: Test installation (deb) in Ubuntu
         if: inputs.test_install && inputs.target_os == 'ubuntu'
         uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
         with:
-          test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
-          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          test_docker: ubuntu:${{ inputs.target_os_version }}
+          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*

@@ -19,14 +19,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
-        required: false
-        type: string
-        default: ''
       timeout:
         description: |
           Test timeout in minutes (int, 1–360).
@@ -131,8 +125,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.version == '6' && '24.04' || '' }}"
-          artifact_archive_name="${{ inputs.target_os }}${{ inputs.version == '6' && '24.04' || '' }}_postgres_sqldump.tar"
+          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}24.04"
+          artifact_archive_name="${{ inputs.target_os }}24.04_postgres_sqldump.tar"
 
           run_ids=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \

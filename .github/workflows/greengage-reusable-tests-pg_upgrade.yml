@@ -18,7 +18,7 @@ on:
         description: 'Target OS version (e.g., 24.04)'
         required: false
         type: string
-        default: ''
+        default: "24.04"
       test_script:
         description: 'Optional test script'
         required: false

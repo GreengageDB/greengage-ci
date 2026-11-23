@@ -42,9 +42,8 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)            | Yes      | String  | -       |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 | `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 70      |
 
 ### Secrets
@@ -77,7 +76,7 @@ To integrate this workflow into your pipeline:
       with:
         version: 7
         target_os: ubuntu
-        python3: ''
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
@@ -92,8 +91,9 @@ To integrate this workflow into your pipeline:
         matrix:
           include:
             - target_os: ubuntu
+              target_os_version: "22.04"
             - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: read
@@ -109,7 +109,7 @@ To integrate this workflow into your pipeline:
 
 ## Notes
 
-- The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu:<full-sha>`).
+- The Docker image is expected to be tagged with the full commit SHA (e.g., `ghcr.io/<owner>/<repo>/ggdb6_ubuntu24.04:<full-sha>`).
 - Test features are dynamically discovered from `gpMgmt/test/behave/mgmt_utils` — each `.feature` file is executed as a separate matrix job.
 - Features tagged with `@skip` on the `Feature:` line are detected during matrix generation and excluded from the run matrix — skipped features are listed in the Job Summary of the `generate-matrix` step, providing accurate test observability.
 - For the `gpexpand` feature, the SQL dump download is allowed to fail without breaking the workflow — a missing dump will cause the `gpexpand` test job itself to fail.
