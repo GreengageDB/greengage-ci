@@ -1,23 +1,23 @@
 # .github/actions/restore-load-image/action.yml
-name: "Restore and load SHA image from cache"
-description: "Restores a Docker image tarball from cache and loads it"
+name: Restore and load SHA image from cache
+description: Pulls the base and developer Docker images from GHCR, or restores the developer image from cache, and loads it
 
 inputs:
   version:
-    description: 'Version derived from tag (e.g., 6 or 7)'
+    description: Version derived from tag (e.g., 6 or 7)
     required: true
   target_os:
-    description: 'Target OS'
+    description: Target OS
     required: true
   target_os_version:
-    description: 'Target OS version (e.g., 22.04, 24.04)'
+    description: Target OS version (e.g., 22.04, 24.04)
     required: true
   save_tar:
-    description: 'Save tar file after load'
+    description: Save tar file after load
     required: false
     default: ''
   extract_ci:
-    description: 'Extract CI folder from Image instaed of GIT'
+    description: Extract CI folder from the image instead of Git
     required: false
     default: ''
 runs:
