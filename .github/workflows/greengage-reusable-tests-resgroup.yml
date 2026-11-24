@@ -99,9 +99,11 @@ jobs:
 
           cat > vm-home/cloud-init <<'EOF0'
           # cloud-init setup script
-          set -e
+          set -ex
 
           source /home/gpadmin/.env.tests
+          
+          env
 
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh --version 20.10
