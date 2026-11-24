@@ -115,9 +115,9 @@ jobs:
           docker load < $IMAGE_FILE
           rm $IMAGE_FILE
 
-          # Extract test script from Image instaed of GIT
+          # Extract run_resgroup_test.bash script from Image instaed of GIT
           docker create --name temp-container $IMAGE
-          docker cp -L temp-container:/home/gpadmin/gpdb_src/ci/. ./ci/
+          temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash .
           docker rm temp-container
           EOF0
 
@@ -251,7 +251,7 @@ jobs:
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
-                          && bash ci/scripts/run_resgroup_test.bash"
+                          && bash run_resgroup_test.bash"
 
       - name: Collect logs
         if: always()
