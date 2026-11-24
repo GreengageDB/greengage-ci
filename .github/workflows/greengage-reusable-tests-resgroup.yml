@@ -235,6 +235,17 @@ jobs:
           if [[ "$EXIT_CODE" -eq 2 ]]; then echo "cloud-init status check has some warnings!"; exit 0; fi
           exit $EXIT_CODE
 
+      - name: Dump cloud-init log
+        if: always()
+        run: |
+          ${SSH_COMMAND} '
+            sudo cloud-init status --long              || true
+            echo "========== /var/log/cloud-init-output.log =========="
+            sudo cat /var/log/cloud-init-output.log    || true
+            echo "========== /var/log/cloud-init.log (tail) =========="
+            sudo tail -n 200 /var/log/cloud-init.log   || true
+          '
+
       - name: Run resgorup tests
         timeout-minutes: ${{ inputs.timeout }}
         run: |
