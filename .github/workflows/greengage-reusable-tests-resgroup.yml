@@ -53,12 +53,8 @@ jobs:
       - name: Setup QEMU
         run: |
           set -eux
-          region=$(curl -sf --max-time 2 http://169.254.169.254/latest/meta-data/placement/region || true)
-          if [ -n "${region}" ] && getent hosts "${region}.ec2.archive.ubuntu.com" >/dev/null; then
-            sudo sed -i -E \
-              "/priority:1\$/ s#^http://[a-z0-9-]+\.ec2\.archive\.ubuntu\.com/ubuntu/#http://${region}.ec2.archive.ubuntu.com/ubuntu/#" \
-              /etc/apt/apt-mirrors.txt
-          fi
+          printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' \
+            | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
           cat -A /etc/apt/apt-mirrors.txt
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
