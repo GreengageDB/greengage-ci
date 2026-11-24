@@ -1,0 +1,71 @@
+# .github/actions/get/aws/imds/action.yml
+name: Dump AWS IMDS raw data
+description: >
+  Tries IMDSv1 (no token) and IMDSv2 (with token) against all key paths
+  and prints raw responses. Useful for diagnosing the runner environment
+  (region, instance-id, user-data, v1/v2 availability).
+
+runs:
+  using: composite
+  steps:
+    - name: Dump IMDS raw data
+      shell: bash
+      run: |
+        set -u
+        IMDS=http://169.254.169.254
+        TTL=60
+
+        hr() { printf '\n========== %s ==========\n' "$*"; }
+
+        # 0. Obtain IMDSv2 token (if v2 is enforced, v1 below will return 401)
+        hr "IMDSv2 token request (PUT /latest/api/token)"
+        TOKEN=$(curl -sS -X PUT \
+          -H "X-aws-ec2-metadata-token-ttl-seconds: ${TTL}" \
+          --max-time 2 \
+          -w '\nHTTP_CODE=%{http_code}\n' \
+          "${IMDS}/latest/api/token" || true)
+        echo "$TOKEN"
+        TOKEN_VALUE=$(printf '%s\n' "$TOKEN" | sed '/^HTTP_CODE=/d')
+
+        # 1. Paths to probe with both versions
+        PATHS=(
+          "/latest/meta-data/"
+          "/latest/meta-data/placement/region"
+          "/latest/meta-data/placement/availability-zone"
+          "/latest/meta-data/instance-id"
+          "/latest/meta-data/instance-type"
+          "/latest/meta-data/local-ipv4"
+          "/latest/meta-data/public-ipv4"
+          "/latest/meta-data/iam/security-credentials/"
+          "/latest/meta-data/tags/instance/"
+          "/latest/dynamic/instance-identity/document"
+          "/latest/user-data"
+        )
+
+        # 2. IMDSv1: no token
+        hr "IMDSv1 (no token)"
+        for p in "${PATHS[@]}"; do
+          printf '\n--- GET %s ---\n' "$p"
+          curl -sS --max-time 2 \
+            -w '\nHTTP_CODE=%{http_code}\n' \
+            "${IMDS}${p}" || true
+        done
+
+        # 3. IMDSv2: with token (if token is empty, requests will return 401 - still informative)
+        hr "IMDSv2 (with token)"
+        if [ -n "${TOKEN_VALUE}" ]; then
+          for p in "${PATHS[@]}"; do
+            printf '\n--- GET %s ---\n' "$p"
+            curl -sS --max-time 2 \
+              -H "X-aws-ec2-metadata-token: ${TOKEN_VALUE}" \
+              -w '\nHTTP_CODE=%{http_code}\n' \
+              "${IMDS}${p}" || true
+          done
+        else
+          echo "TOKEN_VALUE is empty - skipping v2 requests (v2 likely requires a token that we failed to obtain)."
+        fi
+
+        # 4. Direct GET /latest/api/token (for comparison with PUT)
+        hr "GET /latest/api/token (expected 405 Method Not Allowed)"
+        curl -sS --max-time 2 -w '\nHTTP_CODE=%{http_code}\n' \
+          "${IMDS}/latest/api/token" || true

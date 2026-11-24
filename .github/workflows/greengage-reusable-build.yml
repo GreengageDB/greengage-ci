@@ -45,6 +45,10 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/get/apt/config@CI-6587
         continue-on-error: true
 
+      - name: Dump AWS IMDS raw
+        uses: ./.github/actions/get/aws/imds
+        continue-on-error: true
+
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
 
