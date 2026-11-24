@@ -117,7 +117,7 @@ jobs:
 
           # Extract run_resgroup_test.bash script from Image instaed of GIT
           docker create --name temp-container $IMAGE
-          temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash .
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash .
           docker rm temp-container
           EOF0
 
