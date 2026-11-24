@@ -117,7 +117,7 @@ jobs:
 
           # Extract test script from Image instaed of GIT
           docker create --name temp-container $IMAGE
-          docker cp temp-container:/home/gpadmin/gpdb_src/ci/. ./ci/
+          docker cp -L temp-container:/home/gpadmin/gpdb_src/ci/. ./ci/
           docker rm temp-container
           EOF0
 
