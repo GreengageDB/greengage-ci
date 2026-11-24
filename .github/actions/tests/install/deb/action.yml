@@ -29,6 +29,20 @@ runs:
   using: composite
   steps:
     - name: Download deb artifact
+      id: dl
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: deb-packages
+
+    - name: Wait before retry
+      if: steps.dl.outcome == 'failure'
+      shell: bash
+      run: sleep 10
+
+    - name: Download deb artifact (retry)
+      if: steps.dl.outcome == 'failure'
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.artifact_name }}
