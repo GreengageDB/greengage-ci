@@ -30,3 +30,6 @@ runs:
         curl http://169.254.169.254/latest/meta-data/placement/host-id
         curl http://169.254.169.254/latest/meta-data/placement/partition-number
         curl http://169.254.169.254/latest/meta-data/placement/region
+
+
+        curl -s curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region'
