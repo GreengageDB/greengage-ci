@@ -219,22 +219,26 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Wait for QEMU VM SSH and cloud-init are ready
+        id: cloud-init
         run: |
           timeout 360 bash -c '
-            set -x
             until ssh -q qemu-vm exit; do
               echo "Waiting for SSH (qemu-vm) to become available..."
               sleep 5
             done
           ' || { echo "Timeout reached: SSH is not available"; exit 1; }
 
-          EXIT_CODE=0
-          ${SSH_COMMAND} "echo 'Waiting for cloud-init to be done...' && sudo cloud-init status --wait" || EXIT_CODE=$?
-          if [[ "$EXIT_CODE" -eq 2 ]]; then echo "cloud-init status check has some warnings!"; exit 0; fi
-          exit $EXIT_CODE
+          exit_code=0
+          ${SSH_COMMAND} "echo 'Waiting for cloud-init to be done...' && sudo cloud-init status --wait" || exit_code=$?
+          if [[ "$exit_code" -eq 2 ]]; then
+            echo "cloud-init status check has some warnings!"
+            echo "CLOUD_INIT_WARNING=1"  >> $GITHUB_ENV
+            exit 0
+          fi
+          exit $exit_code
 
       - name: Dump cloud-init log
-        if: always()
+        if: always() && (steps.cloud-init.outcome == 'failure' || runner.debug == '1' || env.CLOUD_INIT_WARNING == '1')
         run: |
           ${SSH_COMMAND} '
             sudo cloud-init status --long              || true
@@ -242,7 +246,7 @@ jobs:
             sudo cat /var/log/cloud-init-output.log    || true
             echo "========== /var/log/cloud-init.log (tail) =========="
             sudo tail -n 200 /var/log/cloud-init.log   || true
-          '
+          ' || true
 
       - name: Run resgorup tests
         timeout-minutes: ${{ inputs.timeout }}
