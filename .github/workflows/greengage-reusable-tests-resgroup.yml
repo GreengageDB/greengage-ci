@@ -50,15 +50,13 @@ jobs:
       SSH_COMMAND: "ssh qemu-vm"
 
     steps:
+      - name: APT Update
+        uses: greengagedb/greengage-ci/.github/actions/apt/update@CI-6587
+
       - name: Setup QEMU
-        run: |
-          set -eux
-          printf 'https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttps://security.ubuntu.com/ubuntu/\tpriority:2\n' \
-            | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
-          cat -A /etc/apt/apt-mirrors.txt
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: sudo apt-get install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
 
       - name: Download Ubuntu cloud image
         run: |

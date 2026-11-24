@@ -195,13 +195,13 @@ jobs:
           pattern: behave_*_results
           merge-multiple: true
 
-      # Install Allure CLI
+      - name: APT Update
+        uses: greengagedb/greengage-ci/.github/actions/apt/update@CI-6587
+
       - name: Install Allure CLI
         run: |
           # Download Allure .deb package
           curl -o allure_2.34.0-1_all.deb -L https://github.com/allure-framework/allure2/releases/download/2.34.0/allure_2.34.0-1_all.deb
-          # Update package index
-          sudo apt-get update
           # Install Allure and dependencies
           sudo apt-get install -y ./allure_2.34.0-1_all.deb
           # Remove .deb file
