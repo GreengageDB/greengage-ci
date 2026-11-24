@@ -11,25 +11,27 @@ runs:
     - name: Dump IMDS raw data
       shell: bash
       run: |
-        TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+        TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -sH "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
         echo " === TOKEN $TOKEN ==="
         echo " === API v2 ==="
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone-id
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/group-name
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/host-id
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/partition-number
-        curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/ | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone-id | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/group-name | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/host-id | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/partition-number | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region | jq
 
         echo " === API v1 ==="
-        curl http://169.254.169.254/latest/meta-data/
-        curl http://169.254.169.254/latest/meta-data/placement/availability-zone
-        curl http://169.254.169.254/latest/meta-data/placement/availability-zone-id
-        curl http://169.254.169.254/latest/meta-data/placement/group-name
-        curl http://169.254.169.254/latest/meta-data/placement/host-id
-        curl http://169.254.169.254/latest/meta-data/placement/partition-number
-        curl http://169.254.169.254/latest/meta-data/placement/region
+        curl -s http://169.254.169.254/latest/meta-data/ | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone-id | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/group-name | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/host-id | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/partition-number | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/region | jq
 
 
-        curl -s curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region'
+        echo "=== REGION BEGIN >>>"
+        curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region'
+        echo "<<< REGION END ==="
