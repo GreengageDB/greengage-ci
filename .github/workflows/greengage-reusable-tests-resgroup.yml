@@ -53,6 +53,10 @@ jobs:
       - name: Setup QEMU
         run: |
           set -eux
+          mirror_ip=$(host azure.archive.ubuntu.com | awk '/has address/{print $NF; exit}')
+          if curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
+            printf "archive.ubuntu.com %s\nsecurity.ubuntu.com %s\n" "${mirror_ip}" "${mirror_ip}" | sudo tee -a /etc/hosts > /dev/null
+          fi
           sudo apt update
           sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
 
