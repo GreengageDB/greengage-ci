@@ -223,6 +223,7 @@ jobs:
       - name: Wait for QEMU VM SSH and cloud-init are ready
         run: |
           timeout 360 bash -c '
+            set -x
             until ssh -q qemu-vm exit; do
               echo "Waiting for SSH (qemu-vm) to become available..."
               sleep 5
