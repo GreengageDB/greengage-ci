@@ -47,7 +47,7 @@ jobs:
         if: runner.debug == '1'
 
       - name: Dump AWS IMDS raw
-        uses: ./.github/actions/get/aws/imds
+        uses: greengagedb/greengage-ci/.github/actions/get/aws/imds@CI-6587
         continue-on-error: true
         if: runner.debug == '1'
 
