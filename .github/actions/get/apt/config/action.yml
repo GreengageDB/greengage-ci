@@ -1,3 +1,4 @@
+# .github/actions/get/apt/config/action.yml
 name: Dump apt configuration
 description: >
   Prints Ubuntu apt sources, mirrorlist, effective configuration,
