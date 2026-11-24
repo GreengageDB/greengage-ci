@@ -41,6 +41,10 @@ jobs:
       OS_VERSION:     ${{ inputs.target_os_version }}
       SKIP_UNITTESTS: ${{ github.event_name != 'pull_request' && '1' || inputs.skip_unittests }}
     steps:
+      - name: Dump apt configuration
+        uses: greengagedb/greengage-ci/.github/actions/get/apt/config@CI-6587
+        continue-on-error: true
+
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v24
 

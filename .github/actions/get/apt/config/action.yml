@@ -1,0 +1,77 @@
+name: Dump apt configuration
+description: >
+  Prints Ubuntu apt sources, mirrorlist, effective configuration,
+  indextargets and DNS resolution of relevant hosts. Useful for debugging
+  slow, hanging or unexpectedly redirected `apt update` on GitHub-hosted
+  runners (Ubuntu 24.04 uses `mirror+file:///etc/apt/apt-mirrors.txt`).
+
+runs:
+  using: composite
+  steps:
+    - name: Dump apt configuration
+      shell: bash
+      run: |
+        set -ux
+
+        section() { printf '\n===== %s =====\n' "$*"; }
+
+        section "OS release"
+        cat /etc/os-release 2>/dev/null || true
+
+        section "/etc/apt/apt-mirrors.txt"
+        if [ -e /etc/apt/apt-mirrors.txt ]; then
+          ls -l /etc/apt/apt-mirrors.txt
+          cat -A /etc/apt/apt-mirrors.txt
+        else
+          echo "NOT PRESENT"
+        fi
+
+        section "/etc/apt/sources.list"
+        if [ -e /etc/apt/sources.list ]; then
+          cat -A /etc/apt/sources.list
+        else
+          echo "NOT PRESENT"
+        fi
+
+        section "/etc/apt/sources.list.d/"
+        ls -la /etc/apt/sources.list.d/ 2>/dev/null || true
+        for f in /etc/apt/sources.list.d/*; do
+          [ -e "$f" ] || continue
+          echo "--- $f ---"
+          cat -A "$f"
+          echo
+        done
+
+        section "/etc/apt/apt.conf"
+        if [ -e /etc/apt/apt.conf ]; then
+          cat -A /etc/apt/apt.conf
+        else
+          echo "NOT PRESENT"
+        fi
+
+        section "/etc/apt/apt.conf.d/"
+        ls -la /etc/apt/apt.conf.d/ 2>/dev/null || true
+        for f in /etc/apt/apt.conf.d/*; do
+          [ -e "$f" ] || continue
+          echo "--- $f ---"
+          cat -A "$f"
+          echo
+        done
+
+        section "apt-config dump (effective config)"
+        apt-config dump 2>&1 || true
+
+        section "Effective sources (apt-get indextargets)"
+        apt-get indextargets \
+          --format '$(SITE) $(RELEASE) $(COMPONENT) $(IDENTIFIER)' 2>&1 || true
+
+        section "DNS resolution"
+        for h in archive.ubuntu.com security.ubuntu.com azure.archive.ubuntu.com \
+                 us-east-2.ec2.archive.ubuntu.com packages.microsoft.com; do
+          echo "--- $h ---"
+          getent ahostsv4 "$h" || echo "no A record"
+          getent ahostsv6 "$h" || echo "no AAAA record"
+        done
+
+        section "/etc/hosts"
+        cat -A /etc/hosts
