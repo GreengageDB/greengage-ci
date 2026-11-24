@@ -61,7 +61,6 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
 
       - name: Download Ubuntu cloud image
-        if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
           wget -q -O ubuntu-22.04.img \
