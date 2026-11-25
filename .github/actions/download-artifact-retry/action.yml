@@ -1,17 +1,11 @@
 # .github/actions/download-artifact-retry/action.yml
 name: Download artifact with retry
-description: Download artifact(s); retry once if the first attempt fails
+description: Download an artifact; retry once if GitHub has not listed it yet
 
 inputs:
   name:
-    description: Artifact name (leave empty when using pattern)
-    default: ''
-  pattern:
-    description: Glob pattern of artifact names (used instead of name)
-    default: ''
-  merge-multiple:
-    description: Merge all matched artifacts into one directory
-    default: 'false'
+    description: Artifact name
+    required: true
   path:
     description: Destination path
     default: .
@@ -28,8 +22,6 @@ runs:
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
-        pattern: ${{ inputs.pattern }}
-        merge-multiple: ${{ inputs.merge-multiple }}
         path: ${{ inputs.path }}
 
     - name: Wait before retry
@@ -44,6 +36,4 @@ runs:
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
-        pattern: ${{ inputs.pattern }}
-        merge-multiple: ${{ inputs.merge-multiple }}
         path: ${{ inputs.path }}
