@@ -14,9 +14,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
       coverage_threshold:
         description: 'Minimum coverage percentage required (e.g., 75)'
         required: true
@@ -47,7 +46,7 @@ jobs:
       COVERAGE_REPORT: coverage-combined/coverage-report.txt
     steps:
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}

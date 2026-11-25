@@ -13,7 +13,7 @@ inputs:
   target_os_version:
     description: Target OS version
     required: false
-    default: 24.04
+    default: "24.04"
   repo:
     description: Select another repository using the [HOST/]OWNER/REPO format
     required: false
@@ -45,7 +45,7 @@ runs:
       WORKFLOW: ${{ inputs.workflow }}
       GH_TOKEN: ${{ github.token }}
     run: |
-      target_os_name="${{ inputs.target_os }}${{ inputs.target_os_version == '22.04' && '' || inputs.target_os_version }}"
+      target_os_name="${{ inputs.target_os }}${{ inputs.target_os_version }}"
       artifact_name="${{ inputs.artifact_prefix }}${{ inputs.version }}_$target_os_name"
       archive_name="${target_os_name}${{ inputs.archive_suffix }}.tar"
       run_ids=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" \

@@ -4,7 +4,7 @@ This composite GitHub Action orchestrates the package release process by coordin
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release/action.yaml@v45`
+- `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release/action.yaml@CI-6587`
 
 ## Workflow Coordination Model
 
@@ -55,11 +55,11 @@ jobs:
       matrix:
         include:
         - target_os: ubuntu
-          target_os_version: 22.04
+          target_os_version: "22.04"
           extensions:       deb ddeb
           artifact_prefix:  deb-packages-pxf6
         - target_os: ubuntu
-          target_os_version: 24.04
+          target_os_version: "24.04"
           extensions:       deb ddeb
           artifact_prefix:  deb-packages-pxf6
     runs-on: ubuntu-latest

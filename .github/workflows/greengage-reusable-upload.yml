@@ -14,14 +14,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
-      python3:
-        description: 'Python3 build argument'
-        required: false
-        type: string
-        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -60,7 +54,7 @@ jobs:
           filter: blob:none # without BLOBs
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -77,19 +71,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag and push Docker image
+      - name: Tag and push developer and base images
         env:
           REF: ${{ github.ref }}
           IMAGE: ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}
           DHCR_LOGGED_IN: ${{ steps.dhcr_login.outcome == 'success' && 'true' || '' }}
         run: |
-          GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}       ; export GHCR_IMAGE=${GHCR_IMAGE,,}
-          DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE} ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
+          GHCR_IMAGE=ghcr.io/${{ github.repository }}/${IMAGE}           ; export GHCR_IMAGE=${GHCR_IMAGE,,}
+          DOCKERHUB_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${IMAGE}     ; export DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE,,}
+          GHCR_BASE=ghcr.io/${{ github.repository }}/base_${IMAGE}       ; export GHCR_BASE=${GHCR_BASE,,}
+          DOCKERHUB_BASE=${{ secrets.DOCKERHUB_USERNAME }}/base_${IMAGE} ; export DOCKERHUB_BASE=${DOCKERHUB_BASE,,}
 
           # For tagged pushes, tag with git tag and check if it's the latest semantic tag
           if [[ "$REF" =~ ^refs/tags/ ]]; then
             # Current Git tag
-            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/\//_/g' || echo "unknown")
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/_/g')
             # All HEAD ref tags
             SEMANTIC_TAGS=$(git tag --merged | grep -E "^${{ inputs.version }}\.[0-9]+\.[0-9]+$" | sort -V)
             # Get the latest semantic tag
@@ -102,16 +98,20 @@ jobs:
               LATEST=''
               echo "Current tag $TAG is not the latest semantic tag (latest is $LATEST_SEMANTIC_TAG)"
             fi
+            [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_BASE:${{ github.sha }}  $DOCKERHUB_BASE:$TAG  && docker push $DOCKERHUB_BASE:$TAG  || true
             [ -n "$DHCR_LOGGED_IN" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$TAG && docker push $DOCKERHUB_IMAGE:$TAG || true
           else
             # For push to branch (e.g., main or 7.x) TAG is 'latest' for GHCR and 'testing' for DHCR
             LATEST='testing'
             # Update latest at GHCR for master pushes only
+            docker tag $GHCR_BASE:${{ github.sha }}  $GHCR_BASE:latest  && docker push $GHCR_BASE:latest
             docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:latest && docker push $GHCR_IMAGE:latest
           fi
 
           # If image was tagged
-          [ -n "$TAG" ]    && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG         && docker push $GHCR_IMAGE:$TAG
+          [ -n "$TAG" ] && docker tag $GHCR_BASE:${{ github.sha }}  $GHCR_BASE:$TAG  && docker push $GHCR_BASE:$TAG
+          [ -n "$TAG" ] && docker tag $GHCR_IMAGE:${{ github.sha }} $GHCR_IMAGE:$TAG && docker push $GHCR_IMAGE:$TAG
 
           # If tag is really latest or testing and DockerHub logged in
+          [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_BASE:${{ github.sha }}  $DOCKERHUB_BASE:$LATEST  && docker push $DOCKERHUB_BASE:$LATEST || true
           [[ -n "$LATEST" && -n "$DHCR_LOGGED_IN" ]] && docker tag $GHCR_IMAGE:${{ github.sha }} $DOCKERHUB_IMAGE:$LATEST && docker push $DOCKERHUB_IMAGE:$LATEST || true

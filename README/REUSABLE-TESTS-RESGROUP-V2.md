@@ -6,7 +6,7 @@ called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@CI-6587`
 
 ## Purpose
 
@@ -42,7 +42,7 @@ block devices and the container script rejects Docker overlay / tmpfs paths.
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (`7`; 7.x only)                 | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)            | Yes      | String  | -       |
 | `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 30      |
 
 ### Secrets
@@ -76,10 +76,11 @@ jobs:
       contents: read
       packages: read
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@v64
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup-v2.yml@CI-6587
     with:
       version: 7
       target_os: ubuntu
+      target_os_version: "24.04"
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```

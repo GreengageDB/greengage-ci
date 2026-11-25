@@ -13,9 +13,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
     secrets:
       ghcr_token:
         description: 'GitHub token for GHCR access'
@@ -29,7 +28,7 @@ jobs:
         uses: imjasonh/setup-crane@v0.3
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

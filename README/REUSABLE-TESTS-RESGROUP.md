@@ -4,7 +4,7 @@ This workflow runs resource groups test suites for the Greengage project using Q
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@CI-6587`
 
 ## Purpose
 
@@ -47,9 +47,8 @@ To integrate this workflow into your pipeline:
 |---------------------|---------------------------------------------------|----------|---------|---------|
 | `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
 | `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)            | Yes      | String  | -       |
 | `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
 | `timeout`           | Test timeout in minutes (int, 1–360)              | No       | Number  | 45      |
 
 ### Secrets
@@ -83,24 +82,25 @@ The workflow automatically configures the following environment variables based 
 
 ### Examples
 
-#### Single Job Example
+- **Single Configuration**
 
-```yaml
-jobs:
-    resgroup-tests:
-      permissions:
-        contents: read
-        packages: read
-        actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64
-      with:
-        version: 7
-        target_os: ubuntu
-      secrets:
-        ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-```
+  ```yaml
+  jobs:
+      resgroup-tests:
+        permissions:
+          contents: read
+          packages: read
+          actions: write
+        uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@CI-6587
+        with:
+          version: 7
+          target_os: ubuntu
+          target_os_version: "24.04"
+        secrets:
+          ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+  ```
 
-- Matrix
+- **Matrix Configuration**
 
   ```yaml
   jobs:
@@ -110,13 +110,12 @@ jobs:
         matrix:
           include:
             - target_os: ubuntu
-            - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: read
         actions: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@v64
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-resgroup.yml@CI-6587
       with:
         version: 7
         target_os: ${{ matrix.target_os }}
@@ -125,7 +124,7 @@ jobs:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
   ```
 
-## Artifacts
+### Artifacts
 
 The workflow uploads test artifacts for each optimizer configuration:
 

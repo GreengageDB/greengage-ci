@@ -1,76 +1,82 @@
 # Greengage Reusable Docker Retag and Upload Workflow
 
-This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR) and optionally DockerHub. It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
+This workflow retags and uploads Docker images for the Greengage project to the GitHub Container Registry (GHCR) and optionally DockerHub.
+It is designed to be called from a parent CI pipeline, enabling users to manage Docker image tags with flexible version and operating system configurations.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v60`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@CI-6587`
 
 ## Purpose
 
-The workflow performs the following task using a Docker image built for the given Greengage version and target operating system:
-
-- `retag-upload`
+The workflow takes the two images that the Build workflow made for the given Greengage version and target operating system: the base image and the developer image.
+It gives them the release tags and pushes them to GHCR and DockerHub.
+The workflow has one job, `upload`.
 
 ### Algorithm
-
-The workflow processes a Docker image to retag and push it to GHCR and DockerHub based on specific conditions. Below is the detailed algorithm:
 
 1. **Authentication**:
 
    - Login to GHCR is always mandatory.
    - Login to DockerHub is conditional:
 
-     - For repository `greengagedb/greengage`: mandatory (failure stops workflow)
-     - For other repositories: optional (failure is allowed)
+     - For repository `greengagedb/greengage`: mandatory (failure stops workflow).
+     - For other repositories: optional (failure is allowed).
 
-2. **Input Image**:
+2. **Input Images**:
 
-   - The workflow expects an existing Docker image in GHCR with the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`, where:
+   - The workflow expects two images in GHCR. The `restore-load-image` action loads them:
+
+     - The base image: `ghcr.io/<repo>/base_ggdb<version>_<target_os><target_os_version>:<full-sha>`
+     - The developer image: `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`
+
+   - Where:
 
      - `<repo>` is the repository name (`${{ github.repository }}`).
      - `<version>` is the Greengage version (e.g., `6` or `7`), provided via the `version` input.
-     - `<target_os>` is the target operating system (e.g., `ubuntu`, `centos`), provided via the `target_os` input.
-     - `<target_os_version>` is the OS version (e.g., `22.04`, `24.04`, `7`), provided via the `target_os_version` input.
+     - `<target_os>` is the target operating system (e.g., `ubuntu`, `rockylinux`), provided via the `target_os` input.
+     - `<target_os_version>` is the OS version (e.g., `22.04`, `24.04`, `9`), provided via the `target_os_version` input.
      - `<full-sha>` is the full commit SHA (`${{ github.sha }}`) of the repository at the time of the build.
 
-3. **Tag Assignment**:
+   - The names of the images in DockerHub are:
 
-   - The workflow assigns tags to the input image based on the event triggering the workflow:
+     - `<DOCKERHUB_USERNAME>/base_ggdb<version>_<target_os><target_os_version>`
+     - `<DOCKERHUB_USERNAME>/ggdb<version>_<target_os><target_os_version>`
 
-     - **For tagged push events** (when `github.ref` matches `refs/tags/*`):
+3. **Tags and Pushing**:
 
-       - The version tag is derived from the git tag using `git describe --tags --abbrev=0`.
-       - Slashes (`/`) in the tag are replaced with `_` to ensure a valid Docker tag.
-       - If no tag is found or the tag is invalid, the fallback tag `unknown` is used.
-       - The `latest` tag is assigned if this is the latest semantic version tag.
-       - Example: For a git tag `6.28.3`, the tags are `6.28.3` and possibly `latest`.
+   The workflow gives the same tags to the base image and to the developer image.
+   The tags depend on the event that started the workflow:
 
-     - **For push to a branch** (e.g., `main` or `7.x`):
+   | Event                     | GHCR      | DockerHub                                                         |
+   |---------------------------|-----------|-------------------------------------------------------------------|
+   | Push to a branch          | `latest`  | `testing`                                                         |
+   | Push of a git tag `X.Y.Z` | `X.Y.Z`   | `X.Y.Z`, and `latest` if this is the latest semantic version tag  |
 
-       - No version tag is assigned. Developer's branch tags pushed via Build.
-       - The `latest` tag is assigned for GHCR.
-       - The `testing` tag is assigned for DockerHub when logged in.
+   The workflow pushes to DockerHub only if the login to DockerHub was successful.
 
-4. **Tagging and Pushing**:
+   - **Push to a branch**:
 
-   - For tagged pushes:
+     - The workflow handles each ref that is not a tag as a push to a branch.
+     - The tag `latest` in GHCR points to the image of the last push to the branch.
+     - The workflow does not set the tags with the branch name. The Build workflow sets them for pull requests.
 
-     - The input image (`$GHCR_IMAGE:${{ github.sha }}`) is tagged with the version tag (`$GHCR_IMAGE:$TAG`) and pushed to GHCR.
-     - If the tag is the latest semantic version, it is also tagged as `latest` and pushed to GHCR.
-     - If DockerHub login was successful, the image is tagged with the version tag (`$DOCKERHUB_IMAGE:$TAG`) and pushed to DockerHub.
+   - **Push of a git tag** (when `github.ref` matches `refs/tags/*`):
 
-   - For branch pushes:
+     - The workflow gets the tag name from `git describe --tags --abbrev=0`.
+     - It replaces each character that is not alphanumeric, `.`, `_`, or `-` with `_` to make a valid Docker tag. The Build workflow uses the same rule for the branch name.
+     - A tag is the latest semantic version tag if it has the form `<version>.<number>.<number>`, and no newer tag of this form is merged into the checked out commit.
+     - The tag `latest` in GHCR does not change. The push to the branch has set it before the tagging.
+     - Example: for the git tag `6.28.3`, the images get the tag `6.28.3` in GHCR and in DockerHub. If `6.28.3` is the newest `6.x.y` tag, the images also get the tag `latest` in DockerHub.
 
-     - The input image is tagged as `latest` (`$GHCR_IMAGE:latest`) and pushed to GHCR.
-     - If DockerHub login was successful, the image is tagged as `testing` (`$DOCKERHUB_IMAGE:testing`) and pushed to DockerHub.
+4. **Failure Conditions**:
 
-5. **Failure Conditions**:
-
-   - If the input image does not exist in GHCR, the `docker pull` command will fail, causing the workflow to exit with an error.
-   - If the sanitized tag is invalid or empty (despite the `unknown` fallback), the `docker push` may fail if the tag does not conform to Docker's tag requirements.
-   - If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, DockerHub login may fail, but pushes to GHCR proceed.
-   - For repository `greengagedb/greengage`, DockerHub login failure will stop the workflow.
+   - If the developer image is not in GHCR and not in the cache, the `restore-load-image` action fails and the workflow stops.
+   - If the base image is not available on the runner, the commands for the base image fail without stopping the workflow, and the base image is not published.
+   - If the tag is empty or invalid, `docker push` fails because the tag does not conform to the Docker requirements.
+   - If `DOCKERHUB_USERNAME` or `DOCKERHUB_TOKEN` are missing, the login to DockerHub fails.
+     For repository `greengagedb/greengage`, this stops the workflow.
+     For other repositories, the workflow continues and pushes to GHCR only.
 
 ## Usage
 
@@ -82,67 +88,66 @@ To integrate this workflow into your pipeline:
 
 ### Inputs
 
-| Name                | Description                                       | Required | Type    | Default |
-|---------------------|---------------------------------------------------|----------|---------|---------|
-| `version`           | Greengage version (e.g., `6` or `7`)              | Yes      | String  | -       |
-| `target_os`         | Target operating system (e.g., `ubuntu`)          | Yes      | String  | -       |
-| `target_os_version` | Target OS version (e.g., ``, `24.04`)             | No       | String  | `''`    |
-| `skip_unittests`    | Skip unit tests during build (set to `1` to skip) | No       | String  | `''`    |
-| `python3`           | Python3 build argument (ignored)                  | No       | String  | `''`    |
+| Name                | Description                                            | Required | Type    | Default |
+|---------------------|--------------------------------------------------------|----------|---------|---------|
+| `version`           | Greengage version (e.g., `6` or `7`)                   | Yes      | String  | -       |
+| `target_os`         | Target operating system (e.g., `ubuntu`, `rockylinux`) | Yes      | String  | -       |
+| `target_os_version` | Target OS version (e.g., `24.04`, `9`)                 | Yes      | String  | -       |
 
 ### Secrets
 
-|Name                  | Description                           | Required|
-|--------------------- | ------------------------------------- | --------|
-|`ghcr_token`          | GitHub token for GHCR access          | Yes     |
-| `DOCKERHUB_USERNAME` | DockerHub username for authentication | No      |
-| `DOCKERHUB_TOKEN`    | DockerHub token for authentication    | No      |
+| Name                 | Description                           | Required |
+|----------------------|---------------------------------------|----------|
+| `ghcr_token`         | GitHub token for GHCR access          | Yes      |
+| `DOCKERHUB_USERNAME` | DockerHub username for authentication | No       |
+| `DOCKERHUB_TOKEN`    | DockerHub token for authentication    | No       |
 
 ### Requirements
 
 - **Permissions**: The job requires `contents: read` and `packages: write` permissions to access repository contents and push images to GHCR.
 - **Secrets**: Provide a `GITHUB_TOKEN` with sufficient permissions as the `ghcr_token` secret. Optionally provide `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` for DockerHub uploads.
-- **Docker Image**: Ensure a Docker image exists in GHCR matching the format `ghcr.io/<repo>/ggdb<version>_<target_os><target_os_version>:<full-sha>`. Rerun Build job for rebuild if Image not exists.
+- **Docker Images**: The Build workflow must make the base image and the developer image for the same commit and with the same inputs. Rerun the Build job if the images do not exist.
+- **Trigger**: The workflow does not check the branch or the event. The calling workflow must run it only for the version branches (by default `6.x`, `7.x`, and `next`) and for the tags of these versions.
 - **Repository Access**: The workflow checks out the repository specified in `github.repository`.
 
 ### Examples
 
-- Single
+- **Single Configuration**
 
   ```yaml
   jobs:
-    retag-upload:
+    upload:
       permissions:
         contents: read
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v60
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@CI-6587
       with:
         version: 7
         target_os: ubuntu
-        target_os_version: ''
-        python3: ''
+        target_os_version: "24.04"
       secrets:
         ghcr_token: ${{ secrets.GITHUB_TOKEN }}
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
-- Matrix
+- **Matrix Configuration**
 
   ```yaml
   jobs:
-    retag-upload:
+    upload:
       strategy:
         fail-fast: true
         matrix:
           include:
             - target_os: ubuntu
+              target_os_version: "22.04"
             - target_os: ubuntu
-              target_os_version: '24.04'
+              target_os_version: "24.04"
       permissions:
         contents: read
         packages: write
-      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@v60
+      uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@CI-6587
       with:
         version: 6
         target_os: ${{ matrix.target_os }}
@@ -153,10 +158,7 @@ To integrate this workflow into your pipeline:
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   ```
 
-### Notes
+## Notes
 
-- For push of a git tag (e.g., `6.28.3`), images are tagged with the version and possibly `latest` (if it's the latest semantic version) and pushed to GHCR. If DockerHub login is successful, the version tag is also pushed to DockerHub.
-- For push to a branch (e.g., `main` or `7.x`), images are tagged as `latest` for GHCR, and as `testing` for DockerHub (if login is successful).
-- Tags are always fetched to ensure correct version resolution.
-- DockerHub pushes only occur if login was successful.
+- The workflow fetches all tags to resolve the version correctly.
 - For further details, refer to the workflow file in the `.github/workflows/` directory.

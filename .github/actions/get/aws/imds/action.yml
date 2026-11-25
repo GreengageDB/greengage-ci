@@ -1,0 +1,37 @@
+# .github/actions/get/aws/imds/action.yml
+name: Dump AWS IMDS raw data
+description: >
+  Tries IMDSv1 (no token) and IMDSv2 (with token) against all key paths
+  and prints raw responses. Useful for diagnosing the runner environment
+  (region, instance-id, user-data, v1/v2 availability).
+
+runs:
+  using: composite
+  steps:
+    - name: Dump IMDS raw data
+      shell: bash
+      run: |
+        TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -sH "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+        echo " === TOKEN $TOKEN ==="
+        echo " === API v2 ==="
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/ | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone-id | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/group-name | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/host-id | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/partition-number | jq
+        curl -sH "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region | jq
+
+        echo " === API v1 ==="
+        curl -s http://169.254.169.254/latest/meta-data/ | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone-id | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/group-name | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/host-id | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/partition-number | jq
+        curl -s http://169.254.169.254/latest/meta-data/placement/region | jq
+
+
+        echo "=== REGION BEGIN >>>"
+        curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region'
+        echo "<<< REGION END ==="

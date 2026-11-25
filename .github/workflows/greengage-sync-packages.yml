@@ -45,7 +45,7 @@ jobs:
       # Every release asset is expected to end in "<sep><os><os_version>_<arch>.<ext>", where
       # <sep> is a single non-alphanumeric separator (e.g. "~" as used by
       # .github/actions/upload-pkgs-to-release, or "." as used by other build pipelines):
-      #   greengage-db_7.0.0~ubuntu22.04_amd64.deb
+      #   greengage7_7.0.0~ubuntu22.04_amd64.deb
       #   gpbackup-s3-plugin_1.2.3.ubuntu22.04_amd64.deb
       # A single release can carry packages for several OS/arch combinations at once, so we
       # scan the last RELEASES_LIMIT releases of every repo in SOURCE_REPOS, extract every

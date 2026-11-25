@@ -20,6 +20,7 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
           - target_os: ubuntu
             target_os_version: "24.04"
     permissions:
@@ -42,6 +43,7 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
           - target_os: ubuntu
             target_os_version: "24.04"
     permissions:
@@ -149,6 +151,7 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
           - target_os: ubuntu
             target_os_version: "24.04"
     permissions:
@@ -173,6 +176,7 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
             test_install: true
           - target_os: ubuntu
             target_os_version: "24.04"

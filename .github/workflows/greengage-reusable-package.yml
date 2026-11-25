@@ -13,9 +13,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
       artifact_prefix:
         description: |
           Artifact name prefix. The full artifact name is constructed as
@@ -55,7 +54,7 @@ jobs:
           password: ${{ secrets.ghcr_token }}
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -74,22 +73,22 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
           path: ${{ inputs.artifact_prefix }}
 
       - name: Test installation (deb) in Ubuntu
         if: inputs.test_install && inputs.target_os == 'ubuntu'
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@CI-6587
         with:
-          test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
-          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
+          test_docker: ubuntu:${{ inputs.target_os_version }}
+          artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
           verify_commands: |
             dpkg -l sigar 2>/dev/null || true
             dpkg -l greengage*
 
       - name: Test installation (rpm) in Rocky Linux
         if: inputs.test_install && inputs.target_os == 'rockylinux'
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v59
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@CI-6587
         with:
           test_docker: rockylinux:${{ inputs.target_os_version }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}

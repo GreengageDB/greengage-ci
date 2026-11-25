@@ -143,9 +143,9 @@ To integrate these workflows into your pipeline:
 
 | Name | Description | Required | Type |
 | ------ | ------------- | ---------- | ------ |
-| `version` | Greengage version (`6` or `7`) | Yes | String |
-| `target_os` | Target OS (e.g., `ubuntu`) | Yes | String |
-| `target_os_version` | Target OS version (`22.04`, `24.04`) | No | String |
+| `version` | Greengage version (`6`, `7` or `8`) | Yes | String |
+| `target_os` | Target OS (e.g., `ubuntu`, `rockylinux`) | Yes | String |
+| `target_os_version` | Target OS version (`22.04`, `24.04`, `9`) | Yes | String |
 
 ### Secrets
 
@@ -178,36 +178,9 @@ To integrate these workflows into your pipeline:
 
 ### Important Notes on `target_os_version`
 
-> **⚠️ BACKWARD COMPATIBILITY WARNING**
->
-> For `ubuntu`, specifying `target_os_version: "22.04"` explicitly is **not
-> recommended** and may break backward compatibility with previous CI versions.
->
-> **Reason**: In earlier CI versions, Ubuntu version was not versioned — it was
-> hardcoded as the only possible option. The version did not appear anywhere in
-> the configuration.
->
-> **Recommended approach**:
->
-> - For `ubuntu`, **omit** `target_os_version` (leave it empty) to use the
->   default behavior.
-> - Specify `target_os_version: "24.04"` only when you explicitly need Ubuntu
->   24.04.
->
-> **Example**:
->
-> ```yaml
-> # Correct for default Ubuntu (recommended)
-> - target_os: ubuntu
->
-> # Correct for explicit Ubuntu 24.04
-> - target_os: ubuntu
->   target_os_version: "24.04"
->
-> # NOT recommended (breaks backward compatibility)
-> - target_os: ubuntu
->   target_os_version: "22.04"
-> ```
+> **⚠️ `target_os_version` is required.**
+> Set it for every OS, for example `"22.04"`, `"24.04"` or `"9"`.
+> An empty value does not mean Ubuntu 22.04 any more.
 
 ### Examples
 
@@ -247,7 +220,7 @@ Both versions share these patterns:
 
 - Workflows assume the default branch is checked out unless specified otherwise.
 - Docker images are tagged with the full commit SHA and target OS version
-  (e.g., `ghcr.io/<owner>/<repo>/ggdb6_<target_os><target_os_version>:<sha>`).
+  (e.g., `ghcr.io/<owner>/<repo>/ggdb7_<target_os><target_os_version>:<sha>`).
 - The `upload` workflow pushes to GHCR and optionally to DockerHub (if
   credentials are provided).
 - The `resgroup-tests` workflow uses QEMU VM, requiring significant resources

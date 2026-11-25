@@ -15,14 +15,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
-        required: false
-        type: string
-        default: ''
       timeout:
         description: |
           Test timeout in minutes (int, 1–360).
@@ -56,21 +50,22 @@ jobs:
       SSH_COMMAND: "ssh qemu-vm"
 
     steps:
+      - name: APT Update
+        uses: greengagedb/greengage-ci/.github/actions/apt/update@CI-6587
+
       - name: Setup QEMU
-        run: |
-          set -eux
-          sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: sudo apt-get install -y qemu-kvm qemu-utils cloud-image-utils libguestfs-tools openssh-client
 
       - name: Download Ubuntu cloud image
-        if: steps.cache-qemu.outputs.cache-hit != 'true'
         run: |
           set -eux
           wget -q -O ubuntu-22.04.img \
             https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v28
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -102,9 +97,11 @@ jobs:
 
           cat > vm-home/cloud-init <<'EOF0'
           # cloud-init setup script
-          set -e
+          set -ex
 
           source /home/gpadmin/.env.tests
+          
+          env
 
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh --version 20.10
@@ -116,9 +113,9 @@ jobs:
           docker load < $IMAGE_FILE
           rm $IMAGE_FILE
 
-          # Extract test script from Image instaed of GIT
+          # Extract run_resgroup_test.bash script from Image instaed of GIT
           docker create --name temp-container $IMAGE
-          docker cp temp-container:/home/gpadmin/gpdb_src/ci/. ./ci/
+          docker cp temp-container:/home/gpadmin/gpdb_src/ci/scripts/run_resgroup_test.bash .
           docker rm temp-container
           EOF0
 
@@ -222,6 +219,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Wait for QEMU VM SSH and cloud-init are ready
+        id: cloud-init
         run: |
           timeout 360 bash -c '
             until ssh -q qemu-vm exit; do
@@ -230,17 +228,32 @@ jobs:
             done
           ' || { echo "Timeout reached: SSH is not available"; exit 1; }
 
-          EXIT_CODE=0
-          ${SSH_COMMAND} "echo 'Waiting for cloud-init to be done...' && sudo cloud-init status --wait" || EXIT_CODE=$?
-          if [[ "$EXIT_CODE" -eq 2 ]]; then echo "cloud-init status check has some warnings!"; exit 0; fi
-          exit $EXIT_CODE
+          exit_code=0
+          ${SSH_COMMAND} "echo 'Waiting for cloud-init to be done...' && sudo cloud-init status --wait" || exit_code=$?
+          if [[ "$exit_code" -eq 2 ]]; then
+            echo "cloud-init status check has some warnings!"
+            echo "CLOUD_INIT_WARNING=1"  >> $GITHUB_ENV
+            exit 0
+          fi
+          exit $exit_code
+
+      - name: Dump cloud-init log
+        if: always() && (steps.cloud-init.outcome == 'failure' || runner.debug == '1' || env.CLOUD_INIT_WARNING == '1')
+        run: |
+          ${SSH_COMMAND} '
+            sudo cloud-init status --long              || true
+            echo "========== /var/log/cloud-init-output.log =========="
+            sudo cat /var/log/cloud-init-output.log    || true
+            echo "========== /var/log/cloud-init.log (tail) =========="
+            sudo tail -n 200 /var/log/cloud-init.log   || true
+          ' || true
 
       - name: Run resgorup tests
         timeout-minutes: ${{ inputs.timeout }}
         run: |
           ${SSH_COMMAND} "cd /home/gpadmin \
                           && export \$(cat .env.tests | xargs) \
-                          && bash ci/scripts/run_resgroup_test.bash"
+                          && bash run_resgroup_test.bash"
 
       - name: Collect logs
         if: always()

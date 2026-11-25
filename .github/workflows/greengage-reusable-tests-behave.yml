@@ -19,14 +19,8 @@ on:
         type: string
       target_os_version:
         description: 'Target OS version (e.g., 24.04)'
-        required: false
+        required: true
         type: string
-        default: ''
-      python3:
-        description: 'Python3 build argument (ignored)'
-        required: false
-        type: string
-        default: ''
       timeout:
         description: |
           Test timeout in minutes (int, 1–360).
@@ -109,7 +103,7 @@ jobs:
         uses: greengagedb/greengage-ci/.github/actions/enable-docker-ipv6@v51
 
       - name: Restore & Load SHA image
-        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@v25
+        uses: greengagedb/greengage-ci/.github/actions/restore-load-image@CI-6587
         with:
           version: ${{ inputs.version }}
           target_os: ${{ inputs.target_os }}
@@ -131,8 +125,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.version == '6' && '24.04' || '' }}"
-          artifact_archive_name="${{ inputs.target_os }}${{ inputs.version == '6' && '24.04' || '' }}_postgres_sqldump.tar"
+          artifact_name="sqldump_ggdb${{ inputs.version }}_${{ inputs.target_os }}24.04"
+          artifact_archive_name="${{ inputs.target_os }}24.04_postgres_sqldump.tar"
 
           run_ids=$(gh run list --workflow "Greengage SQL Dump" \
             --limit 100 \
@@ -201,13 +195,13 @@ jobs:
           pattern: behave_*_results
           merge-multiple: true
 
-      # Install Allure CLI
+      - name: APT Update
+        uses: greengagedb/greengage-ci/.github/actions/apt/update@CI-6587
+
       - name: Install Allure CLI
         run: |
           # Download Allure .deb package
           curl -o allure_2.34.0-1_all.deb -L https://github.com/allure-framework/allure2/releases/download/2.34.0/allure_2.34.0-1_all.deb
-          # Update package index
-          sudo apt-get update
           # Install Allure and dependencies
           sudo apt-get install -y ./allure_2.34.0-1_all.deb
           # Remove .deb file

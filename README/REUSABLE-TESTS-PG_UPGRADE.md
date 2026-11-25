@@ -7,7 +7,7 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@CI-6587`
 
 ## Purpose
 
@@ -88,7 +88,7 @@ It is designed to be called from a parent CI pipeline.
 | ---- | ----------- | -------- | ------- |
 | `version` | Greengage version to upgrade to (target side of the pair) | no | `7` |
 | `target_os` | Target OS (`ubuntu` only) | no | `ubuntu` |
-| `target_os_version` | Target OS version (e.g., `24.04`) | no | `''` |
+| `target_os_version` | Target OS version (e.g., `24.04`) | no | `24.04` |
 | `test_script` | Test script to execute as `gpadmin` | no | `pg_upgrade_run_6X_to_7X_migration.bash` |
 | `cleanup_script` | Cleanup script to run after loading `SQL_SCHEMA` | no | `cleanup_regression_dump_from_6X.sql` |
 | `dump_options` | `pg_dump` parameters for pre- and post-upgrade dumps | no | `--data-only --extra-float-digits=-3` |
@@ -107,7 +107,7 @@ It is designed to be called from a parent CI pipeline.
 ```yaml
 jobs:
   pg_upgrade:
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@CI-6587
     secrets:
       ghcr_token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -122,9 +122,10 @@ jobs:
       matrix:
         include:
           - target_os: ubuntu
+            target_os_version: "22.04"
           - target_os: ubuntu
-            target_os_version: 24.04
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
+            target_os_version: "24.04"
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@CI-6587
     with:
       target_os: ${{ matrix.target_os }}
       target_os_version: ${{ matrix.target_os_version }}
@@ -137,7 +138,7 @@ jobs:
 ```yaml
 jobs:
   pg_upgrade:
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@v64
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-pg_upgrade.yml@CI-6587
     with:
       test_script: /path/to/custom-test-script.bash
       cleanup_script: /path/to/custom-cleanup.sql
@@ -156,7 +157,7 @@ jobs:
 
 - `target_os_version` is used to select the target image in the
   `Restore & Load SHA image` step and to form log and artifact names.
-  Leave it empty for Ubuntu 22.04.
+  Omit it for Ubuntu 24.04.
 
 - The SQL dump is always fetched from the Greengage 6.x side of the
   upgrade pair. The workflow `version` specifies the Greengage version
@@ -177,13 +178,12 @@ jobs:
   differences caused by version-specific DDL and synchronizing
   floating-point formatting.
 
-- The 6.x side of the upgrade pair is **not** - an input to this
-  workflow — it is resolved inside `ci/Dockerfile.pg_upgrade` via the
-  `GGDB6_IMAGE` build arg, which currently defaults to
-  `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest` (a development
-  build). If a stable/pinned 6.x pairing is needed, override
-  `GGDB6_IMAGE` explicitly when building
-  `ci/Dockerfile.pg_upgrade`.
+- The 6.x side of the upgrade pair is **not** an input to this
+  workflow. It is set by the `GGDB6_IMAGE` build arg when
+  `ci/Dockerfile.pg_upgrade` is built. The workflow overrides the
+  Dockerfile default with
+  `GGDB6_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu{target_os_version}:latest`,
+  so `target_os_version` also selects the OS version of the 6.x image.
 
 - Runtime logs are collected and uploaded on every run.
 
