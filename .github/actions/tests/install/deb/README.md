@@ -6,7 +6,7 @@ Tests Debian package installation inside a Docker container.
 
 ```yaml
 - name: Test deb package installation
-  uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
+  uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@CI-6618
   with:
     test_docker: 'ubuntu:22.04'                   # REQUIRED
     artifact_name: 'deb-packages-ubuntu22.04'     # REQUIRED
@@ -23,7 +23,7 @@ Tests Debian package installation inside a Docker container.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/tests/install/deb/action.yml@v25`
+- `greengagedb/greengage-ci/.github/actions/tests/install/deb/action.yml@CI-6618`
 
 ## Inputs
 
