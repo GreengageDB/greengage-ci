@@ -28,7 +28,7 @@ runs:
   using: composite
   steps:
     - name: Download rpm artifact
-      uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@CI-6618
+      uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@v65
       with:
         name: ${{ inputs.artifact_name }}
         path: rpm-packages

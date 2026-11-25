@@ -6,7 +6,7 @@ Downloads a workflow artifact and retries once if the first attempt fails.
 
 ```yaml
 - name: Download deb artifact
-  uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@CI-6618
+  uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@v65
   with:
     name: 'Package-ubuntu22.04'   # REQUIRED
     path: 'deb-packages'          # Optional (default: .)
@@ -17,7 +17,7 @@ Downloads a workflow artifact and retries once if the first attempt fails.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/actions/download-artifact-retry/action.yml@CI-6618`
+- `greengagedb/greengage-ci/.github/actions/download-artifact-retry/action.yml@v65`
 
 ## Inputs
 

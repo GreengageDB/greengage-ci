@@ -6,7 +6,7 @@ It is designed to be called from a parent CI pipeline.
 
 ## Actual version
 
-- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v59`
+- `greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v65`
 
 ## Purpose
 
@@ -77,7 +77,7 @@ jobs:
       contents: read
       packages: write
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v59
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v65
     with:
       version: 6
       target_os: ubuntu
@@ -104,7 +104,7 @@ jobs:
       contents: read
       packages: write
       actions: write
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v59
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v65
     with:
       version:             6
       target_os:           ${{ matrix.target_os }}
@@ -117,7 +117,7 @@ jobs:
 ### Custom artifact prefix
 
 ```yaml
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v59
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-package.yml@v65
     with:
       version:         6
       target_os:       ubuntu

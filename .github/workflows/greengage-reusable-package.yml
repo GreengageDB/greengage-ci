@@ -79,7 +79,7 @@ jobs:
 
       - name: Test installation (deb) in Ubuntu
         if: inputs.test_install && inputs.target_os == 'ubuntu'
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@CI-6618
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v65
         with:
           test_docker: ubuntu:${{ inputs.target_os_version || '22.04' }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version || '22.04' }}
@@ -89,7 +89,7 @@ jobs:
 
       - name: Test installation (rpm) in Rocky Linux
         if: inputs.test_install && inputs.target_os == 'rockylinux'
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@CI-6618
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/rpm@v65
         with:
           test_docker: rockylinux:${{ inputs.target_os_version }}
           artifact_name: ${{ inputs.artifact_prefix }}-${{ inputs.target_os }}${{ inputs.target_os_version }}
