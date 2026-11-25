@@ -28,6 +28,19 @@ runs:
   using: composite
   steps:
     - name: Download rpm artifact
+      id: dl
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: rpm-packages
+
+    - name: Wait before retry
+      if: steps.dl.outcome == 'failure'
+      shell: bash
+      run: sleep 10
+
+    - name: Download rpm artifact (retry)
+      if: steps.dl.outcome == 'failure'
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.artifact_name }}
