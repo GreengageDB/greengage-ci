@@ -1,0 +1,49 @@
+# .github/actions/download-artifact-retry/action.yml
+name: Download artifact with retry
+description: Download artifact(s); retry once if the first attempt fails
+
+inputs:
+  name:
+    description: Artifact name (leave empty when using pattern)
+    default: ''
+  pattern:
+    description: Glob pattern of artifact names (used instead of name)
+    default: ''
+  merge-multiple:
+    description: Merge all matched artifacts into one directory
+    default: 'false'
+  path:
+    description: Destination path
+    default: .
+  retry-delay:
+    description: Seconds to wait before the retry
+    default: '10'
+
+runs:
+  using: composite
+  steps:
+    - name: Download artifact
+      id: dl
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        path: ${{ inputs.path }}
+
+    - name: Wait before retry
+      if: steps.dl.outcome == 'failure'
+      shell: bash
+      env:
+        RETRY_DELAY: ${{ inputs.retry-delay }}
+      run: sleep "$RETRY_DELAY"
+
+    - name: Download artifact (retry)
+      if: steps.dl.outcome == 'failure'
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.name }}
+        pattern: ${{ inputs.pattern }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        path: ${{ inputs.path }}

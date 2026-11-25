@@ -54,18 +54,16 @@ jobs:
           target_os_version: ${{ inputs.target_os_version }}
 
       - name: Download behave artifacts
-        uses: actions/download-artifact@v8
+        uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@CI-6618
         with:
           path: downloaded-artifacts
           pattern: behave_*_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}_results
-          merge-multiple: false
 
       - name: Download regression artifacts
-        uses: actions/download-artifact@v8
+        uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@CI-6618
         with:
           path: downloaded-artifacts
           pattern: regression_ggdb${{ inputs.version }}_${{ inputs.target_os }}${{ inputs.target_os_version }}*
-          merge-multiple: false
 
       - name: Prepare coverage script
         run: |
