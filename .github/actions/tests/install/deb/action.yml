@@ -29,7 +29,7 @@ runs:
   using: composite
   steps:
     - name: Download deb artifact
-      uses: actions/download-artifact@v8
+      uses: greengagedb/greengage-ci/.github/actions/download-artifact-retry@v65
       with:
         name: ${{ inputs.artifact_name }}
         path: deb-packages
