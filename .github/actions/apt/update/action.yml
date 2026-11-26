@@ -11,6 +11,7 @@ runs:
   steps:
     - name: Detect cloud provider
       id: detect
+      shell: bash
       run: |
         # Detect the cloud provider.
         # Use the instance metadata service.
