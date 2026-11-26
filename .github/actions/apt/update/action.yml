@@ -1,6 +1,9 @@
 # .github/actions/apt/update/action.yml
 name: APT Update
 author: magf
+branding:
+  icon: package
+  color: blue
 description: >
   Detect the cloud provider.
   Fix the standard APT mirror names in /etc/hosts.
