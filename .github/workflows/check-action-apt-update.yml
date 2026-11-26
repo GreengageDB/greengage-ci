@@ -27,10 +27,31 @@ jobs:
         uses: raven-actions/actionlint@v2
         with:
           files: .github/workflows/check-action-apt-update.yml
-      - name: Action lint
-        uses: docker://rhysd/actionlint:latest
+
+      - name: Lint composite action with jactionlint
+        continue-on-error: true
+        uses: jdx/jactionlint@v2.6.0
         with:
-          args: .github/actions/apt/update/action.yml
+          files: .github/actions/apt/update/action.yml
+
+      - name: Preflight verify action manifest with action-proof
+        continue-on-error: true
+        uses: wildmason/action-proof@v1
+        with:
+          manifest: .github/actions/apt/update/action.yml
+          repo-root: .
+          format: markdown
+          output: action-proof.md
+          strict: "true"
+
+      - name: Validate action YAML with action-validator
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSfL "https://github.com/mpalmer/action-validator/releases/latest/download/action-validator-linux-amd64" -o /usr/local/bin/action-validator
+          chmod +x /usr/local/bin/action-validator
+          action-validator .github/actions/apt/update/action.yml
 
   shellcheck:
     name: Shellcheck
