@@ -84,7 +84,7 @@ runs:
         set -euo pipefail
 
         mirror_ip=$(host azure.archive.ubuntu.com \
-          | awk '/has address/{print $NF; exit}')
+          | awk '/has address/{print $NF; exit}') || true
         if [ -z "$mirror_ip" ]; then
           echo "Cannot resolve the Azure mirror. Skip hosts fix."
           exit 0
