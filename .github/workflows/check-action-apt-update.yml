@@ -113,6 +113,7 @@ jobs:
 
   functional:
     name: Functional
+    needs: [lint, shellcheck]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
