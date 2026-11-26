@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -sSfL "https://github.com/mpalmer/action-validator/releases/latest/download/action-validator-linux-amd64" -o /usr/local/bin/action-validator
+          curl -sSfL "https://github.com/mpalmer/action-validator/releases/download/v0.9.0/action-validator_linux_amd64" -o /usr/local/bin/action-validator
           chmod +x /usr/local/bin/action-validator
           action-validator .github/actions/apt/update/action.yml
 
