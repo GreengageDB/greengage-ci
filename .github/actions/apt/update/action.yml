@@ -1,0 +1,151 @@
+# .github/actions/apt/update/action.yml
+name: APT Update
+author: magf
+description: >
+  Detect the cloud provider.
+  Fix the standard APT mirror names in /etc/hosts.
+  Set the cloud APT mirror.
+  Update the APT repository index.
+runs:
+  using: composite
+  steps:
+    - name: Detect cloud provider
+      id: detect
+      shell: bash
+      run: |
+        # Detect the cloud provider.
+        # Use the instance metadata service.
+        # The result is one of: aws, azure, gcp, unknown.
+        # Do not print any metadata token.
+        set -euo pipefail
+
+        # --- Function: check AWS ---
+        check_aws() {
+          local token status
+          token=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+            -H "X-aws-ec2-metadata-token-ttl-seconds: 60" \
+            --max-time 2 2>/dev/null || true)
+          if [ -z "$token" ]; then
+            return 1
+          fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "X-aws-ec2-metadata-token: $token" \
+            --max-time 2 \
+            "http://169.254.169.254/latest/meta-data/" 2>/dev/null || true)
+          [ "$status" = "200" ]
+        }
+
+        # --- Function: check Azure ---
+        check_azure() {
+          local status
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Metadata: true" \
+            --max-time 2 \
+            "http://169.254.169.254/metadata/instance?api-version=2021-02-01" \
+            2>/dev/null || true)
+          [ "$status" = "200" ]
+        }
+
+        # --- Function: check GCP ---
+        check_gcp() {
+          local status
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Metadata-Flavor: Google" \
+            --max-time 2 \
+            "http://metadata.google.internal/computeMetadata/v1/" \
+            2>/dev/null || true)
+          [ "$status" = "200" ]
+        }
+
+        # --- Main ---
+        CLOUD="unknown"
+        if check_aws; then
+          CLOUD="aws"
+        elif check_azure; then
+          CLOUD="azure"
+        elif check_gcp; then
+          CLOUD="gcp"
+        fi
+
+        echo "Detected cloud: $CLOUD"
+        echo "cloud=$CLOUD" >> "$GITHUB_OUTPUT"
+
+    - name: Fix standard APT mirror names
+      shell: bash
+      run: |
+        # archive.ubuntu.com and security.ubuntu.com are not reachable
+        # from the runner network.
+        # Make them resolve to the Azure mirror IP.
+        # This step does not depend on the cloud provider.
+        # Skip if the Azure mirror is not reachable.
+        set -euo pipefail
+
+        mirror_ip=$(host azure.archive.ubuntu.com \
+          | awk '/has address/{print $NF; exit}')
+        if [ -z "$mirror_ip" ]; then
+          echo "Cannot resolve the Azure mirror. Skip hosts fix."
+          exit 0
+        fi
+        if ! curl -sf --max-time 5 "http://${mirror_ip}/ubuntu/" > /dev/null; then
+          echo "Azure mirror is not reachable. Skip hosts fix."
+          exit 0
+        fi
+
+        printf 'archive.ubuntu.com\t%s\n'  "$mirror_ip" | sudo tee -a /etc/hosts
+        printf 'security.ubuntu.com\t%s\n' "$mirror_ip" | sudo tee -a /etc/hosts
+
+    - name: Set cloud APT mirror
+      shell: bash
+      env:
+        CLOUD: ${{ steps.detect.outputs.cloud }}
+      run: |
+        # Always write the default mirrors.
+        # Use http, not https. The /etc/hosts fix maps the names
+        # to an IP without a matching certificate.
+        # If a working cloud mirror exists, prepend it at priority:1.
+        # If no cloud mirror exists, keep the default mirrors only.
+        set -euo pipefail
+
+        printf '%s\t%s\n' \
+          'http://archive.ubuntu.com/ubuntu/'  'priority:2' \
+          'http://security.ubuntu.com/ubuntu/' 'priority:3' \
+          | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+
+        cloud_mirror=""
+        case "$CLOUD" in
+          aws)
+            token=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+              -H "X-aws-ec2-metadata-token-ttl-seconds: 60" \
+              --max-time 2 || true)
+            if [ -n "$token" ]; then
+              region=$(curl -s -H "X-aws-ec2-metadata-token: $token" \
+                --max-time 2 \
+                "http://169.254.169.254/latest/meta-data/placement/region" \
+                || true)
+              if [ -n "$region" ]; then
+                cloud_mirror="http://${region}.ec2.archive.ubuntu.com/ubuntu/"
+              fi
+            fi
+            ;;
+          azure)
+            cloud_mirror="http://azure.archive.ubuntu.com/ubuntu/"
+            ;;
+        esac
+
+        if [ -z "$cloud_mirror" ]; then
+          echo "No cloud mirror for: $CLOUD. Keep the default mirrors."
+          exit 0
+        fi
+
+        if ! curl -sf --max-time 5 -o /dev/null "$cloud_mirror"; then
+          echo "Cloud mirror is not reachable: $cloud_mirror"
+          echo "Keep the default mirrors."
+          exit 0
+        fi
+
+        sudo sed -i "1i $(printf '%s\tpriority:1' "$cloud_mirror")" /etc/apt/apt-mirrors.txt
+        echo "Cloud mirror set: $cloud_mirror"
+
+    - name: APT Update
+      shell: bash
+      run:   sudo DEBIAN_FRONTEND=noninteractive apt-get update -q
