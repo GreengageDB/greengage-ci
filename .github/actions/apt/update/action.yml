@@ -94,8 +94,7 @@ runs:
           exit 0
         fi
 
-        printf 'archive.ubuntu.com\t%s\n'  "$mirror_ip" | sudo tee -a /etc/hosts
-        printf 'security.ubuntu.com\t%s\n' "$mirror_ip" | sudo tee -a /etc/hosts
+        echo "${mirror_ip} archive.ubuntu.com security.ubuntu.com" | sudo tee -a /etc/hosts
 
     - name: Set cloud APT mirror
       shell: bash
