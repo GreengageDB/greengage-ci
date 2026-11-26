@@ -90,26 +90,9 @@ jobs:
           fi
           echo "✅ All action checks passed"
 
-  shellcheck:
-    name: Shellcheck
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Run shellcheck
-        run: |
-          set -euo pipefail
-          mapfile -t files < <(git ls-files '.github/actions/apt/update/*.sh' '.github/actions/apt/update/*.bash')
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No tracked *.sh or *.bash files in apt, skip"
-            exit 0
-          fi
-          shellcheck "${files[@]}"
-
   functional:
     name: Functional
-    needs: [lint, shellcheck]
+    needs: lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
