@@ -48,7 +48,7 @@ The action has no inputs and no outputs.
 
 ## How it works
 
-The action runs four steps in this order.
+The action runs these steps in this order.
 
 1. **Detect cloud provider.**
    The step sends requests to the instance metadata service.
@@ -124,11 +124,11 @@ The token expires after 60 seconds.
 
 The workflow `.github/workflows/check-action-apt-update.yml` tests the action.
 It runs when a pull request changes the action or the workflow.
-The workflow has three jobs:
+The workflow has these jobs:
 
 - `Lint` checks the action manifest with linters.
 - `Functional` runs the action on a runner.
-  It starts only if `Lint` pass.
+  It starts only if `Lint` passes.
 
 ## License
 
