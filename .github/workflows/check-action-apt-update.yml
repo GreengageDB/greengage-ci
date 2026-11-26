@@ -43,7 +43,6 @@ jobs:
           manifest: .github/actions/apt/update/action.yml
           repo-root: .
           format: markdown
-          output: action-proof.md
           strict: "true"
 
       - name: Validate action YAML with action-validator
