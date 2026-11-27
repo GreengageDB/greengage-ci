@@ -34,6 +34,11 @@ jobs:
           sudo sed -i '/priority:1$/d' /etc/apt/apt-mirrors.txt
           echo "--- after removal ---"
           cat /etc/apt/apt-mirrors.txt
-      - name: Run apt-get update with standard mirrors (/etc/hosts)
+      - name: Clean apt cache and run apt-get update (/etc/hosts)
         timeout-minutes: 5
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get update
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive sh -c '
+            apt-get clean &&
+            rm -rf /var/lib/apt/lists/* &&
+            apt-get update
+          '
