@@ -1,0 +1,48 @@
+# .github/workflows/lint.yml
+name: Lint
+
+on:
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actions:
+    name: GitHub Actions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Lint workflows and actions
+        uses: jdx/jactionlint@v2.6.0
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install shellcheck
+        run: command -v shellcheck > /dev/null || pipx install shellcheck-py
+      - name: Run shellcheck
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*.sh' '*.bash')
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No tracked *.sh or *.bash files, skip"
+            exit 0
+          fi
+          shellcheck "${files[@]}"
