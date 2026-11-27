@@ -26,6 +26,7 @@ jobs:
       - name: Install jactionlint
         run: pipx install jactionlint
       - name: Lint workflows and actions
+        shell: bash
         run: jactionlint 2>&1 | tee jactionlint.log
       - name: Upload jactionlint log
         if: always()
