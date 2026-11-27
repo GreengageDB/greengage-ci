@@ -23,8 +23,18 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Install jactionlint
+        run: pipx install jactionlint
       - name: Lint workflows and actions
-        uses: jdx/jactionlint@v2.6.0
+        run: jactionlint 2>&1 | tee jactionlint.log
+      - name: Upload jactionlint log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jactionlint-log
+          path: jactionlint.log
+          retention-days: 7
+          if-no-files-found: warn
 
   shell:
     name: Shell scripts
@@ -42,7 +52,15 @@ jobs:
           set -euo pipefail
           mapfile -t files < <(git ls-files '*.sh' '*.bash')
           if [ ${#files[@]} -eq 0 ]; then
-            echo "No tracked *.sh or *.bash files, skip"
+            echo "No tracked *.sh or *.bash files, skip" | tee shellcheck.log
             exit 0
           fi
-          shellcheck "${files[@]}"
+          shellcheck "${files[@]}" 2>&1 | tee shellcheck.log
+      - name: Upload shellcheck log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: shellcheck-log
+          path: shellcheck.log
+          retention-days: 7
+          if-no-files-found: warn
