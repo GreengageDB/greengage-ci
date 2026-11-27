@@ -124,12 +124,5 @@ The token expires after 60 seconds.
 
 The workflow `.github/workflows/check-action-apt-update.yml` tests the action.
 It runs when a pull request changes the action or the workflow.
-The workflow has these jobs:
-
-- `Lint` checks the action manifest with linters.
-- `Functional` runs the action on a runner.
-  It starts only if `Lint` passes.
-
-## License
-
-Apache License 2.0. See the `LICENSE` file in the repository root.
+The workflow runs the action on a runner.
+The workflow fails if the action fails.
