@@ -1,5 +1,5 @@
-# .github/actions/apt/update/action.yml
-name: APT Update
+# .github/actions/apt/mirrors/action.yml
+name: APT Mirrors
 author: magf
 branding:
   icon: package
@@ -8,7 +8,6 @@ description: >
   Detect the cloud provider.
   Fix the standard APT mirror names in /etc/hosts.
   Set the cloud APT mirror.
-  Update the APT repository index.
 runs:
   using: composite
   steps:
@@ -147,7 +146,3 @@ runs:
 
         sudo sed -i "1i $(printf '%s\tpriority:1' "$cloud_mirror")" /etc/apt/apt-mirrors.txt
         echo "Cloud mirror set: $cloud_mirror"
-
-    - name: APT Update
-      shell: bash
-      run:   sudo DEBIAN_FRONTEND=noninteractive apt-get update -q

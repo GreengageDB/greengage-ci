@@ -1,10 +1,13 @@
-# APT Update
+# APT Mirrors
 
-A composite action that prepares APT on a GitHub-hosted Ubuntu runner.
+A composite action that sets the APT mirrors on a GitHub-hosted Ubuntu runner.
 
 The action detects the cloud provider.
+It maps the standard Ubuntu mirror names to a mirror that the runner can reach.
 It sets the APT mirror of the cloud provider.
-Then it updates the APT package index.
+
+The action does not update the APT package index.
+Run `apt-get update` after the action.
 
 ## Purpose
 
@@ -13,7 +16,7 @@ The action solves this problem.
 It maps the standard mirror names to a mirror that the runner can reach.
 It also puts the mirror of the cloud provider first in the mirror list.
 
-Use this action at the start of a job, before any `apt-get install` command.
+Use this action at the start of a job, before the `apt-get update` command.
 
 ## Requirements
 
@@ -30,8 +33,11 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
+      - name: APT Mirrors
+        uses: GreengageDB/greengage-ci/.github/actions/apt/mirrors@<ref>
+
       - name: APT Update
-        uses: GreengageDB/greengage-ci/.github/actions/apt/update@<ref>
+        run: sudo apt-get update
 
       - name: Install packages
         run: sudo apt-get install -y <package>
@@ -40,7 +46,10 @@ jobs:
 Replace `<ref>` with a tag, a branch name, or a full commit SHA.
 Use a full commit SHA to pin the version.
 
-In the same repository, use the local path `./.github/actions/apt/update`.
+In the same repository, use the local path `./.github/actions/apt/mirrors`.
+
+Do not skip the `APT Update` step.
+APT keeps the old package index until you update it.
 
 ## Inputs and outputs
 
@@ -66,9 +75,6 @@ The action runs these steps in this order.
    The step writes the default mirrors to `/etc/apt/apt-mirrors.txt`.
    If a cloud mirror exists and is reachable, the step adds it at the top of the list with `priority:1`.
    Otherwise the default mirrors stay.
-
-4. **APT Update.**
-   The step runs `apt-get update` in non-interactive mode.
 
 ### Cloud mirrors
 
@@ -122,7 +128,8 @@ The token expires after 60 seconds.
 
 ## Tests
 
-The workflow `.github/workflows/check-action-apt-update.yml` tests the action.
+The workflow `.github/workflows/check-action-apt-mirrors.yml` tests the action.
 It runs when a pull request changes the action or the workflow.
 The workflow runs the action on a runner.
-The workflow fails if the action fails.
+Then it runs `apt-get update`.
+The workflow fails if one of these steps fails.

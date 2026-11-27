@@ -1,12 +1,12 @@
-# .github/workflows/check-action-apt-update.yml
-name: Check action apt/update
+# .github/workflows/check-action-apt-mirrors.yml
+name: Check apt/mirrors action
 
 on:
   pull_request:
     branches: ['**']
     paths:
-      - '.github/actions/apt/update/**'
-      - '.github/workflows/check-action-apt-update.yml'
+      - '.github/actions/apt/mirrors/**'
+      - '.github/workflows/check-action-apt-mirrors.yml'
 
 permissions:
   contents: read
@@ -22,7 +22,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Git checkout
         uses: actions/checkout@v7
-      - name: Check APT Update
-        uses: ./.github/actions/apt/update
+      - name: Uses apt/mirrors action
+        uses: ./.github/actions/apt/mirrors
+      - name: Run apt-get update
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get update -q
