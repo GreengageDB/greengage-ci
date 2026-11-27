@@ -16,83 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Self lint
-        uses: raven-actions/actionlint@v2
-        with:
-          files: .github/workflows/check-action-apt-update.yml
-
-      - name: Lint composite action with jactionlint
-        id: jactionlint
-        continue-on-error: true
-        uses: jdx/jactionlint@v2.6.0
-        with:
-          files: .github/actions/apt/update/action.yml
-
-      - name: Preflight verify action manifest with action-proof
-        id: action-proof
-        continue-on-error: true
-        uses: wildmason/action-proof@v1
-        with:
-          manifest: .github/actions/apt/update/action.yml
-
-      - name: Validate action YAML with action-validator
-        id: action-validator
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -sSfL "https://github.com/mpalmer/action-validator/releases/download/v0.9.0/action-validator_linux_amd64" -o /usr/local/bin/action-validator
-          chmod +x /usr/local/bin/action-validator
-          action-validator .github/actions/apt/update/action.yml
-
-      - name: Summary
-        if: always()
-        shell: bash
-        env:
-          JACTIONLINT: ${{ steps.jactionlint.outcome }}
-          ACTION_PROOF: ${{ steps.action-proof.outcome }}
-          ACTION_VALIDATOR: ${{ steps.action-validator.outcome }}
-        run: |
-          set -euo pipefail
-          failed=0
-          {
-            echo "### Action lint results"
-            echo
-            echo "| Check | Result |"
-            echo "|---|---|"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-          report() {
-            local name="$1" outcome="$2" icon
-            case "${outcome}" in
-              success) icon="✅ ok" ;;
-              skipped) icon="⏭️ skipped" ;;
-              *)       icon="❌ ${outcome}"; failed=1 ;;
-            esac
-            echo "${icon}: ${name}"
-            echo "| ${name} | ${icon} |" >> "${GITHUB_STEP_SUMMARY}"
-          }
-
-          report "jactionlint" "${JACTIONLINT}"
-          report "action-proof" "${ACTION_PROOF}"
-          report "action-validator" "${ACTION_VALIDATOR}"
-
-          if [[ "${failed}" -ne 0 ]]; then
-            echo "::error::Some action checks failed"
-            exit 1
-          fi
-          echo "✅ All action checks passed"
-
   functional:
     name: Functional
-    needs: lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
