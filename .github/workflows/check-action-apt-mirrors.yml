@@ -28,3 +28,12 @@ jobs:
         uses: ./.github/actions/apt/mirrors
       - name: Run apt-get update
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get update -q
+      - name: Remove cloud mirror from mirror list
+        run: |
+          cat /etc/apt/apt-mirrors.txt
+          sudo sed -i '/priority:1$/d' /etc/apt/apt-mirrors.txt
+          echo "--- after removal ---"
+          cat /etc/apt/apt-mirrors.txt
+      - name: Run apt-get update with standard mirrors (/etc/hosts)
+        timeout-minutes: 5
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get update -q
