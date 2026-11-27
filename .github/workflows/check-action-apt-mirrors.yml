@@ -1,0 +1,44 @@
+# .github/workflows/check-action-apt-mirrors.yml
+name: Check apt/mirrors action
+
+on:
+  pull_request:
+    branches: ['**']
+    paths:
+      - '.github/actions/apt/mirrors/**'
+      - '.github/workflows/check-action-apt-mirrors.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  functional:
+    name: Functional
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+      - name: Uses apt/mirrors action
+        uses: ./.github/actions/apt/mirrors
+      - name: Run apt-get update
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get update
+      - name: Remove cloud mirror from mirror list
+        run: |
+          cat /etc/apt/apt-mirrors.txt
+          sudo sed -i '/priority:1$/d' /etc/apt/apt-mirrors.txt
+          echo "--- after removal ---"
+          cat /etc/apt/apt-mirrors.txt
+      - name: Clean apt cache and run apt-get update (/etc/hosts)
+        timeout-minutes: 5
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive sh -c '
+            apt-get clean &&
+            rm -rf /var/lib/apt/lists/* &&
+            apt-get update
+          '
